@@ -34,7 +34,7 @@ std::shared_ptr<Request> request(cd_connection_t* c,Action action,bool text,cons
  return std::make_shared<Request>(action,text,Options(defaults,options,timeout));
 }
 cd_status_t submit(cd_connection_t* c,std::shared_ptr<Request> r,cd_completion_fn cb,void* user,cd_operation_t** out) {
- require(r->options.timeout<=INT64_MAX,"Operation timeout is out of range");
+ require(r->options.timeout<=max_timeout_ms,"Operation timeout is out of range");
  auto op=std::make_shared<Operation>(c->value->runtime);r->operation=op;accept(op,cb,user,out);c->value->submit(std::move(r));return CD_OK;
 }
 template<class F> cd_status_t synchronous(cd_connection_t* c,cd_result_t** result,F&& start) {
@@ -171,7 +171,7 @@ cd_status_t CD_CALL cd_batch_run_async(cd_driver_t* d,const cd_batch_item_t* inp
    if(action==Action::ExecuteUntil) require(req->check.kind==CD_CHECK_CONTAINS||req->check.kind==CD_CHECK_REGEX,"ExecuteUntil requires Contains or Regex");
    if(action==Action::Upload||action==Action::Download) {req->source=copy(item.source);req->destination=copy(item.destination);text_argument(req->source,"Source required");text_argument(req->destination,"Destination required");if(auto o=item.transfer_options) {require(o->struct_size>=sizeof(*o),"Invalid TransferOptions");req->overwrite=o->overwrite!=0;if(o->timeout_ms) req->options.timeout=o->timeout_ms;req->options.cancellation=cancellation(o->cancellation);}}
    else req->input=text?encode(copy(item.command),req->options.encoding):copy(item.bytes);
-   require(req->options.timeout<=INT64_MAX,"Operation timeout is out of range");
+   require(req->options.timeout<=max_timeout_ms,"Operation timeout is out of range");
    batch->items.push_back({item.connection->value,req,key});batch->result->items.push_back({key,CD_BATCH_NOT_STARTED,{}});
   }
   batch->admitted.resize(static_cast<size_t>(count));accept(batch->operation,cb,user,out);
@@ -187,7 +187,7 @@ cd_status_t CD_CALL cd_response_checker_is_match_string(cd_string_view_t respons
 cd_status_t CD_CALL cd_response_checker_is_match_bytes(cd_bytes_view_t response,const cd_check_t* check,cd_result_t** out) {return cd_response_checker_is_match_string({reinterpret_cast<const char*>(response.data),response.size},check,out);}
 int32_t CD_CALL cd_operation_is_completed(cd_operation_t* o) {return o&&o->value->completed();}
 cd_status_t CD_CALL cd_operation_wait(cd_operation_t* o,uint64_t timeout,cd_result_t** out) {
- if(out)*out=nullptr;try {require(o&&out,"Operation and result required");require(timeout==CD_INFINITE||timeout<=INT64_MAX,"Observation timeout is out of range");auto op=o->value;if(current_io==op->runtime->state.get()) return CD_INVALID_CONTEXT;std::unique_lock lock(op->mutex);if(timeout==CD_INFINITE) op->cv.wait(lock,[&]{return bool(op->result);});else if(!op->cv.wait_for(lock,std::chrono::milliseconds(timeout),[&]{return bool(op->result);})) return CD_TIMEOUT;*out=new cd_result(op->result);return CD_OK;}catch(...) {return exception_result(out);}
+ if(out)*out=nullptr;try {require(o&&out,"Operation and result required");require(timeout==CD_INFINITE||timeout<=max_timeout_ms,"Observation timeout is out of range");auto op=o->value;if(current_io==op->runtime->state.get()) return CD_INVALID_CONTEXT;std::unique_lock lock(op->mutex);if(timeout==CD_INFINITE) op->cv.wait(lock,[&]{return bool(op->result);});else if(!op->cv.wait_for(lock,std::chrono::milliseconds(timeout),[&]{return bool(op->result);})) return CD_TIMEOUT;*out=new cd_result(op->result);return CD_OK;}catch(...) {return exception_result(out);}
 }
 void CD_CALL cd_operation_cancel(cd_operation_t* o) {if(o) o->value->cancel();}
 cd_status_t CD_CALL cd_cancel_source_create(cd_cancel_source_t** out) {try {require(out,"Output required");*out=new cd_cancel_source(std::make_shared<Cancellation>());return CD_OK;}catch(...) {return exception_result(nullptr);}}

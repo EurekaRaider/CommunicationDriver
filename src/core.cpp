@@ -104,7 +104,7 @@ Rule::Rule(const cd_receive_until_t& r):kind(r.kind),count(r.count),idle_ms(r.id
  require(kind>=CD_RECEIVE_NONE&&kind<=CD_RECEIVE_AVAILABLE,"Invalid receive kind");
  if(kind==CD_RECEIVE_BYTES||kind==CD_RECEIVE_CHARACTERS) require(count>0&&count<=SIZE_MAX,"Receive count must be positive");
  if(kind==CD_RECEIVE_DELIMITER) require(!value.empty(),"Delimiter cannot be empty");
- if(kind==CD_RECEIVE_IDLE) require(idle_ms>0&&idle_ms<=INT64_MAX,"Idle must fit a positive duration");
+ if(kind==CD_RECEIVE_IDLE) require(idle_ms>0&&idle_ms<=max_timeout_ms,"Idle must fit a positive duration");
  if(text) valid_utf8(value,true); if(kind==CD_RECEIVE_PATTERN) regex=compile_regex(value);
 }
 Defaults::Defaults(const cd_connection_options_t& d) {
@@ -114,14 +114,14 @@ Defaults::Defaults(const cd_connection_options_t& d) {
  newline=copy(d.new_line); require(!newline.empty(),"NewLine cannot be empty"); valid_utf8(newline,true);
  rule=Rule(d.receive_until); connect_ms=d.connect_timeout_ms;io_ms=d.io_timeout_ms;execution_ms=d.execution_timeout_ms;close_ms=d.close_timeout_ms;max_bytes=d.max_response_bytes;
  require(connect_ms&&io_ms&&execution_ms&&close_ms&&max_bytes,"Timeouts and buffer limit must be positive");
- require(connect_ms<=INT64_MAX&&io_ms<=INT64_MAX&&execution_ms<=INT64_MAX&&close_ms<=INT64_MAX&&max_bytes<=SIZE_MAX,"Timeout or buffer limit is out of range");
+ require(connect_ms<=max_timeout_ms&&io_ms<=max_timeout_ms&&execution_ms<=max_timeout_ms&&close_ms<=max_timeout_ms&&max_bytes<=SIZE_MAX,"Timeout or buffer limit is out of range");
 }
 Options::Options(const Defaults& d,const cd_call_options_t* o,uint64_t fallback):encoding(d.encoding),newline(d.newline),rule(d.rule),timeout(fallback),max_bytes(d.max_bytes) {
  if(!o) return; require(o->struct_size>=sizeof(*o),"CallOptions struct_size too small");
  if(o->encoding!=CD_ENCODING_DEFAULT) encoding=o->encoding;
  require(encoding>=CD_ENCODING_UTF8&&encoding<=CD_ENCODING_GB18030,"Invalid encoding");
  if(o->timeout_ms) timeout=o->timeout_ms; if(o->max_response_bytes) max_bytes=o->max_response_bytes;
- require(timeout<=INT64_MAX&&max_bytes<=SIZE_MAX,"Timeout or buffer limit is out of range");
+ require(timeout<=max_timeout_ms&&max_bytes<=SIZE_MAX,"Timeout or buffer limit is out of range");
  if(o->new_line.size) newline=copy(o->new_line); valid_utf8(newline,true);
  if(o->receive_until.kind!=CD_RECEIVE_NONE) rule=Rule(o->receive_until);
  read_stream=o->read_stream;check_stream=o->check_stream;
@@ -129,7 +129,7 @@ Options::Options(const Defaults& d,const cd_call_options_t* o,uint64_t fallback)
  cancellation=cd::cancellation(o->cancellation);
 }
 void Cancellation::request() {if(requested.exchange(true))return;std::vector<std::weak_ptr<Operation>> targets;{std::lock_guard lock(mutex);targets.swap(listeners);}for(auto& weak:targets)if(auto op=weak.lock())op->cancel();}
-void Cancellation::subscribe(std::weak_ptr<Operation> weak) {{std::lock_guard lock(mutex);if(!requested){std::erase_if(listeners,[](auto& entry){return entry.expired();});listeners.push_back(std::move(weak));return;}}if(auto op=weak.lock())op->cancel();}
+void Cancellation::subscribe(std::weak_ptr<Operation> weak) {{std::lock_guard lock(mutex);if(!requested){std::erase_if(listeners,[](auto& entry){auto op=entry.lock();return !op||op->completed();});listeners.push_back(std::move(weak));return;}}if(auto op=weak.lock())op->cancel();}
 std::string Config::name() const { static const char* names[]={"tcp","udp","serial","ssh","adb","cli"}; return names[backend]; }
 void Result::evaluate(const Check& c,int stream,cd_encoding_t encoding,bool final) {
  if(c.kind==CD_CHECK_NONE) return;
@@ -366,11 +366,14 @@ void Connection::submit(std::shared_ptr<Request> request) {
   request->deadline=std::make_shared<asio::steady_timer>(self->runtime->state->io);
   request->deadline->expires_at(request->started+std::chrono::milliseconds(request->options.timeout));
   request->deadline->async_wait([weak=self->weak_from_this(),w=std::weak_ptr<Request>(request)](ErrorCode e){if(!e) if(auto c=weak.lock()) if(auto r=w.lock()) c->abort(r,CD_TIMEOUT,"Operation timed out");});
-  if(request->action==Action::Close){self->force_close();self->active=request;self->force_close();return;}
+  if(request->action==Action::Close){
+   self->force_close();++self->closing_count;
+   self->runtime->after_files([self,request]{--self->closing_count;self->finish_close(request);self->next();});return;
+  }
   self->queue.push_back(request);self->next();
  });
 }
-void Connection::next() {if(active||queue.empty()) return;active=queue.front();queue.pop_front();try{start();}catch(const Fault& error){finish(error.code,error.message,error.native);}catch(const std::exception& error){finish(CD_INTERNAL_ERROR,error.what());}}
+void Connection::next() {if(active||closing_count||queue.empty()) return;active=queue.front();queue.pop_front();try{start();}catch(const Fault& error){finish(error.code,error.message,error.native);}catch(const std::exception& error){finish(CD_INTERNAL_ERROR,error.what());}}
 void Connection::ensure_persistent(Completion callback) {
  if(persistent&&!(config.backend>=4&&persistent->command_channels())) {persistent->ensure_stdio(std::move(callback));return;}
  if(persistent){persistent->close();persistent.reset();}
@@ -381,7 +384,6 @@ void Connection::start() {
  auto r=active;auto self=shared_from_this();r->result->backend=config.name();if(r->action==Action::Read)r->result->partial_stream=r->options.read_stream;
  if(r->operation->cancelled) {finish(CD_CANCELLED,"Operation cancelled");return;}
  if(runtime->closed&&r->action!=Action::Close) {finish(CD_CLOSED,"Driver is closed");return;}
- if(r->action==Action::Close) {force_close();return;}
  if(r->action==Action::Open) {
   if(state==CD_STATE_OPEN) {finish();return;}
   if(state==CD_STATE_NEEDS_RECOVERY||state==CD_STATE_FAULTED) {finish(CD_NEEDS_RECOVERY,"Close before reopening");return;}
@@ -541,6 +543,7 @@ void Connection::finish(cd_status_t status,std::string message,int64_t native,bo
  if(advance) {auto self=shared_from_this();asio::post(runtime->state->io,[self]{self->next();});}
 }
 void Connection::abort(const std::shared_ptr<Request>& r,cd_status_t status,std::string message) {
+ if(r->action==Action::Close){if(r->deadline)finish_close(r,status,std::move(message));return;}
  if(r==active) {
   if(r->sent&&(r->action==Action::Execute||r->action==Action::ExecuteUntil||r->action==Action::Write)) state=CD_STATE_NEEDS_RECOVERY;
   r->result->raw[0]+=std::exchange(pending[0],{});r->result->raw[1]+=std::exchange(pending[1],{});
@@ -549,15 +552,20 @@ void Connection::abort(const std::shared_ptr<Request>& r,cd_status_t status,std:
   finish(status,std::move(message));
  }else {auto it=std::find(queue.begin(),queue.end(),r);if(it==queue.end()) return;queue.erase(it);r->deadline->cancel();r->result->status=status;r->result->message=std::move(message);r->result->elapsed_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now()-r->started).count();r->operation->complete(r->result);}
 }
+void Connection::finish_close(const std::shared_ptr<Request>& r,cd_status_t status,std::string message) {
+ if(r->operation->completed())return;
+ r->deadline->cancel();r->result->status=status;r->result->message=std::move(message);
+ if(status==CD_OK&&r->operation->cancelled){r->result->status=CD_CANCELLED;r->result->message="Operation cancelled";}
+ r->result->elapsed_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now()-r->started).count();
+ r->operation->complete(r->result);
+}
 void Connection::force_close() {
  state=CD_STATE_CLOSING;++generation;if(persistent) persistent->close();if(one_shot&&one_shot!=persistent) one_shot->close();persistent.reset();one_shot.reset();
  auto queued=std::exchange(queue,{});
- auto closing=active&&active->action==Action::Close?active:nullptr;
- if(active&&!closing) {active->result->raw[0]+=std::exchange(pending[0],{});active->result->raw[1]+=std::exchange(pending[1],{});finish(CD_CLOSED,"Connection closed",0,false);}
+ if(active) {active->result->raw[0]+=std::exchange(pending[0],{});active->result->raw[1]+=std::exchange(pending[1],{});finish(CD_CLOSED,"Connection closed",0,false);}
  for(auto& r:queued) {r->deadline->cancel();r->result->status=CD_CLOSED;r->result->message="Connection closed";r->operation->complete(r->result);}
  pending[0].clear();pending[1].clear();messages[0].clear();messages[1].clear();
  stdio_pending[0].clear();stdio_pending[1].clear();isolating=false;
- if(closing){auto self=shared_from_this();runtime->after_files([self,closing]{self->state=CD_STATE_CLOSED;if(self->active==closing)self->finish();});}
- else state=CD_STATE_CLOSED;
+ state=CD_STATE_CLOSED;
 }
 }

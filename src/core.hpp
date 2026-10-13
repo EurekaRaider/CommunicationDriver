@@ -20,6 +20,8 @@ namespace cd {
 namespace asio=boost::asio;
 namespace process=boost::process;
 using Clock=std::chrono::steady_clock;
+// Leave headroom for adding the duration to the current steady-clock time.
+inline constexpr uint64_t max_timeout_ms=std::chrono::duration_cast<std::chrono::milliseconds>(Clock::duration::max()).count()/2;
 using ErrorCode=boost::system::error_code;
 using Completion=std::function<void(cd_status_t,std::string,int64_t)>;
 struct Fault : std::exception {
@@ -143,6 +145,7 @@ struct Connection : std::enable_shared_from_this<Connection> {
  std::shared_ptr<Runtime> runtime; Config config; cd_capabilities_t capabilities;
  std::atomic<int> state{CD_STATE_CREATED}; std::shared_ptr<Backend> persistent,one_shot;
  std::deque<std::shared_ptr<Request>> queue; std::shared_ptr<Request> active;
+ size_t closing_count=0;
  std::string pending[2]; std::deque<size_t> messages[2]; bool eof[2]={false,false};
  std::string stdio_pending[2];bool stdio_eof[2]={false,false},isolating=false;
  std::optional<int> process_exit; bool process_finished=false; uint64_t generation=0;
@@ -153,6 +156,7 @@ struct Connection : std::enable_shared_from_this<Connection> {
  void finish(cd_status_t=CD_OK,std::string={},int64_t=0,bool advance=true);
  void abort(const std::shared_ptr<Request>&,cd_status_t,std::string);
  void force_close(); void ensure_persistent(Completion);
+ void finish_close(const std::shared_ptr<Request>&,cd_status_t=CD_OK,std::string={});
  bool boundary(std::string&,const Rule&,const Options&,size_t&,size_t&);
  void consume_pending(int stream,size_t count);
  std::string framed_command(const std::string&,const std::string&);

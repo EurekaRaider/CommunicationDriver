@@ -1,0 +1,131 @@
+{
+  "date": "2026-10-13",
+  "platform": "macOS 27.0.1 arm64",
+  "working_tree_changes_tested": true,
+  "core_sha256": {
+    "src/core.cpp": "cab8873df02b839a170bdf6e7b9c6a8d037e52bff4473fc40cf7bea0e3b9ecfb",
+    "src/core.hpp": "5fc1991230d9c1f6a3dd64e0e58aefe82855aadba719b3a27c7dcc4f05544ba5",
+    "src/c_api.cpp": "b2f40895ec20fd8dc4e70791f2b7a2ef9df598d1612bd2e7b944dbda3afb2579",
+    "src/ssh.cpp": "33950da818f4d321ba33abd1386d2281925b8b16f2d24178c0f452f69c97ed2c"
+  },
+  "native_release_sha256": "19c80959ad5f63fc6327eb2abeb0afbb385aa52d0e0b90bde5547ef6dc841f3d",
+  "fixes": [
+    "Concurrent CloseAsync overwrote accepted requests, leaving waits and handles retained",
+    "Timeout milliseconds overflowed steady-clock conversion",
+    "Retained completed operations caused repeated cancellation-listener scans"
+  ],
+  "retained_operation_benchmark_ms": {
+    "4000": {
+      "before": 82,
+      "after": 67
+    },
+    "8000": {
+      "before": 194,
+      "after": 133
+    },
+    "16000": {
+      "before": 464,
+      "after": 266
+    },
+    "32000": {
+      "before": 1339,
+      "after": 534
+    }
+  },
+  "mixed_soak": {
+    "exit_code": 0,
+    "timed_out": false,
+    "elapsed_s": 300.299,
+    "steady_samples": 58,
+    "steady_after_s": 10,
+    "rss_kib_min": 10352,
+    "rss_kib_max": 10480,
+    "threads_min": 14,
+    "threads_max": 14,
+    "fds_min": 109,
+    "fds_max": 109,
+    "fds_last": 109,
+    "connections": 32,
+    "batches": 905561,
+    "operations": 28977952,
+    "workload_seconds": 300,
+    "operations_per_second": 96593.2
+  },
+  "lifecycle_churn": {
+    "exit_code": 0,
+    "timed_out": false,
+    "elapsed_s": 28.647,
+    "steady_samples": 18,
+    "steady_after_s": 10,
+    "rss_kib_min": 12912,
+    "rss_kib_max": 12960,
+    "threads_min": 4,
+    "threads_max": 4,
+    "fds_min": 8,
+    "fds_max": 16,
+    "fds_last": 8,
+    "drivers": 10000,
+    "process_launches": 20000
+  },
+  "managed_stress": {
+    "exit_code": 0,
+    "timed_out": false,
+    "elapsed_s": 97.955,
+    "steady_samples": 43,
+    "steady_after_s": 10,
+    "rss_kib_min": 68816,
+    "rss_kib_max": 69136,
+    "threads_min": 29,
+    "threads_max": 35,
+    "fds_min": 41,
+    "fds_max": 46,
+    "fds_last": 41,
+    "operations": 4004000,
+    "concurrent_closes": 128128,
+    "collected_wrappers": 2000,
+    "baseline_gc_bytes": 172560,
+    "final_gc_bytes": 460408
+  },
+  "macos_leaks": {
+    "drivers": 1000,
+    "leaks": 0,
+    "leaked_bytes": 0
+  },
+  "ssh_sftp": {
+    "release_rounds": 30,
+    "asan_ubsan_rounds": 3,
+    "tsan_rounds": 3,
+    "interrupted_download_size_bytes": 134217728
+  },
+  "sanitizer_scope": "Project and tests instrumented; system dependencies not fully instrumented",
+  "hardware_not_verified": [
+    "Physical Android ADB devices",
+    "Physical serial ports"
+  ],
+  "platform_ci_for_changes": "Not run",
+  "raw_evidence_directory": "artifacts/performance-audit",
+  "head_commit": "d9a4cabf0d3b9ba3d91bea1a9d351916ea47ee1b",
+  "native_ctest": {
+    "release": {
+      "tests": 4,
+      "rounds": 1,
+      "passed": true
+    },
+    "asan_ubsan": {
+      "tests": 4,
+      "rounds": 3,
+      "passed": true
+    },
+    "tsan": {
+      "tests": 4,
+      "rounds": 3,
+      "passed": true
+    }
+  },
+  "sanitizer_system_dependencies": {
+    "Boost": "1.92.0",
+    "libssh2": "1.11.1_7",
+    "RE2": "2025-11-05_2",
+    "OpenSSL": "3.6.3"
+  }
+}

@@ -12,6 +12,8 @@ ExecuteUntil 只接受 Contains/Regex。匹配即返回 CompletionReason.Matched
 
 超时/取消包括等待同连接队列的时间；有不明回复归属时进入 NeedsRecovery。结果包含已接收的完整部分字符与原始部分字节。正常检查失败没有异常。正则使用 RE2，大小写敏感、不 trim、不移除 ANSI；反向引用和 lookaround 等 RE2 不支持语法属于 InvalidArgument，发送前拒绝。
 
+超时与 Idle 间隔必须能安全转换到原生 steady clock，超出其安全范围会在提交前返回 InvalidArgument。`CD_INFINITE` 仅用于 C ABI 的 observer wait；普通 IO 不接受无限超时。多个并发 CloseAsync 各自完成，并在本地文件任务结束后才允许后续 Open 开始。
+
 OneShot 命令输出独立于低级持久 IO 通道。CLI 直接程序单次执行由库关闭 stdin，等待退出并排空 stdout/stderr。Persistent shell 保存 cd/env，生成内部标记并剥离。SessionCommand 用于 SSH/ADB 自定义持久会话，与 OneShot 同时设置会在创建时拒绝；自定义交互程序须使用明确 ReceiveUntil。没有 PTY/TUI 模拟；命令在后台自行派生进程可能在标记后继续产生无归属输出，会拒绝后续执行并要求恢复。
 
 ADB 固定 DeviceSerial，所有命令带相同 `-s`；ServerHost/ServerPort 是主机 server 地址。Open 用 get-state 验证绑定设备，关闭连接不 kill server。SSH 严格已知 host 或 SHA256 校验，不自动信任；私钥/密码不记录在错误文本或公开日志。关闭客户端不保证远程进程退出或副作用撤销。
