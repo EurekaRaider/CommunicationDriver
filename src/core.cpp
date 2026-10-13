@@ -397,7 +397,7 @@ void Connection::start() {
  bool managed=config.managed();
  if(r->action==Action::Execute&&!managed&&!(config.backend>=3&&config.mode==CD_ONE_SHOT)&& (r->options.rule.kind==CD_RECEIVE_NONE||r->options.rule.kind==CD_RECEIVE_AVAILABLE)) {finish(CD_INVALID_ARGUMENT,"Execute requires a reliable ReceiveUntil rule before sending");return;}
  if(r->action==Action::ExecuteUntil&&(r->check.kind==CD_CHECK_NONE||r->check.kind==CD_CHECK_EQUALS)) {finish(CD_INVALID_ARGUMENT,"ExecuteUntil requires Contains or Regex");return;}
- if(exec&&!(config.backend>=3&&config.mode==CD_ONE_SHOT)&&(!pending[0].empty()||!pending[1].empty())) {state=CD_STATE_NEEDS_RECOVERY;finish(CD_NEEDS_RECOVERY,"Unattributed output exists; consume it explicitly or close/reopen");return;}
+ if(exec&&!(config.backend>=3&&config.mode==CD_ONE_SHOT)&&(!pending[0].empty()||!pending[1].empty()||!messages[0].empty()||!messages[1].empty())) {state=CD_STATE_NEEDS_RECOVERY;finish(CD_NEEDS_RECOVERY,"Unattributed output exists; close/reopen before executing");return;}
  if(exec) r->result->kind=r->text?CD_RESULT_EXECUTION_TEXT:CD_RESULT_EXECUTION_BYTES;
  else if(r->action==Action::Read) r->result->kind=r->text?CD_RESULT_TEXT:CD_RESULT_BYTES;
  else if(r->action==Action::Upload||r->action==Action::Download) r->result->kind=CD_RESULT_TRANSFER;
@@ -512,7 +512,7 @@ void Connection::process_data() {
   if(r->marker.empty()&&!(config.backend>=3&&config.mode==CD_ONE_SHOT)&&r->action==Action::Execute) {
    size_t consume=0,keep=0;int stream=0;
    if(boundary(pending[stream],r->options.rule,r->options,consume,keep)) {r->result->raw[stream]=pending[stream].substr(0,keep);consume_pending(stream,consume);r->result->completion=CD_COMPLETION_PROTOCOL;finish();return;}
-   if(r->options.rule.kind==CD_RECEIVE_IDLE&&!pending[0].empty()) {r->result->raw[0]+=std::exchange(pending[0],{});if(!r->idle) r->idle=std::make_shared<asio::steady_timer>(runtime->state->io);r->idle->expires_after(std::chrono::milliseconds(r->options.rule.idle_ms));auto self=shared_from_this();r->idle->async_wait([self,r](ErrorCode e){if(!e&&self->active==r) {r->result->completion=CD_COMPLETION_IDLE;self->finish();}});}
+   if(r->options.rule.kind==CD_RECEIVE_IDLE&&!pending[0].empty()) {r->result->raw[0]+=pending[0];consume_pending(0,pending[0].size());if(!r->idle) r->idle=std::make_shared<asio::steady_timer>(runtime->state->io);r->idle->expires_after(std::chrono::milliseconds(r->options.rule.idle_ms));auto self=shared_from_this();r->idle->async_wait([self,r](ErrorCode e){if(!e&&self->active==r) {r->result->completion=CD_COMPLETION_IDLE;self->state=CD_STATE_NEEDS_RECOVERY;self->finish();}});}
   }
   bool input_ended=eof[0]&&(!(capabilities&CD_CAP_STDERR)||eof[1]);
   if(input_ended&&!command_done&&!(config.backend>=3&&config.mode==CD_ONE_SHOT)) finish(CD_END_OF_STREAM,"Input reached EOF before completion");

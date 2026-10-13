@@ -7,6 +7,7 @@ using CommunicationDriver;
 class Program {
  static void Assert(bool yes,string reason){if(!yes)throw new Exception(reason);}
  static async Task Main(){
+  var expected=Environment.GetEnvironmentVariable("CD_EXPECT_POINTER_BYTES");if(expected!=null)Assert(IntPtr.Size==int.Parse(expected),"managed consumer process bitness");Console.WriteLine("METRIC managed pointer_bytes="+IntPtr.Size);
   bool windows=RuntimeInformation.IsOSPlatform(OSPlatform.Windows);string ready=windows?"echo|set /p=READY":"printf READY";
   using(var driver=new Driver())using(var shell=driver.CreateCli(new CliOptions())){
    await shell.OpenAsync();var r=await shell.ExecuteAsync(ready,Check.Contains("READY"));Assert(r.Response=="READY"&&r.Check.Passed,"async text without newline");
