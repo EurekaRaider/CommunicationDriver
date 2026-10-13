@@ -81,11 +81,11 @@ jobs:
           consumer-build/consumer_cpp.exe
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Pack dual target NuGet
-        run: dotnet pack bindings/dotnet/CommunicationDriver -c Release -p:NativePackageRoot=${{ github.workspace }}/artifacts/package -o artifacts/feed
+        run: dotnet pack bindings/dotnet/CommunicationDriver -c Release -p:Platform=AnyCPU -p:NativePackageRoot=${{ github.workspace }}/artifacts/package -o artifacts/feed
       - name: PackageReference consumers build
         run: |
-          dotnet restore examples/dotnet/PackageConsumer -p:CommunicationDriverRid=${{ matrix.rid }} --configfile examples/dotnet/NuGet.config
-          dotnet build examples/dotnet/PackageConsumer -c Release -p:CommunicationDriverRid=${{ matrix.rid }} --no-restore
+          dotnet restore examples/dotnet/PackageConsumer -p:Platform=AnyCPU -p:CommunicationDriverRid=${{ matrix.rid }} --configfile examples/dotnet/NuGet.config
+          dotnet build examples/dotnet/PackageConsumer -c Release -p:Platform=AnyCPU -p:CommunicationDriverRid=${{ matrix.rid }} --no-restore
       - name: net10 consumer (Unix)
         if: runner.os != 'Windows'
         run: dotnet examples/dotnet/PackageConsumer/bin/Release/net10.0/PackageConsumer.dll
@@ -103,7 +103,7 @@ jobs:
         run: |
           Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile artifacts/dotnet-install.ps1
           & artifacts/dotnet-install.ps1 -Channel 10.0 -Architecture x86 -InstallDir "$PWD/artifacts/dotnet-x86"
-          dotnet build examples/dotnet/PackageConsumer -c Release -p:PlatformTarget=x86 -p:CommunicationDriverRid=win-x86 --no-restore
+          dotnet build examples/dotnet/PackageConsumer -c Release -p:Platform=AnyCPU -p:PlatformTarget=x86 -p:CommunicationDriverRid=win-x86 --no-restore
           & artifacts/dotnet-x86/dotnet.exe examples/dotnet/PackageConsumer/bin/Release/net10.0/PackageConsumer.dll
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           examples/dotnet/PackageConsumer/bin/Release/net48/PackageConsumer.exe
