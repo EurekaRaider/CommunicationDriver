@@ -33,6 +33,7 @@ cd_string_view_t view(const std::string&);
 cd_bytes_view_t bytes_view(const std::string&);
 std::string decode(const std::string&,cd_encoding_t,bool final=true);
 std::string encode(const std::string&,cd_encoding_t);
+std::filesystem::path utf8_path(const std::string&);
 size_t scalar_prefix(const std::string&,uint64_t);
 uint64_t scalar_count(const std::string&);
 struct Check {
@@ -83,7 +84,7 @@ struct Result {
  bool succeeded() const { return status==CD_OK&&(!check_present||passed); }
  void evaluate(const Check&,int stream,cd_encoding_t,bool final);
 };
-struct IoState { asio::io_context io; };
+struct IoState { asio::io_context io;asio::thread_pool files{2};size_t file_jobs=0;std::vector<std::function<void()>> file_waiters; };
 extern thread_local IoState* current_io;
 struct Connection;
 struct Runtime {
@@ -93,6 +94,8 @@ struct Runtime {
  std::vector<std::weak_ptr<Connection>> connections; std::atomic<bool> closed{false};
  Runtime(); ~Runtime(); void register_connection(const std::shared_ptr<Connection>&);
  void close(std::function<void()>);
+ void file_job(std::function<void()> work,std::function<void(std::exception_ptr)> done);
+ void after_files(std::function<void()> done);
 };
 struct Operation : std::enable_shared_from_this<Operation> {
  std::shared_ptr<Runtime> runtime; std::mutex mutex; std::condition_variable cv;

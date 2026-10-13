@@ -139,8 +139,16 @@ void Runtime::register_connection(const std::shared_ptr<Connection>& c) { std::l
 void Runtime::close(std::function<void()> callback) {
  closed=true; std::vector<std::shared_ptr<Connection>> list;
  {std::lock_guard lock(registry_mutex);for(auto& w:connections) if(auto c=w.lock()) list.push_back(std::move(c));}
- asio::post(state->io,[list=std::move(list),cb=std::move(callback)]() mutable {for(auto& c:list) c->force_close();asio::post(current_io->io,std::move(cb));});
+ auto self=state;asio::post(state->io,[self,list=std::move(list),cb=std::move(callback)]() mutable {for(auto& c:list) c->force_close();if(self->file_jobs)self->file_waiters.push_back(std::move(cb));else asio::post(self->io,std::move(cb));});
 }
+void Runtime::file_job(std::function<void()> work,std::function<void(std::exception_ptr)> done) {
+ auto s=state;++s->file_jobs;asio::post(s->files,[s,work=std::move(work),done=std::move(done)]() mutable {
+  std::exception_ptr error;try{work();}catch(...){error=std::current_exception();}
+  work={};
+  asio::post(s->io,[s,error,done=std::move(done)]() mutable {done(error);if(--s->file_jobs==0){auto waiters=std::exchange(s->file_waiters,{});for(auto& cb:waiters)asio::post(s->io,std::move(cb));}});
+ });
+}
+void Runtime::after_files(std::function<void()> done) {if(state->file_jobs)state->file_waiters.push_back(std::move(done));else asio::post(state->io,std::move(done));}
 void Operation::complete(std::shared_ptr<Result> r) {
  std::function<void(std::shared_ptr<Result>)> cb;
  {std::lock_guard lock(mutex);if(result) return;result=r;cb=std::move(callback);cancel_hook={};} cv.notify_all(); if(cb) cb(std::move(r));
@@ -209,15 +217,17 @@ static std::pair<std::string,std::vector<std::string>> shell_command(int shell,b
  return {exe,one_shot?std::vector<std::string>{"-c",command}:std::vector<std::string>{}};
 }
 static process::filesystem::path executable_path(const std::string& executable) {
- auto path=std::filesystem::u8path(executable);
+ auto path=utf8_path(executable);
  if(path.has_parent_path()) {if(!std::filesystem::is_regular_file(path))return {};return process::filesystem::path(std::filesystem::absolute(path).native());}
  return process::environment::find_executable(executable);
 }
+std::filesystem::path utf8_path(const std::string& s) {return std::filesystem::path(std::u8string(s.begin(),s.end()));}
 struct ProcessBackend : Backend {
  asio::writable_pipe input; asio::readable_pipe out,err; std::unique_ptr<process::process> child;
  std::array<char,8192> out_buffer{},err_buffer{}; bool stopped=false;
  std::shared_ptr<ProcessBackend> auxiliary; Completion auxiliary_callback;
  std::string auxiliary_output; bool auxiliary_eof[2]={false,false};std::optional<int> auxiliary_exit;
+ std::string prompt_token,prompt_buffer;Completion prompt_ready;
  ProcessBackend(std::shared_ptr<Runtime> r,Config c):Backend(r,std::move(c)),input(r->state->io),out(r->state->io),err(r->state->io){}
  std::vector<std::string> adb_args() {return {"-H",config.server_host,"-P",std::to_string(config.server_port),"-s",config.device};}
  void launch(const std::string& command,bool one,Completion cb) {
@@ -231,12 +241,18 @@ struct ProcessBackend : Backend {
    std::map<std::string,std::string> env;
    for(auto v:process::environment::current()) {if(v.key().size()==0)continue;env[v.key().string()]=v.value().size()==0?std::string():v.value().string();}
    for(auto& [k,v]:config.environment) env[k]=v;
+   bool cmd_shell=config.backend==5&&config.executable.empty()&&!one&&(config.shell==CD_SHELL_CMD
+#ifdef _WIN32
+    ||config.shell==CD_SHELL_DEFAULT
+#endif
+   );
+   if(cmd_shell){std::random_device random;prompt_token="__CD_PROMPT_"+std::to_string(random())+std::to_string(random())+"__";env["PROMPT"]=prompt_token;prompt_ready=cb;}
    std::vector<std::string> env_list;for(auto& [k,v]:env) env_list.push_back(k+"="+v);
-   auto dir=config.working_directory.empty()?std::filesystem::current_path():std::filesystem::u8path(config.working_directory);
+   auto dir=config.working_directory.empty()?std::filesystem::current_path():utf8_path(config.working_directory);
    child=std::make_unique<process::process>(runtime->state->io,path,args,process::process_stdio{input,out,err},process::process_environment(env_list),process::process_start_dir(process::filesystem::path(dir.native())));
    pump(0);pump(1); auto self=std::static_pointer_cast<ProcessBackend>(shared_from_this());
    child->async_wait([self](ErrorCode ec,int code){if(self->stopped) return;if(ec) self->failure(CD_IO_ERROR,ec.message(),ec.value());else self->exited(code);});
-   cb(CD_OK,{},0);
+   if(!cmd_shell)cb(CD_OK,{},0);
   } catch(const Fault& f) {cb(f.code,f.message,f.native);}catch(const std::exception& e) {cb(CD_CONNECTION_FAILED,e.what(),0);}
  }
  void auxiliary_finish(cd_status_t status,std::string message,int64_t native) {
@@ -275,7 +291,17 @@ struct ProcessBackend : Backend {
  }
  void pump(int stream) {
   auto self=std::static_pointer_cast<ProcessBackend>(shared_from_this());auto& pipe=stream?err:out;auto& b=stream?err_buffer:out_buffer;
-  pipe.async_read_some(asio::buffer(b),[self,stream](ErrorCode ec,size_t n){if(self->stopped) return;auto& buffer=stream?self->err_buffer:self->out_buffer;if(n) self->output(stream,std::string(buffer.data(),n),false);if(ec) {self->output(stream,{},true);if(ec!=asio::error::eof&&ec!=asio::error::broken_pipe&&ec!=asio::error::operation_aborted) self->failure(CD_IO_ERROR,ec.message(),ec.value());}else self->pump(stream);});
+  pipe.async_read_some(asio::buffer(b),[self,stream](ErrorCode ec,size_t n){if(self->stopped) return;auto& buffer=stream?self->err_buffer:self->out_buffer;if(n) {
+   std::string data(buffer.data(),n);
+   if(stream==0&&!self->prompt_token.empty()){
+    self->prompt_buffer+=data;
+    if(self->prompt_ready){auto pos=self->prompt_buffer.find(self->prompt_token);if(pos!=std::string::npos){self->prompt_buffer.erase(0,pos+self->prompt_token.size());auto cb=std::exchange(self->prompt_ready,{});cb(CD_OK,{},0);}else {if(self->prompt_buffer.size()>self->config.defaults.max_bytes){auto cb=std::exchange(self->prompt_ready,{});cb(CD_LIMIT_EXCEEDED,"CMD startup exceeded buffer limit",0);}self->pump(stream);return;}}
+    size_t pos;while((pos=self->prompt_buffer.find(self->prompt_token))!=std::string::npos)self->prompt_buffer.erase(pos,self->prompt_token.size());
+    size_t suffix=0;for(size_t i=1;i<self->prompt_token.size()&&i<=self->prompt_buffer.size();++i)if(self->prompt_buffer.compare(self->prompt_buffer.size()-i,i,self->prompt_token.substr(0,i))==0)suffix=i;
+    data=self->prompt_buffer.substr(0,self->prompt_buffer.size()-suffix);self->prompt_buffer.erase(0,self->prompt_buffer.size()-suffix);
+   }
+   if(!data.empty())self->output(stream,std::move(data),false);
+  }if(ec) {if(self->prompt_ready){auto cb=std::exchange(self->prompt_ready,{});cb(CD_CONNECTION_FAILED,"CMD exited before managed prompt handshake",ec.value());}self->output(stream,{},true);if(ec!=asio::error::eof&&ec!=asio::error::broken_pipe&&ec!=asio::error::operation_aborted) self->failure(CD_IO_ERROR,ec.message(),ec.value());}else self->pump(stream);});
  }
  void write(std::string data,Completion cb) override {auto bytes=std::make_shared<std::string>(std::move(data));auto self=shared_from_this();asio::async_write(input,asio::buffer(*bytes),[self,bytes,cb](ErrorCode ec,size_t){cb(ec?CD_IO_ERROR:CD_OK,ec.message(),ec.value());});}
  void close_input(Completion cb) override {ErrorCode e;input.close(e);cb(e?CD_IO_ERROR:CD_OK,e.message(),e.value());}
@@ -487,8 +513,11 @@ void Connection::abort(const std::shared_ptr<Request>& r,cd_status_t status,std:
 void Connection::force_close() {
  state=CD_STATE_CLOSING;++generation;if(persistent) persistent->close();if(one_shot&&one_shot!=persistent) one_shot->close();persistent.reset();one_shot.reset();
  auto queued=std::exchange(queue,{});
- if(active) {if(active->action==Action::Close) finish(CD_OK,{},0,false);else {active->result->raw[0]+=std::exchange(pending[0],{});active->result->raw[1]+=std::exchange(pending[1],{});finish(CD_CLOSED,"Connection closed",0,false);}}
+ auto closing=active&&active->action==Action::Close?active:nullptr;
+ if(active&&!closing) {active->result->raw[0]+=std::exchange(pending[0],{});active->result->raw[1]+=std::exchange(pending[1],{});finish(CD_CLOSED,"Connection closed",0,false);}
  for(auto& r:queued) {r->deadline->cancel();r->result->status=CD_CLOSED;r->result->message="Connection closed";r->operation->complete(r->result);}
- pending[0].clear();pending[1].clear();messages[0].clear();messages[1].clear();state=CD_STATE_CLOSED;
+ pending[0].clear();pending[1].clear();messages[0].clear();messages[1].clear();
+ if(closing){auto self=shared_from_this();runtime->after_files([self,closing]{self->state=CD_STATE_CLOSED;if(self->active==closing)self->finish();});}
+ else state=CD_STATE_CLOSED;
 }
 }

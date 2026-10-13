@@ -77,7 +77,7 @@ static void core_tests(){
 #endif
  auto match=cd_check_contains_string(CD_SV("READY"));
  {Result r;execute(once,ready,r,&match);expect(r.text()=="READY"&&r.passed()&&r.info().completion_reason==CD_COMPLETION_COMMAND,"one-shot without newline");}
- {Result r;auto start=Clock::now();execute(shell,no,r,&match);expect(!r.passed()&&r.text()=="NO","complete response mismatch is normal");expect(Clock::now()-start<std::chrono::seconds(1),"mismatch did not wait total timeout");}
+ {Result r;auto start=Clock::now();execute(shell,no,r,&match);if(r.text()!="NO")std::cerr<<"Unexpected managed reply ["<<r.text()<<"]\n";expect(!r.passed()&&r.text()=="NO","complete response mismatch is normal");expect(Clock::now()-start<std::chrono::seconds(1),"mismatch did not wait total timeout");}
  {Result r;execute(shell,state_set,r);Result next;execute(shell,state_get,next);expect(next.text()=="STATE","persistent environment retained");expect(next.text().find("__CD_")==std::string::npos,"internal markers stripped");}
 #ifndef _WIN32
  {Result r;auto start=Clock::now();ok(cd_execute_until_string(shell.handle,CD_SV("printf BUSY; sleep 0.05; printf READY; sleep 0.15; printf TAIL"),&match,nullptr,&r.handle),r,"until");expect(r.passed()&&r.info().completion_reason==CD_COMPLETION_MATCH,"incremental until match");expect(Clock::now()-start<std::chrono::milliseconds(160),"until returns before command completion");Result next;execute(shell,ready,next);expect(next.text()=="READY","next command waits for cleanup and gets no TAIL");}

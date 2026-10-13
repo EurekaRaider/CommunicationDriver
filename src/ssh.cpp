@@ -18,7 +18,7 @@ struct SshBackend : Backend {
  std::string command_text,write_data,source,destination;size_t write_offset=0;
  bool upload=false,overwrite=true;uint64_t transferred=0;
  std::function<void(uint64_t)> progress;
- std::fstream local;std::array<char,32768> file_buffer{};size_t file_size=0,file_offset=0;
+ std::shared_ptr<std::fstream> local;bool disk_busy=false;std::array<char,32768> file_buffer{};size_t file_size=0,file_offset=0;
  SshBackend(std::shared_ptr<Runtime> r,Config c):Backend(r,std::move(c)),socket(r->state->io),resolver(r->state->io) {
   static const int initialized=libssh2_init(0);if(initialized) throw Fault(CD_INTERNAL_ERROR,"libssh2 initialization failed",initialized);
  }
@@ -109,11 +109,12 @@ struct SshBackend : Backend {
   upload=is_upload;source=std::move(from);destination=std::move(to);overwrite=replace;progress=std::move(on_progress);transfer_callback=std::move(cb);transferred=0;transfer_phase=1;file_size=file_offset=0;
   try {
    if(!upload&&!overwrite&&std::filesystem::exists(destination)) throw Fault(CD_PERMISSION_DENIED,"Destination already exists");
-   local.open(upload?source:destination,std::ios::binary|(upload?std::ios::in:std::ios::out|std::ios::trunc));
-   if(!local) throw Fault(CD_IO_ERROR,"Cannot open local file");drive();
+   local=std::make_shared<std::fstream>();disk_busy=true;auto self=std::static_pointer_cast<SshBackend>(shared_from_this());auto stream=local;
+   runtime->file_job([stream,is_upload=upload,path=utf8_path(upload?source:destination)]{stream->open(path,std::ios::binary|(is_upload?std::ios::in:std::ios::out|std::ios::trunc));if(!*stream)throw Fault(CD_IO_ERROR,"Cannot open local file");},[self](std::exception_ptr error){self->disk_busy=false;if(self->stopped)return;if(error){try{std::rethrow_exception(error);}catch(const Fault& f){auto cb=std::exchange(self->transfer_callback,{});cb(f.code,f.message,f.native);}catch(const std::exception& e){auto cb=std::exchange(self->transfer_callback,{});cb(CD_IO_ERROR,e.what(),0);}}else self->drive();});
   }catch(const Fault& f) {auto callback=std::exchange(transfer_callback,{});callback(f.code,f.message,f.native);}
  }
  void drive_transfer() {
+  if(disk_busy)return;
   if(transfer_phase==1) {sftp=libssh2_sftp_init(session);if(!sftp) {retry(libssh2_session_last_errno(session));return;}transfer_phase=2;}
   if(transfer_phase==2) {
    auto remote=upload?destination:source;
@@ -125,20 +126,23 @@ struct SshBackend : Backend {
    // Bound work per event, letting other connections and cancellation run between chunks.
    for(int budget=0;budget<8;++budget) {
     if(upload) {
-     if(file_offset==file_size) {local.read(file_buffer.data(),file_buffer.size());file_size=static_cast<size_t>(local.gcount());file_offset=0;if(file_size==0) {if(local.bad()) {report(CD_IO_ERROR,0);return;}transfer_phase=4;break;}}
+     if(file_offset==file_size) {disk_busy=true;auto self=std::static_pointer_cast<SshBackend>(shared_from_this());auto stream=local;
+      runtime->file_job([self,stream]{stream->read(self->file_buffer.data(),self->file_buffer.size());self->file_size=static_cast<size_t>(stream->gcount());self->file_offset=0;if(stream->bad())throw Fault(CD_IO_ERROR,"Local file read failed");},[self](std::exception_ptr error){self->disk_busy=false;if(self->stopped)return;if(error){self->report(CD_IO_ERROR,0);return;}if(self->file_size==0)self->transfer_phase=4;self->drive();});return;}
      auto n=libssh2_sftp_write(file,file_buffer.data()+file_offset,file_size-file_offset);if(n==LIBSSH2_ERROR_EAGAIN||n==0) {wait_socket();return;}if(n<0) {report(CD_IO_ERROR,static_cast<int>(n));return;}file_offset+=n;transferred+=n;
-    }else {auto n=libssh2_sftp_read(file,file_buffer.data(),file_buffer.size());if(n==LIBSSH2_ERROR_EAGAIN) {wait_socket();return;}if(n<0) {report(CD_IO_ERROR,static_cast<int>(n));return;}if(n==0) {transfer_phase=4;break;}local.write(file_buffer.data(),n);if(!local) {report(CD_IO_ERROR,0);return;}transferred+=n;}
+    }else {auto n=libssh2_sftp_read(file,file_buffer.data(),file_buffer.size());if(n==LIBSSH2_ERROR_EAGAIN) {wait_socket();return;}if(n<0) {report(CD_IO_ERROR,static_cast<int>(n));return;}if(n==0) {transfer_phase=4;break;}disk_busy=true;auto self=std::static_pointer_cast<SshBackend>(shared_from_this());auto stream=local;auto data=std::make_shared<std::string>(file_buffer.data(),n);
+     runtime->file_job([stream,data]{stream->write(data->data(),data->size());if(!*stream)throw Fault(CD_IO_ERROR,"Local file write failed");},[self,data](std::exception_ptr error){self->disk_busy=false;if(self->stopped)return;if(error){self->report(CD_IO_ERROR,0);return;}self->transferred+=data->size();self->progress(self->transferred);self->drive();});return;}
     progress(transferred);
    }
    if(transfer_phase==3) {auto self=std::static_pointer_cast<SshBackend>(shared_from_this());asio::post(runtime->state->io,[self]{self->drive();});return;}
   }
   if(transfer_phase==4) {int rc=libssh2_sftp_close(file);if(retry(rc)) return;file=nullptr;transfer_phase=5;}
-  if(transfer_phase==5) {int rc=libssh2_sftp_shutdown(sftp);if(retry(rc)) return;sftp=nullptr;local.close();progress(transferred);auto cb=std::exchange(transfer_callback,{});transfer_phase=0;cb(CD_OK,{},0);}
+  if(transfer_phase==5) {int rc=libssh2_sftp_shutdown(sftp);if(retry(rc)) return;sftp=nullptr;disk_busy=true;auto self=std::static_pointer_cast<SshBackend>(shared_from_this());auto stream=local;
+   runtime->file_job([stream]{stream->clear();stream->close();if(stream->fail())throw Fault(CD_IO_ERROR,"Local file close failed");},[self](std::exception_ptr error){self->disk_busy=false;if(self->stopped)return;if(error){self->report(CD_IO_ERROR,0);return;}self->local.reset();self->progress(self->transferred);auto cb=std::exchange(self->transfer_callback,{});self->transfer_phase=0;cb(CD_OK,{},0);});}
  }
  void close() override {
   if(stopped) return;stopped=true;resolver.cancel();ErrorCode e;socket.close(e);
   if(file) {libssh2_sftp_close(file);file=nullptr;}if(sftp) {libssh2_sftp_shutdown(sftp);sftp=nullptr;}
-  if(channel) {libssh2_channel_free(channel);channel=nullptr;}if(session) {libssh2_session_free(session);session=nullptr;}local.close();
+  if(channel) {libssh2_channel_free(channel);channel=nullptr;}if(session) {libssh2_session_free(session);session=nullptr;}local.reset();
  }
 };
 std::shared_ptr<Backend> make_ssh(std::shared_ptr<Runtime> r,Config c) {return std::make_shared<SshBackend>(std::move(r),std::move(c));}

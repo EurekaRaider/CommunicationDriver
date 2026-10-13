@@ -51,6 +51,9 @@ jobs:
           cmake --install build > install.log
       - name: Native behavior and simulation
         run: ctest --test-dir build --output-on-failure
+      - name: C++23 probe diagnostics
+        if: failure()
+        run: python -c "from pathlib import Path; p=Path('build/CMakeFiles/CMakeConfigureLog.yaml'); print(p.read_text()[-18000:] if p.exists() else 'No configure log')"
       - name: Independent installed C/C++ consumers
         run: |
           cmake -S examples/consumer -B consumer-build -G Ninja -DCMAKE_PREFIX_PATH=${{ github.workspace }}/install
