@@ -1,0 +1,133 @@
+name: Platform CI
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-24.04, rid: linux-x64, arch: x64}
+          - {os: ubuntu-24.04-arm, rid: linux-arm64, arch: arm64}
+          - {os: macos-15, rid: osx-arm64, arch: arm64}
+          - {os: macos-15-intel, rid: osx-x64, arch: x64}
+          - {os: windows-2025, rid: win-x64, arch: x64}
+          - {os: windows-2025, rid: win-x86, arch: x86}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: 10.0.x
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
+        if: runner.os == 'Windows'
+        with:
+          arch: ${{ matrix.arch }}
+      - name: Linux toolchain
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-14 ninja-build libssl-dev
+          echo CC=gcc-14 >> "$GITHUB_ENV"
+          echo CXX=g++-14 >> "$GITHUB_ENV"
+      - name: macOS crypto
+        if: runner.os == 'macOS'
+        run: |
+          brew install openssl@3 ninja
+          echo OPENSSL_ROOT_DIR=$(brew --prefix openssl@3) >> "$GITHUB_ENV"
+      - name: Build native
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install
+          cmake --build build --parallel 4
+          cmake --install build
+      - name: Native behavior and simulation
+        run: ctest --test-dir build --output-on-failure
+      - name: Independent installed C/C++ consumers
+        run: |
+          cmake -S examples/consumer -B consumer-build -G Ninja -DCMAKE_PREFIX_PATH=${{ github.workspace }}/install
+          cmake --build consumer-build
+      - name: Stage package
+        run: python scripts/package_native.py --build build --rid ${{ matrix.rid }} --out artifacts/package
+      - name: Native independent consumers (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          export LD_LIBRARY_PATH="$PWD/install/lib"
+          export DYLD_LIBRARY_PATH="$PWD/install/lib"
+          consumer-build/consumer_c
+          consumer-build/consumer_cpp
+      - name: Native independent consumers (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:PATH="$PWD/install/bin;$env:PATH"
+          consumer-build/consumer_c.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          consumer-build/consumer_cpp.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Pack dual target NuGet
+        run: dotnet pack bindings/dotnet/CommunicationDriver -c Release -p:NativePackageRoot=${{ github.workspace }}/artifacts/package -o artifacts/feed
+      - name: PackageReference consumers build
+        run: dotnet build examples/dotnet/PackageConsumer -c Release -p:CommunicationDriverRid=${{ matrix.rid }} --source ${{ github.workspace }}/artifacts/feed --source https://api.nuget.org/v3/index.json
+      - name: net10 consumer (Unix)
+        if: runner.os != 'Windows'
+        run: dotnet examples/dotnet/PackageConsumer/bin/Release/net10.0/PackageConsumer.dll
+      - name: net10 / net48 consumers (Windows x64)
+        if: matrix.rid == 'win-x64'
+        shell: pwsh
+        run: |
+          dotnet examples/dotnet/PackageConsumer/bin/Release/net10.0/PackageConsumer.dll
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          examples/dotnet/PackageConsumer/bin/Release/net48/PackageConsumer.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Windows x86 consumers
+        if: matrix.rid == 'win-x86'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile artifacts/dotnet-install.ps1
+          & artifacts/dotnet-install.ps1 -Channel 10.0 -Architecture x86 -InstallDir "$PWD/artifacts/dotnet-x86"
+          dotnet build examples/dotnet/PackageConsumer -c Release -p:PlatformTarget=x86 -p:CommunicationDriverRid=win-x86 --no-restore
+          & artifacts/dotnet-x86/dotnet.exe examples/dotnet/PackageConsumer/bin/Release/net10.0/PackageConsumer.dll
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          examples/dotnet/PackageConsumer/bin/Release/net48/PackageConsumer.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: packages.config consumer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          nuget restore examples/dotnet/LegacyConsumer/packages.config -PackagesDirectory examples/dotnet/LegacyConsumer/packages -Source "$PWD/artifacts/feed;https://api.nuget.org/v3/index.json"
+          msbuild examples/dotnet/LegacyConsumer/LegacyConsumer.csproj /p:Configuration=Release /p:PlatformTarget=${{ matrix.arch }}
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          examples/dotnet/LegacyConsumer/bin/Release/LegacyConsumer.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-${{ matrix.rid }}
+          path: artifacts/package/
+  nuget:
+    needs: native
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: native-*
+          path: collected
+      - name: Merge six native RIDs
+        shell: bash
+        run: |
+          mkdir -p artifacts/package/runtimes artifacts/package/licenses
+          cp -r collected/native-*/runtimes/* artifacts/package/runtimes/
+          cp -r collected/native-linux-x64/licenses/* artifacts/package/licenses/
+          dotnet pack bindings/dotnet/CommunicationDriver -c Release -p:NativePackageRoot="$PWD/artifacts/package" -o artifacts/nuget
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: CommunicationDriver-NuGet
+          path: artifacts/nuget/*.nupkg
