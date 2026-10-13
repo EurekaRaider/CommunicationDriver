@@ -81,6 +81,9 @@ static void core_tests(){
  {Result r;execute(once,ready,r,&match);expect(r.text()=="READY"&&r.passed()&&r.info().completion_reason==CD_COMPLETION_COMMAND,"one-shot without newline");}
  {Result r;auto start=Clock::now();execute(shell,no,r,&match);if(r.text()!="NO")std::cerr<<"Unexpected managed reply ["<<r.text()<<"]\n";expect(!r.passed()&&r.text()=="NO","complete response mismatch is normal");expect(Clock::now()-start<std::chrono::seconds(1),"mismatch did not wait total timeout");}
  {Result r;execute(shell,state_set,r);Result next;execute(shell,state_get,next);expect(next.text()=="STATE","persistent environment retained");expect(next.text().find("__CD_")==std::string::npos,"internal markers stripped");}
+#ifdef _WIN32
+ {Result r;execute(shell,"echo READY",r);expect(r.text()=="READY\r\n","CMD business newline is preserved");}
+#endif
 #ifndef _WIN32
  {auto fifo=std::filesystem::temp_directory_path()/("cd-gate-"+std::to_string(Clock::now().time_since_epoch().count()));expect(mkfifo(fifo.c_str(),0600)==0,"create controlled command completion gate");
   struct RemoveGate {std::filesystem::path path;~RemoveGate(){std::error_code error;std::filesystem::remove(path,error);}} cleanup{fifo};

@@ -119,6 +119,7 @@ struct Backend : std::enable_shared_from_this<Backend> {
  std::function<void(int,std::string,bool)> output;
  std::function<void(cd_status_t,std::string,int64_t)> failure;
  std::function<void(std::optional<int>)> exited;
+ std::string completion_marker;
  Backend(std::shared_ptr<Runtime> r,Config c):runtime(std::move(r)),config(std::move(c)){}
  virtual ~Backend()=default;
  virtual void open(Completion)=0;
