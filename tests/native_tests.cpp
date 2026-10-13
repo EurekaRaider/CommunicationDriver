@@ -15,6 +15,8 @@
 #ifndef _WIN32
 #include <fcntl.h>
 #include <termios.h>
+#include <sys/stat.h>
+#include <fstream>
 #include <unistd.h>
 #endif
 namespace asio=boost::asio;
@@ -80,7 +82,11 @@ static void core_tests(){
  {Result r;auto start=Clock::now();execute(shell,no,r,&match);if(r.text()!="NO")std::cerr<<"Unexpected managed reply ["<<r.text()<<"]\n";expect(!r.passed()&&r.text()=="NO","complete response mismatch is normal");expect(Clock::now()-start<std::chrono::seconds(1),"mismatch did not wait total timeout");}
  {Result r;execute(shell,state_set,r);Result next;execute(shell,state_get,next);expect(next.text()=="STATE","persistent environment retained");expect(next.text().find("__CD_")==std::string::npos,"internal markers stripped");}
 #ifndef _WIN32
- {Result r;auto start=Clock::now();ok(cd_execute_until_string(shell.handle,CD_SV("printf BUSY; sleep 0.05; printf READY; sleep 0.15; printf TAIL"),&match,nullptr,&r.handle),r,"until");expect(r.passed()&&r.info().completion_reason==CD_COMPLETION_MATCH,"incremental until match");expect(Clock::now()-start<std::chrono::milliseconds(160),"until returns before command completion");Result next;execute(shell,ready,next);expect(next.text()=="READY","next command waits for cleanup and gets no TAIL");}
+ {auto fifo=std::filesystem::temp_directory_path()/("cd-gate-"+std::to_string(Clock::now().time_since_epoch().count()));expect(mkfifo(fifo.c_str(),0600)==0,"create controlled command completion gate");
+  struct RemoveGate {std::filesystem::path path;~RemoveGate(){std::error_code error;std::filesystem::remove(path,error);}} cleanup{fifo};
+  std::string command="printf BUSY; printf READY; read CD_GATE < '"+fifo.string()+"'; printf TAIL";cd_call_options_t options;cd_call_options_init(&options);options.timeout_ms=2000;
+  Result r;ok(cd_execute_until_string(shell.handle,sv(command),&match,&options,&r.handle),r,"until");expect(r.passed()&&r.info().completion_reason==CD_COMPLETION_MATCH,"incremental until match");expect(r.text().find("TAIL")==std::string::npos,"match returns while command is blocked on completion gate");
+  {std::ofstream release(fifo);release<<"release\n";}Result next;execute(shell,ready,next);expect(next.text()=="READY","next command waits for cleanup and gets no TAIL");}
  {Result r;cd_call_options_t o;cd_call_options_init(&o);o.timeout_ms=40;expect(cd_execute_until_string(shell.handle,CD_SV("printf PART; sleep 0.2; printf LATE"),&match,&o,&r.handle)==CD_TIMEOUT,"timeout is operation error");expect(r.bytes().find("PART")!=std::string::npos,"timeout retains partial output");expect(cd_connection_get_state(shell.handle)==CD_STATE_NEEDS_RECOVERY,"timeout needs explicit recovery");Result next;expect(cd_execute_string(shell.handle,sv(ready),nullptr,nullptr,&next.handle)==CD_NEEDS_RECOVERY,"late output cannot enter next command");shell.close();shell.open();Result recovered;execute(shell,ready,recovered);expect(recovered.text()=="READY","close/open recovers safely");}
  {cd_operation_t* op=nullptr;auto input=std::string("sleep 0.03; printf READY");expect(cd_execute_string_async(shell.handle,sv(input),&match,nullptr,nullptr,nullptr,&op)==CD_OK,"submit async");input="mutated";Result observer;expect(cd_operation_wait(op,1,&observer.handle)==CD_TIMEOUT,"observer timeout");expect(!cd_operation_is_completed(op),"observer timeout did not cancel");Result r;wait(op,r);expect(r.text()=="READY","submission copies input");}
  {cd_operation_t* op=nullptr;expect(cd_execute_string_async(shell.handle,CD_SV("printf PART; sleep 1"),nullptr,nullptr,nullptr,nullptr,&op)==CD_OK,"cancel submit");cd_operation_cancel(op);Result r;wait(op,r);expect(r.status()==CD_CANCELLED,"operation cancellation");shell.close();shell.open();}
