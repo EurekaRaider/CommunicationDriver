@@ -142,7 +142,7 @@ void Result::evaluate(const Check& c,int stream,cd_encoding_t encoding,bool fina
 }
 Runtime::Runtime() { auto s=state; worker=std::thread([s]{current_io=s.get();s->io.run();current_io=nullptr;}); }
 Runtime::~Runtime() { guard.reset(); if(worker.joinable()) {if(worker.get_id()==std::this_thread::get_id()) worker.detach();else worker.join();} }
-void Runtime::register_connection(const std::shared_ptr<Connection>& c) { std::lock_guard lock(registry_mutex);if(closed) throw Fault(CD_CLOSED,"Driver is closed");connections.push_back(c); }
+void Runtime::register_connection(const std::shared_ptr<Connection>& c) { std::lock_guard lock(registry_mutex);if(closed) throw Fault(CD_CLOSED,"Driver is closed");std::erase_if(connections,[](const auto& connection){return connection.expired();});connections.push_back(c); }
 void Runtime::close(std::function<void()> callback) {
  closed=true; std::vector<std::shared_ptr<Connection>> list;
  {std::lock_guard lock(registry_mutex);for(auto& w:connections) if(auto c=w.lock()) list.push_back(std::move(c));}

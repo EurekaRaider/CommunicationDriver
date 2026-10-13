@@ -45,6 +45,8 @@ dotnet build bindings/dotnet/CommunicationDriver -c Release
 
 可用 `-DCD_FETCH_DEPENDENCIES=OFF` 使用已安装的依赖（Boost 必须为 1.92.0）。C/C++ 独立消费者位于 `examples/consumer`；C# 包引用和传统 packages.config 示例位于 `examples/dotnet`。NuGet 从平台 CI 产物获取，尚未发布到 nuget.org。net48 仅 Windows；net10 按平台 RID 加载 native DLL/so/dylib。
 
+原生制品名为 `communicationdriver_native.dll`、`libcommunicationdriver_native.so` 或 `libcommunicationdriver_native.dylib`。native 产物包含头文件、所需伴随运行库和 Windows import library；可用 `scripts/test_native_package.py --rid <RID>` 验证独立 C/C++ 链接和运行。所有方法、C ABI 函数及 CMake 目标仍使用 CommunicationDriver 的既定命名。
+
 批次通过 `Batch.RunAsync(items)` 并行执行，默认并发 32；同连接串行，单项失败不取消其他项，报告按输入顺序。连续 await 批次形成步骤 barrier。输入 key 可采用 `UP01/adb`、`UP01/serial` 等标签。
 
 源码 MIT；第三方依赖许可证随 native/NuGet 包附带。测试用密钥、硬件标识和本机产物不会提交。完整 PTY/TUI、TCP 服务端、递归传输、自动重试与可靠 UDP 不在 v1 范围。

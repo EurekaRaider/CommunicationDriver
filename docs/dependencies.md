@@ -4,6 +4,8 @@
 
 CMake 3.28+；C++23 必需（expected、coroutine、span、stop_token 特性探测）。C# SDK 10，net48 引用程序集 1.0.3。具体编译器与平台通过情况以验证报告和 CI 为准。
 
+Windows native 及其静态依赖统一使用静态 MSVC CRT；CNG 为系统依赖。Unix 分发包复制实际链接的 OpenSSL 运行库；macOS LLVM 构建同时携带所需 libc++/libunwind。Linux glibc、libstdc++/libgcc 等系统运行库由目标系统提供，CI 基线为 Ubuntu 24.04，不推断更老系统的二进制兼容性。原生文件使用 `communicationdriver_native`，避免与 Windows 托管程序集 `CommunicationDriver.dll` 冲突；C ABI 名称与 CMake 导出目标保持不变。
+
 Boost.Asio、Boost.Process、libssh2、RE2、CMake、.NET API 已按 ctx7 library/docs 核对；固定版本源码为最终构建依据。
 
 libssh2 1.11 无法区分未收到 exit status 和零：单次 SSH 返回零时 ExitCode 保持 null，非零保留。持久托管 shell 的标记提供实际命令 status。libssh2 1.12+ 可使用 has_exit_status，本项目不假设其存在。

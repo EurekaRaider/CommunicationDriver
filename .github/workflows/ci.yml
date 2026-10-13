@@ -31,7 +31,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++-14 ninja-build libssl-dev
+          sudo apt-get install -y g++-14 ninja-build libssl-dev openssh-server
           echo CC=gcc-14 >> "$GITHUB_ENV"
           echo CXX=g++-14 >> "$GITHUB_ENV"
       - name: macOS C++23 toolchain and crypto
@@ -54,6 +54,9 @@ jobs:
           cmake --install build > install.log
       - name: Native behavior and simulation
         run: ctest --test-dir build --output-on-failure
+      - name: Real loopback OpenSSH and SFTP integration
+        if: runner.os != 'Windows'
+        run: python scripts/test_ssh_local.py --build build
       - name: C++23 probe diagnostics
         if: failure()
         run: python -c "from pathlib import Path; p=Path('build/CMakeFiles/CMakeConfigureLog.yaml'); print(p.read_text()[-18000:] if p.exists() else 'No configure log')"

@@ -188,7 +188,7 @@ namespace CommunicationDriver {
  internal ulong elapsed_ns;
 }
 internal static class Native {
- internal const string Library="communicationdriver";
+ internal const string Library="communicationdriver_native";
  [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate void Completion(IntPtr operation,IntPtr result,IntPtr user);
  [DllImport(Library,CallingConvention=CallingConvention.Cdecl)] internal static extern uint cd_abi_version();
  [DllImport(Library,CallingConvention=CallingConvention.Cdecl)] internal static extern IntPtr cd_status_name(int status);

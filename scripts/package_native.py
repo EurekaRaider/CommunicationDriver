@@ -7,16 +7,16 @@ def copy_runtime(source,destination):
 p=argparse.ArgumentParser()
 p.add_argument('--build',required=True);p.add_argument('--rid',required=True);p.add_argument('--out',default='artifacts/package')
 a=p.parse_args();root=Path(__file__).resolve().parents[1];build=Path(a.build).resolve();out=Path(a.out).resolve();native=out/'runtimes'/a.rid/'native';native.mkdir(parents=True,exist_ok=True)
-name='communicationdriver.dll' if os.name=='nt' else 'libcommunicationdriver.dylib' if sys.platform=='darwin' else 'libcommunicationdriver.so'
+name='communicationdriver_native.dll' if os.name=='nt' else 'libcommunicationdriver_native.dylib' if sys.platform=='darwin' else 'libcommunicationdriver_native.so'
 candidates=list(build.rglob(name));candidates=[x for x in candidates if '_deps' not in x.parts]
 if not candidates:raise SystemExit('Native library not found')
 source=candidates[0].resolve();copy_runtime(source,native/name)
 if os.name=='nt':
- imports=[x for x in build.rglob('communicationdriver.lib') if '_deps' not in x.parts]
+ imports=[x for x in build.rglob('communicationdriver_native.lib') if '_deps' not in x.parts]
  if not imports:raise SystemExit('Windows import library not found')
- libraries=out/'lib'/a.rid;libraries.mkdir(parents=True,exist_ok=True);shutil.copy2(imports[0],libraries/'communicationdriver.lib')
+ libraries=out/'lib'/a.rid;libraries.mkdir(parents=True,exist_ok=True);shutil.copy2(imports[0],libraries/'communicationdriver_native.lib')
 elif sys.platform!='darwin':
- copy_runtime(source,native/'libcommunicationdriver.so.1')
+ copy_runtime(source,native/'libcommunicationdriver_native.so.1')
 queue=[native/name];seen={name,source.name};origins={native/name:source};search_paths=[source.parent]
 while queue and os.name!='nt':
  lib=queue.pop()
@@ -59,7 +59,6 @@ for dep,names in [('boost',['LICENSE_1_0.txt']),('absl',['LICENSE']),('re2',['LI
   if (folder/n).exists():shutil.copy2(folder/n,licenses/(dep+'-'+n+'.txt'))
 # OpenSSL is a dynamically linked platform dependency on Unix.
 if os.name!='nt':
- if (build/'_deps/absl-src/LICENSE').exists():shutil.copy2(build/'_deps/absl-src/LICENSE',licenses/'OpenSSL-Apache-2.0.txt')
  openssl_license=licenses/'OpenSSL-NOTICE.txt'
  openssl_license.write_text('OpenSSL runtime is redistributed under Apache-2.0. Full license: https://www.openssl.org/source/license.html\n',encoding='utf-8')
 (out/'native-build.json').write_text(json.dumps({'rid':a.rid,'library':name,'runtime_files':sorted(x.name for x in native.iterdir())},indent=2)+'\n')

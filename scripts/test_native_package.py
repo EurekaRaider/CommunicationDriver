@@ -9,11 +9,11 @@ for language in ['c','cpp']:
  if os.name=='nt':
   command=['cl','/nologo','/utf-8','/MT','/I'+str(package/'include'),str(source),'/Fo'+str(out/(language+'.obj')),'/Fe'+str(binary)]
   if language=='cpp':command+=['/std:c++latest','/EHsc']
-  command+=['/link',str(package/'lib'/args.rid/'communicationdriver.lib')]
+  command+=['/link',str(package/'lib'/args.rid/'communicationdriver_native.lib')]
  else:
   compiler=os.environ.get('CC' if language=='c' else 'CXX','cc' if language=='c' else 'c++')
   command=shlex.split(compiler)+shlex.split(os.environ.get('CFLAGS' if language=='c' else 'CXXFLAGS',''))
   if language=='cpp':command+=['-std=c++23']
-  command+=['-I'+str(package/'include'),str(source),'-L'+str(native),'-lcommunicationdriver','-Wl,-rpath,'+str(native),'-o',str(binary)]+shlex.split(os.environ.get('LDFLAGS',''))
+  command+=['-I'+str(package/'include'),str(source),'-L'+str(native),'-lcommunicationdriver_native','-Wl,-rpath,'+str(native),'-o',str(binary)]+shlex.split(os.environ.get('LDFLAGS',''))
  subprocess.check_call(command);subprocess.check_call([str(binary)],env=environment)
 print('PASS staged native C and C++ consumers: '+args.rid)
