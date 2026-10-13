@@ -121,8 +121,8 @@ Options::Options(const Defaults& d,const cd_call_options_t* o,uint64_t fallback)
  require(read_stream>=0&&read_stream<=1&&check_stream>=0&&check_stream<=1,"Invalid stream");
  cancellation=cd::cancellation(o->cancellation);
 }
-void Cancellation::request() { if(requested.exchange(true)) return; std::vector<std::function<void()>> callbacks; {std::lock_guard lock(mutex);callbacks.swap(listeners);} for(auto& cb:callbacks) cb(); }
-void Cancellation::subscribe(std::function<void()> f) { {std::lock_guard lock(mutex);if(!requested) {listeners.push_back(std::move(f));return;}} f(); }
+void Cancellation::request() {if(requested.exchange(true))return;std::vector<std::weak_ptr<Operation>> targets;{std::lock_guard lock(mutex);targets.swap(listeners);}for(auto& weak:targets)if(auto op=weak.lock())op->cancel();}
+void Cancellation::subscribe(std::weak_ptr<Operation> weak) {{std::lock_guard lock(mutex);if(!requested){std::erase_if(listeners,[](auto& entry){return entry.expired();});listeners.push_back(std::move(weak));return;}}if(auto op=weak.lock())op->cancel();}
 std::string Config::name() const { static const char* names[]={"tcp","udp","serial","ssh","adb","cli"}; return names[backend]; }
 void Result::evaluate(const Check& c,int stream,cd_encoding_t encoding,bool final) {
  if(c.kind==CD_CHECK_NONE) return;
@@ -335,7 +335,7 @@ void Connection::attach(const std::shared_ptr<Backend>& backend,bool isolated) {
 void Connection::submit(std::shared_ptr<Request> request) {
  auto self=shared_from_this(); auto op=request->operation;
  {std::lock_guard lock(op->mutex);op->cancel_hook=[weak=weak_from_this(),w=std::weak_ptr<Request>(request)]{if(auto c=weak.lock()) asio::post(c->runtime->state->io,[c,w]{if(auto r=w.lock()) c->abort(r,CD_CANCELLED,"Operation cancelled");});};}
- if(request->options.cancellation) request->options.cancellation->subscribe([w=std::weak_ptr<Operation>(op)]{if(auto o=w.lock()) o->cancel();});
+ if(request->options.cancellation) request->options.cancellation->subscribe(op);
  asio::post(runtime->state->io,[self,request]{
   request->deadline=std::make_shared<asio::steady_timer>(self->runtime->state->io);
   request->deadline->expires_at(request->started+std::chrono::milliseconds(request->options.timeout));

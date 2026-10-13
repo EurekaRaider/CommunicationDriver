@@ -174,7 +174,7 @@ cd_status_t CD_CALL cd_batch_run_async(cd_driver_t* d,const cd_batch_item_t* inp
   }
   batch->admitted.resize(static_cast<size_t>(count));accept(batch->operation,cb,user,out);
   auto weak=std::weak_ptr<Batch>(batch);{std::lock_guard lock(batch->operation->mutex);batch->operation->cancel_hook=[weak]{if(auto b=weak.lock()) asio::post(b->runtime->state->io,[b]{b->schedule();});};}
-  if(cancel) cancel->subscribe([w=std::weak_ptr<Operation>(batch->operation)]{if(auto o=w.lock()) o->cancel();});
+  if(cancel) cancel->subscribe(batch->operation);
   asio::post(d->value->state->io,[batch]{batch->schedule();});return CD_OK;
  }catch(...) {return exception_result(nullptr);}
 }

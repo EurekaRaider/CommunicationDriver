@@ -50,10 +50,11 @@ struct Defaults {
  uint64_t connect_ms=10000,io_ms=5000,execution_ms=30000,close_ms=10000,max_bytes=1048576;
  explicit Defaults(const cd_connection_options_t&);
 };
+struct Operation;
 struct Cancellation {
  std::atomic<bool> requested{false}; std::mutex mutex;
- std::vector<std::function<void()>> listeners;
- void request(); void subscribe(std::function<void()>);
+ std::vector<std::weak_ptr<Operation>> listeners;
+ void request(); void subscribe(std::weak_ptr<Operation>);
 };
 struct Options {
  cd_encoding_t encoding; std::string newline; Rule rule; uint64_t timeout,max_bytes;
