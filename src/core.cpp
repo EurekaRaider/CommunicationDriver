@@ -22,18 +22,24 @@ std::string copy(cd_bytes_view_t v) { return copy({reinterpret_cast<const char*>
 cd_string_view_t view(const std::string& s) { return {s.data(),s.size()}; }
 cd_bytes_view_t bytes_view(const std::string& s) { return {reinterpret_cast<const uint8_t*>(s.data()),s.size()}; }
 // Returns a valid UTF-8 prefix. Incomplete terminal scalars stay buffered until the next block.
-static size_t valid_utf8(const std::string& s,bool final) {
+static size_t valid_utf8(const std::string& s,bool final,bool partial=false) {
  size_t i=0;
  while(i<s.size()) {
   unsigned char c=s[i]; size_t n=c<0x80?1:(c>=0xc2&&c<=0xdf?2:(c>=0xe0&&c<=0xef?3:(c>=0xf0&&c<=0xf4?4:0)));
-  if(!n) throw Fault(CD_ENCODING_ERROR,"Invalid UTF-8 leading byte");
+  if(!n) {if(partial)return i;throw Fault(CD_ENCODING_ERROR,"Invalid UTF-8 leading byte");}
+  for(size_t j=1;j<std::min(n,s.size()-i);++j) if((static_cast<unsigned char>(s[i+j])&0xc0)!=0x80) {if(partial)return i;throw Fault(CD_ENCODING_ERROR,"Invalid UTF-8 continuation");}
+  if(i+1<s.size()&&n==3&&((c==0xe0&&static_cast<unsigned char>(s[i+1])<0xa0)||(c==0xed&&static_cast<unsigned char>(s[i+1])>=0xa0))) {if(partial)return i;throw Fault(CD_ENCODING_ERROR,"Invalid UTF-8 scalar");}
+  if(i+1<s.size()&&n==4&&((c==0xf0&&static_cast<unsigned char>(s[i+1])<0x90)||(c==0xf4&&static_cast<unsigned char>(s[i+1])>=0x90))) {if(partial)return i;throw Fault(CD_ENCODING_ERROR,"Invalid UTF-8 scalar");}
   if(s.size()-i<n) { if(final) throw Fault(CD_ENCODING_ERROR,"Incomplete UTF-8 scalar"); return i; }
-  for(size_t j=1;j<n;++j) if((static_cast<unsigned char>(s[i+j])&0xc0)!=0x80) throw Fault(CD_ENCODING_ERROR,"Invalid UTF-8 continuation");
-  if(n==3&&((c==0xe0&&static_cast<unsigned char>(s[i+1])<0xa0)||(c==0xed&&static_cast<unsigned char>(s[i+1])>=0xa0))) throw Fault(CD_ENCODING_ERROR,"Invalid UTF-8 scalar");
-  if(n==4&&((c==0xf0&&static_cast<unsigned char>(s[i+1])<0x90)||(c==0xf4&&static_cast<unsigned char>(s[i+1])>=0x90))) throw Fault(CD_ENCODING_ERROR,"Invalid UTF-8 scalar");
   i+=n;
  }
  return i;
+}
+static size_t gb18030_prefix(const std::string& s,bool final,bool partial=false) {
+ size_t i=0;while(i<s.size()){auto at=[&](size_t n){return static_cast<unsigned char>(s[n]);};if(at(i)<128){++i;continue;}bool valid=at(i)>=0x81&&at(i)<=0xfe;size_t n=2;
+  if(valid&&i+1<s.size()){if(at(i+1)>=0x30&&at(i+1)<=0x39){n=4;if(i+2<s.size())valid=at(i+2)>=0x81&&at(i+2)<=0xfe;if(valid&&i+3<s.size())valid=at(i+3)>=0x30&&at(i+3)<=0x39;}else valid=at(i+1)>=0x40&&at(i+1)<=0xfe&&at(i+1)!=0x7f;}
+  if(!valid){if(partial)return i;throw Fault(CD_ENCODING_ERROR,"Invalid GB18030 sequence");}if(s.size()-i<n){if(final)throw Fault(CD_ENCODING_ERROR,"Incomplete GB18030 scalar");return i;}i+=n;
+ }return i;
 }
 size_t scalar_prefix(const std::string& s,uint64_t count) {
  size_t i=0; uint64_t n=0;
@@ -55,18 +61,17 @@ std::string decode(const std::string& s,cd_encoding_t encoding,bool final) {
  if(encoding==CD_ENCODING_UTF8||encoding==CD_ENCODING_DEFAULT) return s.substr(0,valid_utf8(s,final));
  if(encoding==CD_ENCODING_ASCII) { for(unsigned char c:s) if(c>127) throw Fault(CD_ENCODING_ERROR,"Non-ASCII byte"); return s; }
  if(encoding!=CD_ENCODING_GB18030) throw Fault(CD_INVALID_ARGUMENT,"Unknown encoding");
+ size_t prefix=gb18030_prefix(s,final);if(!prefix)return {};
 #ifdef _WIN32
- // GB18030 is stateless. Incomplete suffix is retained; invalid complete sequences are errors.
- size_t prefix=s.size();
- while(prefix>0) {
-  int n=MultiByteToWideChar(54936,MB_ERR_INVALID_CHARS,s.data(),static_cast<int>(prefix),nullptr,0);
-  if(n) { std::wstring w(n,0); MultiByteToWideChar(54936,MB_ERR_INVALID_CHARS,s.data(),static_cast<int>(prefix),w.data(),n); int m=WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,w.data(),n,nullptr,0,nullptr,nullptr); std::string out(m,0); WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,w.data(),n,out.data(),m,nullptr,nullptr); return out; }
-  if(final||s.size()-prefix>=3) break; --prefix;
- }
- if(s.empty()) return {}; throw Fault(CD_ENCODING_ERROR,"Invalid GB18030 sequence",GetLastError());
+ int n=MultiByteToWideChar(54936,MB_ERR_INVALID_CHARS,s.data(),static_cast<int>(prefix),nullptr,0);if(!n)throw Fault(CD_ENCODING_ERROR,"Invalid GB18030 sequence",GetLastError());
+ std::wstring w(n,0);MultiByteToWideChar(54936,MB_ERR_INVALID_CHARS,s.data(),static_cast<int>(prefix),w.data(),n);int m=WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,w.data(),n,nullptr,0,nullptr,nullptr);std::string out(m,0);WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,w.data(),n,out.data(),m,nullptr,nullptr);return out;
 #else
- return convert(s,"UTF-8","GB18030",final);
+ return convert(s.substr(0,prefix),"UTF-8","GB18030",true);
 #endif
+}
+static std::string partial_text(const std::string& raw,cd_encoding_t encoding) {
+ size_t prefix=0;if(encoding==CD_ENCODING_GB18030)prefix=gb18030_prefix(raw,false,true);else if(encoding==CD_ENCODING_ASCII){while(prefix<raw.size()&&static_cast<unsigned char>(raw[prefix])<128)++prefix;}else prefix=valid_utf8(raw,false,true);
+ return decode(raw.substr(0,prefix),encoding,false);
 }
 std::string encode(const std::string& s,cd_encoding_t encoding) {
  valid_utf8(s,true);
@@ -518,7 +523,7 @@ void Connection::finish(cd_status_t status,std::string message,int64_t native,bo
  r->deadline->cancel();if(r->idle) r->idle->cancel();
  r->result->status=status;r->result->message=std::move(message);r->result->native=native;
  r->result->elapsed_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now()-r->started).count();
- try {if(r->text) for(int i=0;i<2;++i) r->result->text[i]=decode(r->result->raw[i],r->options.encoding,status==CD_OK);if(status==CD_OK&&(r->action==Action::Execute||r->action==Action::ExecuteUntil)) r->result->evaluate(r->check,r->options.check_stream,r->options.encoding,true);}catch(const Fault& f) {if(status==CD_OK){r->result->status=f.code;r->result->message=f.message;r->result->native=f.native;}}
+ try {if(r->text) for(int i=0;i<2;++i) r->result->text[i]=status==CD_OK?decode(r->result->raw[i],r->options.encoding,true):partial_text(r->result->raw[i],r->options.encoding);if(status==CD_OK&&(r->action==Action::Execute||r->action==Action::ExecuteUntil)) r->result->evaluate(r->check,r->options.check_stream,r->options.encoding,true);}catch(const Fault& f) {if(status==CD_OK){r->result->status=f.code;r->result->message=f.message;r->result->native=f.native;}if(r->text)for(int i=0;i<2;++i)try{r->result->text[i]=partial_text(r->result->raw[i],r->options.encoding);}catch(const Fault&){} }
  if(!r->early) r->operation->complete(r->result);
  if(one_shot&&config.backend!=3) {one_shot->close();one_shot.reset();}
  if(isolating){for(int stream=0;stream<2;++stream){pending[stream]=std::exchange(stdio_pending[stream],{});eof[stream]=stdio_eof[stream];}isolating=false;}

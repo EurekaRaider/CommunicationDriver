@@ -63,6 +63,8 @@ jobs:
           cmake --build consumer-build
       - name: Stage package
         run: python scripts/package_native.py --build build --rid ${{ matrix.rid }} --out artifacts/package
+      - name: Independent packaged C/C++ consumers
+        run: python scripts/test_native_package.py --rid ${{ matrix.rid }}
       - name: Native independent consumers (Unix)
         if: runner.os != 'Windows'
         shell: bash

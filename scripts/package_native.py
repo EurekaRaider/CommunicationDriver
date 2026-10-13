@@ -1,13 +1,22 @@
 """Stage a native RID directory and licenses; resolve local dynamic dependencies recursively."""
 import argparse, json, os, re, shutil, subprocess, sys
 from pathlib import Path
+def copy_runtime(source,destination):
+ if destination.exists():destination.chmod(destination.stat().st_mode|0o200)
+ shutil.copy2(source,destination);destination.chmod(destination.stat().st_mode|0o200)
 p=argparse.ArgumentParser()
 p.add_argument('--build',required=True);p.add_argument('--rid',required=True);p.add_argument('--out',default='artifacts/package')
 a=p.parse_args();root=Path(__file__).resolve().parents[1];build=Path(a.build).resolve();out=Path(a.out).resolve();native=out/'runtimes'/a.rid/'native';native.mkdir(parents=True,exist_ok=True)
 name='communicationdriver.dll' if os.name=='nt' else 'libcommunicationdriver.dylib' if sys.platform=='darwin' else 'libcommunicationdriver.so'
 candidates=list(build.rglob(name));candidates=[x for x in candidates if '_deps' not in x.parts]
 if not candidates:raise SystemExit('Native library not found')
-source=candidates[0].resolve();shutil.copy2(source,native/name)
+source=candidates[0].resolve();copy_runtime(source,native/name)
+if os.name=='nt':
+ imports=[x for x in build.rglob('communicationdriver.lib') if '_deps' not in x.parts]
+ if not imports:raise SystemExit('Windows import library not found')
+ libraries=out/'lib'/a.rid;libraries.mkdir(parents=True,exist_ok=True);shutil.copy2(imports[0],libraries/'communicationdriver.lib')
+elif sys.platform!='darwin':
+ copy_runtime(source,native/'libcommunicationdriver.so.1')
 queue=[native/name];seen={name,source.name};origins={native/name:source};search_paths=[source.parent]
 while queue and os.name!='nt':
  lib=queue.pop()
@@ -34,7 +43,7 @@ while queue and os.name!='nt':
   if not path.is_absolute() or not path.exists():
    raise SystemExit('Unresolved runtime dependency: '+dep)
   if path.name not in seen:
-   seen.add(path.name);shutil.copy2(path.resolve(),native/path.name);origins[native/path.name]=path.resolve();queue.append(native/path.name)
+   seen.add(path.name);copy_runtime(path.resolve(),native/path.name);origins[native/path.name]=path.resolve();queue.append(native/path.name)
   if sys.platform=='darwin':subprocess.check_call(['install_name_tool','-change',dep,'@loader_path/'+path.name,str(lib)])
  if sys.platform=='darwin':subprocess.check_call(['install_name_tool','-id','@rpath/'+lib.name,str(lib)])
 if sys.platform=='darwin':
