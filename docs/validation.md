@@ -1,6 +1,6 @@
-# 验证报告（进行中）
+# 验证报告（0.1.0）
 
-本文件在最终交付前更新。已执行的本机验证与平台 CI、模拟、真实硬件分别记录，不把编译成功称作设备通过。
+软件验收与真实硬件分别记录。以下 PASS 仅对应明确列出的测试范围，不把编译或模拟称作设备通过。
 
 ## 本机已执行
 
@@ -17,8 +17,23 @@
 - AddressSanitizer 复现了 Close 删除 process 对象后异步等待仍访问其内部引用的 heap-use-after-free。等待回调现保留该对象到完成；修复后 native/C++/ADB 模拟测试各连续三轮通过 AddressSanitizer，未检测到同类内存错误。一次重跑通过不能替代此内存验证。
 - 128MiB SFTP 下载中断报告部分路径，Close 等待本地文件任务，重开后部分文件不继续增长。ADB 模拟覆盖不覆盖独占安装、已有目标保留和目录拒绝；不作为 Android 文件系统能力证明。
 
-## 待验收
+## 平台与制品验收
 
-六平台 CI、锁定依赖 native/NuGet 包的独立消费者和 Windows packages.config 运行，以终态 CI 结果更新。Windows x86/x64、Linux x64/ARM64、macOS x64 未在本机运行。
+[最终软件提交 `3da0d8c`](https://github.com/EurekaRaider/CommunicationDriver/commit/3da0d8cab143ae1ea1d2c3e2f0a6e4e7b2150177) 的 [Platform CI #38397256682](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/38397256682) 六平台任务与合并 NuGet 任务均已终态成功。本机仅 macOS ARM64；其他平台结论来自对应真实 CI runner 上的实际程序执行。
+
+| RID | 系统与进程 | Native / C / C++ 消费者 | net10 | net48 / packages.config | 真实 OpenSSH/SFTP |
+| --- | --- | --- | --- | --- | --- |
+| linux-x64 | Ubuntu 24.04 x64 | PASS | PASS | 不适用 | PASS |
+| linux-arm64 | Ubuntu 24.04 ARM64 | PASS | PASS | 不适用 | PASS |
+| osx-arm64 | macOS 15 ARM64 | PASS | PASS | 不适用 | PASS |
+| osx-x64 | macOS 15 Intel | PASS | PASS | 不适用 | PASS |
+| win-x64 | Windows Server 2025，64 位进程 | PASS | PASS | PASS / PASS | 未联调 |
+| win-x86 | Windows Server 2025 x64 runner，32 位进程 | PASS | PASS | PASS / PASS | 未联调 |
+
+Native 包独立 C/C++ 客户端直接使用包内头文件和运行库，Windows 同时验证 import library。PackageReference 与 packages.config 消费者实际执行同步/异步、文本/字节、32 连接批次和 GC；Windows 进程位数有运行时断言。NuGet `CommunicationDriver.0.1.0.nupkg` 合并六个 RID、net48/net10 和第三方许可证，未发布到 nuget.org。
+
+编译器为 Linux GCC 14、Windows MSVC、CI macOS LLVM 21；保持 C++23 特性探测。一次 Intel SIGCHLD 重跑成功不能证明无竞争，后续 ASan 复现并修复等待对象的 use-after-free 后，最新完整六平台 CI 再次通过。编译器扩展/依赖警告不等于零警告构建；C# 双目标编译为零 warning/error。
+
+## 未验证
 
 至少两台真实 Android 设备与两个真实串口未验证。用户本轮明确回复“本轮暂无硬件，记录未验证”；不以虚拟 PTY、fake adb 或回环网络代替硬件验收。无人为 UP 总数限制，32 为默认批并发与验收规模。
