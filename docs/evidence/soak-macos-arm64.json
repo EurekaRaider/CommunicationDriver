@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-13",
+  "host": "macOS ARM64",
+  "source_commit": "af729dd68bb4efa959f6fffe9d18abce0834d945",
+  "command": "cd_tests --soak-seconds 3600",
+  "connections": 32,
+  "batches": 7815392,
+  "operations": 250092544,
+  "elapsed_ms": 3600000,
+  "status": "PASS",
+  "protocols": {
+    "tcp_loopback": 8,
+    "udp_loopback": 8,
+    "persistent_cli": 8,
+    "virtual_serial_pty": 8
+  },
+  "observed_rss_kib": 14112,
+  "rss_observation_minutes": [
+    20,
+    28,
+    37,
+    44,
+    52,
+    55
+  ],
+  "physical_android_devices_verified": false,
+  "physical_serial_ports_verified": false,
+  "scope": "One-hour benchmark ran the started binary at this commit; later changes are verified by final platform CI and local regression, not attributed to this benchmark."
+}

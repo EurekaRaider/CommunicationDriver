@@ -241,7 +241,7 @@ bool Backend::filter_prompt(std::string& data) {
  output_tail+=data;auto limit=completion_marker.size()+64;if(output_tail.size()>limit)output_tail.erase(0,output_tail.size()-limit);return true;
 }
 struct ProcessBackend : Backend {
- asio::writable_pipe input; asio::readable_pipe out,err; std::unique_ptr<process::process> child;
+ asio::writable_pipe input; asio::readable_pipe out,err; std::shared_ptr<process::process> child;
  std::array<char,8192> out_buffer{},err_buffer{}; bool stopped=false;
  std::shared_ptr<ProcessBackend> auxiliary; Completion auxiliary_callback;
  std::string auxiliary_output; bool auxiliary_eof[2]={false,false};std::optional<int> auxiliary_exit;
@@ -266,9 +266,10 @@ struct ProcessBackend : Backend {
    if(cmd_shell){std::random_device random;prompt_token="__CD_PROMPT_"+std::to_string(random())+std::to_string(random())+"__";env["PROMPT"]=prompt_token;prompt_ready=cb;}
    std::vector<std::string> env_list;for(auto& [k,v]:env) env_list.push_back(k+"="+v);
    auto dir=config.working_directory.empty()?std::filesystem::current_path():utf8_path(config.working_directory);
-   child=std::make_unique<process::process>(runtime->state->io,path,args,process::process_stdio{input,out,err},process::process_environment(env_list),process::process_start_dir(process::filesystem::path(dir.native())));
+   child=std::make_shared<process::process>(runtime->state->io,path,args,process::process_stdio{input,out,err},process::process_environment(env_list),process::process_start_dir(process::filesystem::path(dir.native())));
    pump(0);pump(1); auto self=std::static_pointer_cast<ProcessBackend>(shared_from_this());
-   child->async_wait([self](ErrorCode ec,int code){if(self->stopped) return;if(ec) self->failure(CD_IO_ERROR,ec.message(),ec.value());else self->exited(code);});
+   // async_wait retains references into the process; keep it alive through completion after Close.
+   auto waiting_child=child;child->async_wait([self,waiting_child](ErrorCode ec,int code){if(self->stopped) return;if(ec) self->failure(CD_IO_ERROR,ec.message(),ec.value());else self->exited(code);});
    if(!cmd_shell)cb(CD_OK,{},0);
   } catch(const Fault& f) {cb(f.code,f.message,f.native);}catch(const std::exception& e) {cb(CD_CONNECTION_FAILED,e.what(),0);}
  }
