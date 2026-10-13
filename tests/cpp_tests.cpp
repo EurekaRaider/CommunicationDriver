@@ -12,6 +12,7 @@ int main(){try {comm::Driver driver;comm::CliOptions options;auto connection=dri
  std::vector<comm::BatchItem> items;items.push_back(comm::BatchItem::execute("one",connection,ready,comm::Check::contains("READY")));items.push_back(comm::BatchItem::execute("two",connection,ready,comm::Check::contains("READY")));auto batch=comm::Batch::run(items);expect(batch.all_succeeded&&batch.items[0].key=="one"&&batch.items[1].key=="two","batch same-connection order");
 #ifndef _WIN32
  connection.write_string("printf ERR >&2\n");comm::CallOptions stderr_options;stderr_options.read_stream=comm::Stream::StandardError;expect(connection.read_exactly_string(3,stderr_options)=="ERR","C++ stderr stream selection");
+ connection.write_string("printf PART >&2\n");stderr_options.timeout=comm::Duration(25);try{connection.read_exactly_string(8,stderr_options);throw std::runtime_error("partial stderr read unexpectedly completed");}catch(const comm::CommunicationError& e){expect(e.info.code==CD_TIMEOUT&&e.info.partial_text=="PART","stderr timeout preserves the selected stream in ErrorInfo");}
  std::stop_source stop;auto cancel=connection.execute_until_async("printf PART; sleep 1",comm::Check::contains("NEVER"),{},stop.get_token());stop.request_stop();try{cancel.get();throw std::runtime_error("stop token ignored");}catch(const comm::CommunicationError& e){expect(e.info.code==CD_CANCELLED,"stop token reaches native core");}
 #endif
  connection.close();

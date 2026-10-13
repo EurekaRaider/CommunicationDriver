@@ -15,6 +15,7 @@ struct SshBackend : Backend {
  asio::ip::tcp::socket socket;asio::ip::tcp::resolver resolver;
  LIBSSH2_SESSION* session=nullptr;LIBSSH2_CHANNEL* channel=nullptr;LIBSSH2_CHANNEL* stdio_channel=nullptr;LIBSSH2_SFTP* sftp=nullptr;LIBSSH2_SFTP_HANDLE* file=nullptr;
  bool stopped=false,waiting=false,write_eof=false,command_active=false;int phase=0,channel_phase=0,transfer_phase=0;
+ bool stdio_started=false;
  uint64_t wait_revision=0;int wait_directions=0;
  Completion open_callback,command_callback,write_callback,transfer_callback;
  std::string command_text,write_data,source,destination;size_t write_offset=0;
@@ -84,7 +85,7 @@ struct SshBackend : Backend {
    int rc=config.auth==CD_AUTH_PASSWORD?libssh2_userauth_password_ex(session,config.user.c_str(),static_cast<unsigned>(config.user.size()),config.password.c_str(),static_cast<unsigned>(config.password.size()),nullptr):libssh2_userauth_publickey_fromfile_ex(session,config.user.c_str(),static_cast<unsigned>(config.user.size()),nullptr,config.private_key.c_str(),config.passphrase.empty()?nullptr:config.passphrase.c_str());
    if(retry(rc,CD_AUTHENTICATION_FAILED)) return;phase=4;
    if(config.mode==CD_ONE_SHOT) {auto cb=std::exchange(open_callback,{});cb(CD_OK,{},0);return;}
-   command_text=session_shell();
+   stdio_started=true;command_text=session_shell();
    channel_phase=1;
   }
   if(channel_phase==1) {channel=libssh2_channel_open_session(session);if(!channel) {retry(libssh2_session_last_errno(session));return;}channel_phase=2;}
@@ -119,7 +120,7 @@ struct SshBackend : Backend {
  }
  bool command_channels() const override {return config.mode==CD_ONE_SHOT;}
  void command(std::string command,Completion cb) override {if(command_active) {cb(CD_BUSY,"SSH channel still active",0);return;}stdio_channel=std::exchange(channel,nullptr);command_text=one_shot_command(command);command_callback=std::move(cb);command_active=true;channel_phase=1;drive();}
- void ensure_stdio(Completion cb) override {if(channel){cb(CD_OK,{},0);return;}command_text=session_shell();open_callback=std::move(cb);channel_phase=1;drive();}
+ void ensure_stdio(Completion cb) override {if(channel){cb(CD_OK,{},0);return;}if(stdio_started){cb(CD_END_OF_STREAM,"SSH stdio channel ended; close/open to recreate it",0);return;}stdio_started=true;command_text=session_shell();open_callback=std::move(cb);channel_phase=1;drive();}
  void write(std::string data,Completion cb) override {if(!channel) {cb(CD_NOT_OPEN,"SSH stdio channel unavailable",0);return;}write_data=std::move(data);write_offset=0;write_callback=std::move(cb);drive();}
  void close_input(Completion cb) override {if(!channel) {cb(CD_NOT_OPEN,"SSH stdio channel unavailable",0);return;}write_eof=true;write_callback=std::move(cb);drive();}
  void transfer(bool is_upload,std::string from,std::string to,bool replace,std::function<void(uint64_t)> on_progress,Completion cb) override {

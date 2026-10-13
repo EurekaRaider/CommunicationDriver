@@ -47,6 +47,7 @@ struct Peers {
   void read(){auto self=shared_from_this();socket.async_read_some(asio::buffer(buffer),[self](auto e,size_t n){if(e)return;std::string command(self->buffer.data(),n);++self->owner.requests;
    if(command=="UTF")self->send_chunks({"A\xf0\x9f","\x98\x84"});
    else if(command=="BAD")self->send_chunks({std::string("A\xff",2)});
+   else if(command=="EOF"){auto bytes=std::make_shared<std::string>("PART");asio::async_write(self->socket,asio::buffer(*bytes),[self,bytes](auto error,size_t){if(!error){boost::system::error_code ignored;self->socket.shutdown(asio::ip::tcp::socket::shutdown_send,ignored);}});}
    else if(command=="LATE")self->send_chunks({"BUSY","READY"},150);
    else if(command=="FRAME")self->send_chunks({"NOT","\n"});
    else self->send_chunks({command});self->read();});}
@@ -105,8 +106,11 @@ static void core_tests(){
  Peers peers;auto tcp=peers.tcp(d);auto unframed=peers.tcp(d,false);auto udp=peers.datagram(d);
  {Result r;int before=peers.requests;expect(cd_execute_string(unframed.handle,CD_SV("FRAME"),nullptr,nullptr,&r.handle)==CD_INVALID_ARGUMENT,"unframed execute rejected");expect(peers.requests==before,"configuration failure sends no bytes");}
  {Result r;execute(tcp,"FRAME",r,&match);expect(r.text()=="NOT"&&!r.passed(),"TCP framed mismatch returns normally");}
+ {auto newline=cd_check_contains_string(CD_SV("\n"));Result r;expect(cd_execute_until_string(tcp.handle,CD_SV("FRAME"),&newline,nullptr,&r.handle)==CD_END_OF_STREAM&&r.text()=="NOT"&&!r.passed(),"until does not match a stripped protocol delimiter");}
+ {auto ending=peers.tcp(d);Result r;expect(cd_execute_string(ending.handle,CD_SV("EOF"),nullptr,nullptr,&r.handle)==CD_END_OF_STREAM&&r.text()=="PART","incomplete protocol EOF preserves partial response");}
  {Result w;ok(cd_write_string(unframed.handle,CD_SV("UTF"),nullptr,&w.handle),w,"write UTF request");Result r;ok(cd_read_exactly_string(unframed.handle,2,nullptr,&r.handle),r,"read exact unicode scalars");expect(r.text()=="A\xf0\x9f\x98\x84","UTF8 split block and scalar count");}
  {Result w;ok(cd_write_string(unframed.handle,CD_SV("BAD"),nullptr,&w.handle),w,"write malformed UTF request");Result r;expect(cd_read_exactly_string(unframed.handle,2,nullptr,&r.handle)==CD_ENCODING_ERROR&&r.bytes()==std::string("A\xff",2)&&r.text()=="A","encoding error retains original partial bytes and valid text prefix");}
+ {uint8_t value='A';auto bytes=cd_check_contains_bytes({&value,1});cd_call_options_t frame;cd_call_options_init(&frame);frame.receive_until=cd_receive_until_line(CD_SV("\n"));cd_operation_t* operation=nullptr;expect(cd_execute_until_string_async(unframed.handle,CD_SV("BAD"),&bytes,&frame,nullptr,nullptr,&operation)==CD_OK,"accept byte match with text response");Result result;wait(operation,result);expect(result.status()==CD_ENCODING_ERROR&&result.text()=="A","failed early text decoding still completes the accepted operation");unframed.close();unframed.open();}
  {cd_call_options_t overflow;cd_call_options_init(&overflow);overflow.timeout_ms=UINT64_MAX;Result r;expect(cd_read_string(unframed.handle,&overflow,&r.handle)==CD_INVALID_ARGUMENT,"oversized duration is rejected before IO");}
 #ifndef _WIN32
  {auto isolated=cli(d,true);Result w;ok(cd_write_line(isolated.handle,CD_SV("printf RAW; sleep 0.1; printf LATE"),nullptr,&w.handle),w,"oneshot persistent stdio write");Result command;execute(isolated,"printf OUT",command);expect(command.text()=="OUT","CLI oneshot does not mix persistent output");Result raw;ok(cd_read_exactly_string(isolated.handle,7,nullptr,&raw.handle),raw,"isolated persistent read");expect(raw.text()=="RAWLATE","CLI persistent raw buffer retained across oneshot command");}
@@ -124,6 +128,14 @@ static void core_tests(){
  {Result r;cd_call_options_t o;cd_call_options_init(&o);o.max_response_bytes=64;expect(cd_execute_string(shell.handle,CD_SV("printf '%0100d' 0"),nullptr,&o,&r.handle)==CD_LIMIT_EXCEEDED,"buffer limit is explicit error");shell.close();shell.open();}
 #endif
  {auto start=Clock::now();for(int i=0;i<50;++i){Result r;execute(shell,ready,r,&match);expect(r.passed(),"fast commands pass");}std::cout<<"METRIC 50 persistent shell commands ms="<<std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now()-start).count()<<"\n";}
+ {cd_call_options_t small;cd_call_options_init(&small);small.max_response_bytes=5;Result r;execute(shell,ready,r,&match,&small);expect(r.text()=="READY","managed control markers do not consume the reply byte limit");}
+ {auto ending=cli(d);Result r;
+#ifdef _WIN32
+ execute(ending,"echo|set /p=OUT & exit 7",r);
+#else
+ execute(ending,"printf OUT; exit 7",r);
+#endif
+ expect(r.text().find("OUT")==0&&r.info().has_exit_code&&r.info().exit_code==7,"persistent shell exit reports drained output and real status");expect(cd_connection_get_state(ending.handle)==CD_STATE_FAULTED,"persistent shell exit is not silently restarted");ending.close();ending.open();Result recovered;execute(ending,ready,recovered);expect(recovered.text()=="READY","explicit reopen recreates an exited shell");}
 #ifndef _WIN32
  SerialPeer serial;auto port=serial.connection(d);{Result r;execute(port,"READY",r,&match);expect(r.text()=="READY","virtual serial protocol");Result unsupported;expect(cd_close_input(port.handle,nullptr,&unsupported.handle)==CD_NOT_SUPPORTED,"serial close input unsupported");}
 #endif

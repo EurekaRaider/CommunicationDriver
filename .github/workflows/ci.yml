@@ -53,6 +53,8 @@ jobs:
           cmake --build build --parallel 4
           cmake --install build > install.log
       - name: Native behavior and simulation
+        env:
+          CD_TEST_VERBOSE: 1
         run: ctest --test-dir build --output-on-failure
       - name: Real loopback OpenSSH and SFTP integration
         if: runner.os != 'Windows'
