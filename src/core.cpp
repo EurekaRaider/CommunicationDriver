@@ -296,8 +296,10 @@ struct ProcessBackend : Backend {
    if(stream==0&&!self->prompt_token.empty()){
     self->prompt_buffer+=data;
     if(self->prompt_ready){auto pos=self->prompt_buffer.find(self->prompt_token);if(pos!=std::string::npos){self->prompt_buffer.erase(0,pos+self->prompt_token.size());auto cb=std::exchange(self->prompt_ready,{});cb(CD_OK,{},0);}else {if(self->prompt_buffer.size()>self->config.defaults.max_bytes){auto cb=std::exchange(self->prompt_ready,{});cb(CD_LIMIT_EXCEEDED,"CMD startup exceeded buffer limit",0);}self->pump(stream);return;}}
-    size_t pos;while((pos=self->prompt_buffer.find(self->prompt_token))!=std::string::npos)self->prompt_buffer.erase(pos,self->prompt_token.size());
+    size_t pos;while((pos=self->prompt_buffer.find(self->prompt_token))!=std::string::npos){size_t start=pos>=2&&self->prompt_buffer.compare(pos-2,2,"\r\n")==0?pos-2:pos;self->prompt_buffer.erase(start,pos-start+self->prompt_token.size());}
     size_t suffix=0;for(size_t i=1;i<self->prompt_token.size()&&i<=self->prompt_buffer.size();++i)if(self->prompt_buffer.compare(self->prompt_buffer.size()-i,i,self->prompt_token.substr(0,i))==0)suffix=i;
+    if(suffix&&self->prompt_buffer.size()>=suffix+2&&self->prompt_buffer.compare(self->prompt_buffer.size()-suffix-2,2,"\r\n")==0)suffix+=2;
+    if(!suffix&&self->prompt_buffer.ends_with("\r\n"))suffix=2;else if(!suffix&&self->prompt_buffer.ends_with('\r'))suffix=1;
     data=self->prompt_buffer.substr(0,self->prompt_buffer.size()-suffix);self->prompt_buffer.erase(0,self->prompt_buffer.size()-suffix);
    }
    if(!data.empty())self->output(stream,std::move(data),false);
