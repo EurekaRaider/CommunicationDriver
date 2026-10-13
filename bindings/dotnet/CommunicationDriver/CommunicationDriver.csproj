@@ -11,6 +11,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EurekaRaider/CommunicationDriver</RepositoryUrl>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
@@ -21,6 +22,7 @@
     <None Include="$(NativePackageRoot)/licenses/*" Pack="true" PackagePath="licenses/" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="../../../README.md" Pack="true" PackagePath="/" />
     <None Include="CommunicationDriver.targets" Pack="true" PackagePath="build/CommunicationDriver.targets" />
     <None Include="CommunicationDriver.targets" Pack="true" PackagePath="buildTransitive/CommunicationDriver.targets" />
   </ItemGroup>

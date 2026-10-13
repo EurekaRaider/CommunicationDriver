@@ -42,8 +42,9 @@ struct SshBackend : Backend {
  void open(Completion cb) override {
   open_callback=std::move(cb);auto self=std::static_pointer_cast<SshBackend>(shared_from_this());
   resolver.async_resolve(config.host,std::to_string(config.port),[self](ErrorCode ec,asio::ip::tcp::resolver::results_type eps){
+   if(self->stopped)return;
    if(ec) {auto callback=std::exchange(self->open_callback,{});callback(CD_CONNECTION_FAILED,ec.message(),ec.value());return;}
-   asio::async_connect(self->socket,eps,[self](ErrorCode e,const auto&){if(e) {auto callback=std::exchange(self->open_callback,{});callback(CD_CONNECTION_FAILED,e.message(),e.value());return;}self->socket.non_blocking(true);self->session=libssh2_session_init();if(!self->session) {self->report(CD_INTERNAL_ERROR,LIBSSH2_ERROR_ALLOC);return;}libssh2_session_set_blocking(self->session,0);self->phase=1;self->drive();});
+   asio::async_connect(self->socket,eps,[self](ErrorCode e,const auto&){if(self->stopped)return;if(e) {auto callback=std::exchange(self->open_callback,{});callback(CD_CONNECTION_FAILED,e.message(),e.value());return;}self->socket.non_blocking(true);self->session=libssh2_session_init();if(!self->session) {self->report(CD_INTERNAL_ERROR,LIBSSH2_ERROR_ALLOC);return;}libssh2_session_set_blocking(self->session,0);self->phase=1;self->drive();});
   });
  }
  bool verify_key() {
@@ -83,7 +84,7 @@ struct SshBackend : Backend {
   bool read_data=false;
   for(int stream=0;stream<2;++stream) {
    char buffer[8192];
-   while(true) {auto n=libssh2_channel_read_ex(channel,stream?SSH_EXTENDED_DATA_STDERR:0,buffer,sizeof(buffer));if(n>0) {read_data=true;output(stream,std::string(buffer,n),false);}else if(n==LIBSSH2_ERROR_EAGAIN||n==0) break;else {report(CD_DISCONNECTED,static_cast<int>(n));return;}}
+   for(int budget=0;budget<8;++budget) {auto n=libssh2_channel_read_ex(channel,stream?SSH_EXTENDED_DATA_STDERR:0,buffer,sizeof(buffer));if(n>0) {read_data=true;output(stream,std::string(buffer,n),false);if(stopped)return;}else if(n==LIBSSH2_ERROR_EAGAIN||n==0) break;else {report(CD_DISCONNECTED,static_cast<int>(n));return;}}
   }
   if(libssh2_channel_eof(channel)) {
    int rc=libssh2_channel_close(channel);if(retry(rc)) return;

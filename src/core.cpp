@@ -159,10 +159,12 @@ struct StreamBackend : Backend {
  void open(Completion cb) override {
   auto self=std::static_pointer_cast<StreamBackend>(shared_from_this());
   if(config.backend==0) tcp_resolver.async_resolve(config.host,std::to_string(config.port),[self,cb](ErrorCode ec,asio::ip::tcp::resolver::results_type endpoints){
+   if(self->stopped)return;
    if(ec) {cb(CD_CONNECTION_FAILED,ec.message(),ec.value());return;}
    asio::async_connect(self->tcp,endpoints,[self,cb](ErrorCode e,const auto&){if(e) cb(CD_CONNECTION_FAILED,e.message(),e.value());else {self->tcp.set_option(asio::ip::tcp::no_delay(true));cb(CD_OK,{},0);self->pump();}});
   });
   else if(config.backend==1) udp_resolver.async_resolve(config.host,std::to_string(config.port),[self,cb](ErrorCode ec,asio::ip::udp::resolver::results_type eps){
+   if(self->stopped)return;
    if(ec) {cb(CD_CONNECTION_FAILED,ec.message(),ec.value());return;}
    ErrorCode e;auto endpoint=eps.begin()->endpoint();self->udp.open(endpoint.protocol(),e);
    if(!e) {auto address=self->config.local_host.empty()?(endpoint.address().is_v4()?asio::ip::address(asio::ip::address_v4::any()):asio::ip::address(asio::ip::address_v6::any())):asio::ip::make_address(self->config.local_host,e);if(!e) self->udp.bind({address,self->config.local_port},e);}
@@ -207,8 +209,8 @@ static std::pair<std::string,std::vector<std::string>> shell_command(int shell,b
  return {exe,one_shot?std::vector<std::string>{"-c",command}:std::vector<std::string>{}};
 }
 static process::filesystem::path executable_path(const std::string& executable) {
- auto path=std::filesystem::path(executable);
- if(path.has_parent_path()) {if(!std::filesystem::is_regular_file(path))return {};return process::filesystem::path(std::filesystem::absolute(path).string());}
+ auto path=std::filesystem::u8path(executable);
+ if(path.has_parent_path()) {if(!std::filesystem::is_regular_file(path))return {};return process::filesystem::path(std::filesystem::absolute(path).native());}
  return process::environment::find_executable(executable);
 }
 struct ProcessBackend : Backend {
@@ -227,11 +229,11 @@ struct ProcessBackend : Backend {
    auto path=executable_path(executable);
    if(path.empty()) throw Fault(config.backend==4?CD_DEVICE_UNAVAILABLE:CD_CONNECTION_FAILED,"Executable not found: "+executable);
    std::map<std::string,std::string> env;
-   for(auto v:process::environment::current()) env[v.key().string()]=v.value().string();
+   for(auto v:process::environment::current()) {if(v.key().size()==0)continue;env[v.key().string()]=v.value().size()==0?std::string():v.value().string();}
    for(auto& [k,v]:config.environment) env[k]=v;
    std::vector<std::string> env_list;for(auto& [k,v]:env) env_list.push_back(k+"="+v);
-   auto dir=config.working_directory.empty()?std::filesystem::current_path().string():config.working_directory;
-   child=std::make_unique<process::process>(runtime->state->io,path,args,process::process_stdio{input,out,err},process::process_environment(env_list),process::process_start_dir(dir));
+   auto dir=config.working_directory.empty()?std::filesystem::current_path():std::filesystem::u8path(config.working_directory);
+   child=std::make_unique<process::process>(runtime->state->io,path,args,process::process_stdio{input,out,err},process::process_environment(env_list),process::process_start_dir(process::filesystem::path(dir.native())));
    pump(0);pump(1); auto self=std::static_pointer_cast<ProcessBackend>(shared_from_this());
    child->async_wait([self](ErrorCode ec,int code){if(self->stopped) return;if(ec) self->failure(CD_IO_ERROR,ec.message(),ec.value());else self->exited(code);});
    cb(CD_OK,{},0);

@@ -34,16 +34,21 @@ jobs:
           sudo apt-get install -y g++-14 ninja-build libssl-dev
           echo CC=gcc-14 >> "$GITHUB_ENV"
           echo CXX=g++-14 >> "$GITHUB_ENV"
-      - name: macOS crypto
+      - name: macOS C++23 toolchain and crypto
         if: runner.os == 'macOS'
         run: |
-          brew install openssl@3 ninja
+          brew install llvm@21 openssl@3 ninja
+          compiler_prefix=$(brew --prefix llvm@21)
+          echo CC=$compiler_prefix/bin/clang >> "$GITHUB_ENV"
+          echo CXX=$compiler_prefix/bin/clang++ >> "$GITHUB_ENV"
+          echo CXXFLAGS="-nostdinc++ -isystem $compiler_prefix/include/c++/v1 -D_LIBCPP_DISABLE_AVAILABILITY" >> "$GITHUB_ENV"
+          echo LDFLAGS="-L$compiler_prefix/lib/c++ -L$compiler_prefix/lib/unwind -Wl,-rpath,$compiler_prefix/lib/c++ -Wl,-rpath,$compiler_prefix/lib/unwind -lunwind" >> "$GITHUB_ENV"
           echo OPENSSL_ROOT_DIR=$(brew --prefix openssl@3) >> "$GITHUB_ENV"
       - name: Build native
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install
           cmake --build build --parallel 4
-          cmake --install build
+          cmake --install build > install.log
       - name: Native behavior and simulation
         run: ctest --test-dir build --output-on-failure
       - name: Independent installed C/C++ consumers
