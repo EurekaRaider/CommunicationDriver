@@ -8,12 +8,17 @@ name='communicationdriver.dll' if os.name=='nt' else 'libcommunicationdriver.dyl
 candidates=list(build.rglob(name));candidates=[x for x in candidates if '_deps' not in x.parts]
 if not candidates:raise SystemExit('Native library not found')
 source=candidates[0].resolve();shutil.copy2(source,native/name)
-queue=[native/name];seen={source.name};origins={native/name:source}
+queue=[native/name];seen={name,source.name};origins={native/name:source};search_paths=[source.parent]
 while queue and os.name!='nt':
  lib=queue.pop()
  if sys.platform=='darwin':
   lines=subprocess.check_output(['otool','-L',str(lib)],text=True).splitlines()[1:]
-  deps=[line.strip().split(' (')[0] for line in lines]
+  identity=subprocess.check_output(['otool','-D',str(lib)],text=True).splitlines()[1:]
+  deps=[line.strip().split(' (')[0] for line in lines if line.strip().split(' (')[0] not in identity]
+  commands=subprocess.check_output(['otool','-l',str(origins[lib])],text=True)
+  rpaths=re.findall(r'cmd LC_RPATH\n\s+cmdsize \d+\n\s+path (.*?) \(offset',commands)
+  search_paths.extend(Path(r.replace('@loader_path',str(origins[lib].parent))) for r in rpaths)
+  search_paths.append(origins[lib].parent)
  else:
   text=subprocess.check_output(['ldd',str(lib)],text=True)
   deps=re.findall(r'=> (/[^ ]+)',text)
@@ -24,9 +29,7 @@ while queue and os.name!='nt':
   if sys.platform=='darwin' and dep.startswith('@loader_path/'):
    path=origins[lib].parent/dep.removeprefix('@loader_path/')
   if sys.platform=='darwin' and dep.startswith('@rpath/'):
-   commands=subprocess.check_output(['otool','-l',str(origins[lib])],text=True)
-   rpaths=re.findall(r'cmd LC_RPATH\n\s+cmdsize \d+\n\s+path (.*?) \(offset',commands)
-   candidates=[Path(r.replace('@loader_path',str(origins[lib].parent)))/dep.removeprefix('@rpath/') for r in rpaths]
+   candidates=[r/dep.removeprefix('@rpath/') for r in search_paths]
    path=next((x for x in candidates if x.exists()),path)
   if not path.is_absolute() or not path.exists():
    raise SystemExit('Unresolved runtime dependency: '+dep)
