@@ -1,4 +1,5 @@
 #include "core.hpp"
+#include <random>
 #include <libssh2.h>
 #include <libssh2_sftp.h>
 #include <fstream>
@@ -14,6 +15,7 @@ struct SshBackend : Backend {
  asio::ip::tcp::socket socket;asio::ip::tcp::resolver resolver;
  LIBSSH2_SESSION* session=nullptr;LIBSSH2_CHANNEL* channel=nullptr;LIBSSH2_CHANNEL* stdio_channel=nullptr;LIBSSH2_SFTP* sftp=nullptr;LIBSSH2_SFTP_HANDLE* file=nullptr;
  bool stopped=false,waiting=false,write_eof=false,command_active=false;int phase=0,channel_phase=0,transfer_phase=0;
+ uint64_t wait_revision=0;int wait_directions=0;
  Completion open_callback,command_callback,write_callback,transfer_callback;
  std::string command_text,write_data,source,destination;size_t write_offset=0;
  bool upload=false,overwrite=true;uint64_t transferred=0;
@@ -23,6 +25,18 @@ struct SshBackend : Backend {
   static const int initialized=libssh2_init(0);if(initialized) throw Fault(CD_INTERNAL_ERROR,"libssh2 initialization failed",initialized);
  }
  ~SshBackend() override {close();}
+ std::string session_shell() {
+  if(!config.session_command.empty())return config.session_command;
+  if(config.shell==CD_SHELL_CMD){std::random_device random;prompt_token="__CD_PROMPT_"+std::to_string(random())+std::to_string(random())+"__";return "cmd.exe /D /Q /K \"prompt "+prompt_token+"\"";}
+  if(config.shell==CD_SHELL_PWSH||config.shell==CD_SHELL_WINDOWS_POWERSHELL)return std::string(config.shell==CD_SHELL_PWSH?"pwsh":"powershell.exe")+" -NoLogo -NoProfile -NonInteractive -Command -";
+  return config.shell==CD_SHELL_BASH?"bash":config.shell==CD_SHELL_ZSH?"zsh":"sh";
+ }
+ std::string one_shot_command(const std::string& command) {
+  if(config.shell==CD_SHELL_DEFAULT)return command;
+  if(config.shell==CD_SHELL_CMD)return "cmd.exe /D /S /C \""+command+"\"";
+  if(config.shell==CD_SHELL_PWSH||config.shell==CD_SHELL_WINDOWS_POWERSHELL){auto text=decode(command,CD_ENCODING_UTF8);std::string wide;for(size_t i=0;i<text.size();){unsigned char first=text[i++];uint32_t scalar=first;int remaining=first<0x80?0:first<0xe0?1:first<0xf0?2:3;if(remaining)scalar=first&((1<<(6-remaining))-1);while(remaining--)scalar=(scalar<<6)|(static_cast<unsigned char>(text[i++])&63);auto unit=[&](uint16_t value){wide+=char(value&255);wide+=char(value>>8);};if(scalar>65535){scalar-=65536;unit(0xd800+(scalar>>10));unit(0xdc00+(scalar&1023));}else unit(static_cast<uint16_t>(scalar));}return std::string(config.shell==CD_SHELL_PWSH?"pwsh":"powershell.exe")+" -NoLogo -NoProfile -NonInteractive -EncodedCommand "+base64(reinterpret_cast<const unsigned char*>(wide.data()),wide.size());}
+  std::string quoted="'";for(char c:command)quoted+=c=='\''?"'\\''":std::string(1,c);quoted+="'";return session_shell()+" -c "+quoted;
+ }
  std::string last_error() {char* message=nullptr;int len=0;if(session) libssh2_session_last_error(session,&message,&len,0);return message?std::string(message,len):"SSH error";}
  void report(cd_status_t status,int rc) {
   auto message=last_error();if(open_callback) {auto cb=std::exchange(open_callback,{});cb(status,message,rc);}
@@ -32,11 +46,12 @@ struct SshBackend : Backend {
   else if(failure) failure(status,message,rc);
  }
  void wait_socket() {
-  if(waiting||stopped) return;waiting=true;
-  int dirs=libssh2_session_block_directions(session);
-  auto kind=(dirs&LIBSSH2_SESSION_BLOCK_INBOUND)?asio::ip::tcp::socket::wait_read:asio::ip::tcp::socket::wait_write;
+  if(stopped)return;int dirs=libssh2_session_block_directions(session);if(!dirs)dirs=LIBSSH2_SESSION_BLOCK_INBOUND;
+  if(waiting&&wait_directions==dirs)return;waiting=true;wait_directions=dirs;auto revision=++wait_revision;ErrorCode ignored;socket.cancel(ignored);
   auto self=std::static_pointer_cast<SshBackend>(shared_from_this());
-  socket.async_wait(kind,[self](ErrorCode ec){self->waiting=false;if(self->stopped) return;if(ec) self->report(CD_DISCONNECTED,ec.value());else self->drive();});
+  auto ready=[self,revision](ErrorCode ec){if(self->stopped||revision!=self->wait_revision)return;++self->wait_revision;self->waiting=false;ErrorCode ignored;self->socket.cancel(ignored);if(ec)self->report(CD_DISCONNECTED,ec.value());else self->drive();};
+  if(dirs&LIBSSH2_SESSION_BLOCK_INBOUND)socket.async_wait(asio::ip::tcp::socket::wait_read,ready);
+  if(dirs&LIBSSH2_SESSION_BLOCK_OUTBOUND)socket.async_wait(asio::ip::tcp::socket::wait_write,ready);
  }
  bool retry(int rc,cd_status_t status=CD_IO_ERROR) {if(rc==LIBSSH2_ERROR_EAGAIN) {wait_socket();return true;}if(rc<0) {report(status,rc);return true;}return false;}
  void open(Completion cb) override {
@@ -69,14 +84,13 @@ struct SshBackend : Backend {
    int rc=config.auth==CD_AUTH_PASSWORD?libssh2_userauth_password_ex(session,config.user.c_str(),static_cast<unsigned>(config.user.size()),config.password.c_str(),static_cast<unsigned>(config.password.size()),nullptr):libssh2_userauth_publickey_fromfile_ex(session,config.user.c_str(),static_cast<unsigned>(config.user.size()),nullptr,config.private_key.c_str(),config.passphrase.empty()?nullptr:config.passphrase.c_str());
    if(retry(rc,CD_AUTHENTICATION_FAILED)) return;phase=4;
    if(config.mode==CD_ONE_SHOT) {auto cb=std::exchange(open_callback,{});cb(CD_OK,{},0);return;}
-   command_text=config.session_command;
-   if(command_text.empty()) command_text=config.shell==CD_SHELL_BASH?"bash":config.shell==CD_SHELL_ZSH?"zsh":"sh";
+   command_text=session_shell();
    channel_phase=1;
   }
   if(channel_phase==1) {channel=libssh2_channel_open_session(session);if(!channel) {retry(libssh2_session_last_errno(session));return;}channel_phase=2;}
-  if(channel_phase==2) {int rc=libssh2_channel_exec(channel,command_text.c_str());if(retry(rc)) return;channel_phase=3;if(open_callback) {auto cb=std::exchange(open_callback,{});cb(CD_OK,{},0);}if(command_callback) {auto cb=std::exchange(command_callback,{});cb(CD_OK,{},0);}}
-  if(transfer_callback) {drive_transfer();if(stopped) return;}
-  if(stdio_channel){for(int stream=0;stream<2;++stream){char buffer[8192];for(int budget=0;budget<8;++budget){auto n=libssh2_channel_read_ex(stdio_channel,stream?SSH_EXTENDED_DATA_STDERR:0,buffer,sizeof(buffer));if(n<=0)break;output(stream,std::string(buffer,n),false);if(stopped)return;}}}
+  if(channel_phase==2) {int rc=libssh2_channel_exec(channel,command_text.c_str());if(retry(rc)) return;channel_phase=3;if(open_callback) {if(!prompt_token.empty())prompt_ready=std::exchange(open_callback,{});else{auto cb=std::exchange(open_callback,{});cb(CD_OK,{},0);}}if(command_callback) {auto cb=std::exchange(command_callback,{});cb(CD_OK,{},0);}}
+  if(transfer_callback) {drive_transfer();if(stopped||(transfer_callback&&waiting&&!disk_busy)) return;}
+  if(stdio_channel){for(int stream=0;stream<2;++stream){char buffer[8192];for(int budget=0;budget<8;++budget){auto n=libssh2_channel_read_ex(stdio_channel,stream?SSH_EXTENDED_DATA_STDERR:0,buffer,sizeof(buffer));if(n<=0)break;std::string data(buffer,n);if(stream==0&&!filter_prompt(data))continue;if(!data.empty())output(stream,std::move(data),false);if(stopped)return;}}}
   if(!channel||channel_phase!=3) return;
   if(write_callback) {
    if(write_eof) {int rc=libssh2_channel_send_eof(channel);if(retry(rc)) return;write_eof=false;auto cb=std::exchange(write_callback,{});cb(CD_OK,{},0);}
@@ -85,7 +99,7 @@ struct SshBackend : Backend {
   bool read_data=false;
   for(int stream=0;stream<2;++stream) {
    char buffer[8192];
-   for(int budget=0;budget<8;++budget) {auto n=libssh2_channel_read_ex(channel,stream?SSH_EXTENDED_DATA_STDERR:0,buffer,sizeof(buffer));if(n>0) {read_data=true;(command_active?command_output:output)(stream,std::string(buffer,n),false);if(stopped)return;}else if(n==LIBSSH2_ERROR_EAGAIN||n==0) break;else {report(CD_DISCONNECTED,static_cast<int>(n));return;}}
+   for(int budget=0;budget<8;++budget) {auto n=libssh2_channel_read_ex(channel,stream?SSH_EXTENDED_DATA_STDERR:0,buffer,sizeof(buffer));if(n>0) {read_data=true;std::string data(buffer,n);if(stream==0&&!command_active&&!filter_prompt(data))continue;if(!data.empty())(command_active?command_output:output)(stream,std::move(data),false);if(stopped)return;}else if(n==LIBSSH2_ERROR_EAGAIN||n==0) break;else {report(CD_DISCONNECTED,static_cast<int>(n));return;}}
   }
   if(libssh2_channel_eof(channel)) {
    int rc=libssh2_channel_close(channel);if(retry(rc)) return;
@@ -104,8 +118,8 @@ struct SshBackend : Backend {
   else wait_socket();
  }
  bool command_channels() const override {return config.mode==CD_ONE_SHOT;}
- void command(std::string command,Completion cb) override {if(command_active) {cb(CD_BUSY,"SSH channel still active",0);return;}stdio_channel=std::exchange(channel,nullptr);command_text=std::move(command);command_callback=std::move(cb);command_active=true;channel_phase=1;drive();}
- void ensure_stdio(Completion cb) override {if(channel){cb(CD_OK,{},0);return;}command_text=config.session_command.empty()?(config.shell==CD_SHELL_BASH?"bash":config.shell==CD_SHELL_ZSH?"zsh":"sh"):config.session_command;open_callback=std::move(cb);channel_phase=1;drive();}
+ void command(std::string command,Completion cb) override {if(command_active) {cb(CD_BUSY,"SSH channel still active",0);return;}stdio_channel=std::exchange(channel,nullptr);command_text=one_shot_command(command);command_callback=std::move(cb);command_active=true;channel_phase=1;drive();}
+ void ensure_stdio(Completion cb) override {if(channel){cb(CD_OK,{},0);return;}command_text=session_shell();open_callback=std::move(cb);channel_phase=1;drive();}
  void write(std::string data,Completion cb) override {if(!channel) {cb(CD_NOT_OPEN,"SSH stdio channel unavailable",0);return;}write_data=std::move(data);write_offset=0;write_callback=std::move(cb);drive();}
  void close_input(Completion cb) override {if(!channel) {cb(CD_NOT_OPEN,"SSH stdio channel unavailable",0);return;}write_eof=true;write_callback=std::move(cb);drive();}
  void transfer(bool is_upload,std::string from,std::string to,bool replace,std::function<void(uint64_t)> on_progress,Completion cb) override {
@@ -115,7 +129,7 @@ struct SshBackend : Backend {
    if(!upload&&std::filesystem::is_directory(utf8_path(destination)))throw Fault(CD_INVALID_ARGUMENT,"Destination must be a single file");
    if(!upload&&!overwrite&&std::filesystem::exists(utf8_path(destination))) throw Fault(CD_PERMISSION_DENIED,"Destination already exists");
    local=std::make_shared<std::fstream>();disk_busy=true;auto self=std::static_pointer_cast<SshBackend>(shared_from_this());auto stream=local;
-   runtime->file_job([stream,is_upload=upload,path=utf8_path(upload?source:destination)]{stream->open(path,std::ios::binary|(is_upload?std::ios::in:std::ios::out|std::ios::trunc));if(!*stream)throw Fault(CD_IO_ERROR,"Cannot open local file");},[self](std::exception_ptr error){self->disk_busy=false;if(self->stopped)return;if(error){try{std::rethrow_exception(error);}catch(const Fault& f){auto cb=std::exchange(self->transfer_callback,{});cb(f.code,f.message,f.native);}catch(const std::exception& e){auto cb=std::exchange(self->transfer_callback,{});cb(CD_IO_ERROR,e.what(),0);}}else self->drive();});
+   runtime->file_job([stream,is_upload=upload,replace=overwrite,path=utf8_path(upload?source:destination)]{stream->open(path,std::ios::binary|(is_upload?std::ios::in:std::ios::out|(replace?std::ios::trunc:std::ios::noreplace)));if(!*stream)throw Fault(CD_IO_ERROR,"Cannot open local file");},[self](std::exception_ptr error){self->disk_busy=false;if(self->stopped)return;if(error){try{std::rethrow_exception(error);}catch(const Fault& f){auto cb=std::exchange(self->transfer_callback,{});cb(f.code,f.message,f.native);}catch(const std::exception& e){auto cb=std::exchange(self->transfer_callback,{});cb(CD_IO_ERROR,e.what(),0);}}else self->drive();});
   }catch(const Fault& f) {auto callback=std::exchange(transfer_callback,{});callback(f.code,f.message,f.native);}
  }
  void drive_transfer() {
@@ -125,8 +139,9 @@ struct SshBackend : Backend {
    auto remote=upload?destination:source;
    auto flags=upload?(LIBSSH2_FXF_WRITE|LIBSSH2_FXF_CREAT|(overwrite?LIBSSH2_FXF_TRUNC:LIBSSH2_FXF_EXCL)):LIBSSH2_FXF_READ;
    file=libssh2_sftp_open_ex(sftp,remote.c_str(),static_cast<unsigned>(remote.size()),flags,0644,LIBSSH2_SFTP_OPENFILE);
-   if(!file) {retry(libssh2_session_last_errno(session));return;}transfer_phase=3;
+   if(!file) {retry(libssh2_session_last_errno(session));return;}transfer_phase=6;
   }
+  if(transfer_phase==6){LIBSSH2_SFTP_ATTRIBUTES attributes{};int rc=libssh2_sftp_fstat_ex(file,&attributes,0);if(retry(rc))return;if((attributes.flags&LIBSSH2_SFTP_ATTR_PERMISSIONS)&&!LIBSSH2_SFTP_S_ISREG(attributes.permissions)){report(CD_NOT_SUPPORTED,LIBSSH2_ERROR_SFTP_PROTOCOL);return;}transfer_phase=3;}
   if(transfer_phase==3) {
    // Bound work per event, letting other connections and cancellation run between chunks.
    for(int budget=0;budget<8;++budget) {

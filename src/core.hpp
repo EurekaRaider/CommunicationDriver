@@ -122,6 +122,7 @@ struct Backend : std::enable_shared_from_this<Backend> {
  std::function<void(int,std::string,bool)> command_output;
  std::function<void(std::optional<int>)> command_exited;
  std::string completion_marker;
+ std::string prompt_token,prompt_buffer,output_tail;Completion prompt_ready;
  Backend(std::shared_ptr<Runtime> r,Config c):runtime(std::move(r)),config(std::move(c)){}
  virtual ~Backend()=default;
  virtual void open(Completion)=0;
@@ -132,6 +133,7 @@ struct Backend : std::enable_shared_from_this<Backend> {
  virtual void transfer(bool,std::string,std::string,bool,std::function<void(uint64_t)>,Completion cb) { cb(CD_NOT_SUPPORTED,"File transfer unavailable",0); }
  virtual bool command_channels() const { return false; }
  virtual void ensure_stdio(Completion cb) { cb(CD_OK,{},0); }
+ bool filter_prompt(std::string& data);
 };
 std::shared_ptr<Backend> make_ssh(std::shared_ptr<Runtime>,Config);
 std::shared_ptr<Backend> make_backend(std::shared_ptr<Runtime>,Config);

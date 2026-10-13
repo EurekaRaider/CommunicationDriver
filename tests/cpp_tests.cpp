@@ -14,4 +14,13 @@ int main(){try {comm::Driver driver;comm::CliOptions options;auto connection=dri
  connection.write_string("printf ERR >&2\n");comm::CallOptions stderr_options;stderr_options.read_stream=comm::Stream::StandardError;expect(connection.read_exactly_string(3,stderr_options)=="ERR","C++ stderr stream selection");
  std::stop_source stop;auto cancel=connection.execute_until_async("printf PART; sleep 1",comm::Check::contains("NEVER"),{},stop.get_token());stop.request_stop();try{cancel.get();throw std::runtime_error("stop token ignored");}catch(const comm::CommunicationError& e){expect(e.info.code==CD_CANCELLED,"stop token reaches native core");}
 #endif
- connection.close();driver.close();std::cout<<"PASS C++ RAII, Operation one-get, observer, abandoned handle, stderr, stop_token and Batch\n";return 0;}catch(const std::exception& e){std::cerr<<"FAIL "<<e.what()<<"\n";return 1;}}
+ connection.close();
+#ifdef _WIN32
+ std::vector<comm::ShellKind> shells={comm::ShellKind::Cmd,comm::ShellKind::WindowsPowerShell,comm::ShellKind::Pwsh};
+#elif defined(__APPLE__)
+ std::vector<comm::ShellKind> shells={comm::ShellKind::Sh,comm::ShellKind::Bash,comm::ShellKind::Zsh};
+#else
+ std::vector<comm::ShellKind> shells={comm::ShellKind::Sh,comm::ShellKind::Bash};
+#endif
+ for(auto kind:shells)for(auto mode:{comm::ExecutionMode::Persistent,comm::ExecutionMode::OneShot}){comm::CliOptions shell_options;shell_options.shell=kind;shell_options.execution_mode=mode;auto shell=driver.create_cli(shell_options);shell.open();auto command=kind==comm::ShellKind::Cmd?"echo|set /p=READY":kind==comm::ShellKind::WindowsPowerShell||kind==comm::ShellKind::Pwsh?"[Console]::Out.Write('READY')":"printf READY";expect(shell.execute(command).response=="READY","explicit shell kind and execution mode");shell.close();}
+ driver.close();std::cout<<"PASS C++ RAII, Operation one-get, observer, abandoned handle, stderr, stop_token, Batch and explicit shells\n";return 0;}catch(const std::exception& e){std::cerr<<"FAIL "<<e.what()<<"\n";return 1;}}

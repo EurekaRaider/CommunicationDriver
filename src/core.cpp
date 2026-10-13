@@ -224,12 +224,22 @@ static process::filesystem::path executable_path(const std::string& executable) 
  return process::environment::find_executable(executable);
 }
 std::filesystem::path utf8_path(const std::string& s) {return std::filesystem::path(std::u8string(s.begin(),s.end()));}
+bool Backend::filter_prompt(std::string& data) {
+ if(prompt_token.empty())return true;prompt_buffer+=data;
+ if(prompt_ready){auto pos=prompt_buffer.find(prompt_token);if(pos==std::string::npos){if(prompt_buffer.size()>config.defaults.max_bytes){auto cb=std::exchange(prompt_ready,{});cb(CD_LIMIT_EXCEEDED,"CMD startup exceeded buffer limit",0);}return false;}prompt_buffer.erase(0,pos+prompt_token.size());auto cb=std::exchange(prompt_ready,{});cb(CD_OK,{},0);}
+ auto marker_line=[&](size_t end){if(completion_marker.empty())return false;auto prefix=output_tail+prompt_buffer.substr(0,end);auto marker=prefix.rfind(completion_marker+":");if(marker==std::string::npos)return false;auto status=prefix.substr(marker+completion_marker.size()+1);int code;auto parsed=std::from_chars(status.data(),status.data()+status.size(),code);return !status.empty()&&parsed.ec==std::errc()&&parsed.ptr==status.data()+status.size();};
+ size_t pos;while((pos=prompt_buffer.find(prompt_token))!=std::string::npos){size_t start=pos>=2&&prompt_buffer.compare(pos-2,2,"\r\n")==0&&!marker_line(pos-2)?pos-2:pos;prompt_buffer.erase(start,pos-start+prompt_token.size());}
+ size_t suffix=0;for(size_t n=1;n<prompt_token.size()&&n<=prompt_buffer.size();++n)if(prompt_buffer.compare(prompt_buffer.size()-n,n,prompt_token.substr(0,n))==0)suffix=n;
+ if(suffix&&prompt_buffer.size()>=suffix+2&&prompt_buffer.compare(prompt_buffer.size()-suffix-2,2,"\r\n")==0)suffix+=2;
+ if(!suffix&&prompt_buffer.ends_with("\r\n")&&!marker_line(prompt_buffer.size()-2))suffix=2;else if(!suffix&&prompt_buffer.ends_with('\r'))suffix=1;
+ data=prompt_buffer.substr(0,prompt_buffer.size()-suffix);prompt_buffer.erase(0,prompt_buffer.size()-suffix);
+ output_tail+=data;auto limit=completion_marker.size()+64;if(output_tail.size()>limit)output_tail.erase(0,output_tail.size()-limit);return true;
+}
 struct ProcessBackend : Backend {
  asio::writable_pipe input; asio::readable_pipe out,err; std::unique_ptr<process::process> child;
  std::array<char,8192> out_buffer{},err_buffer{}; bool stopped=false;
  std::shared_ptr<ProcessBackend> auxiliary; Completion auxiliary_callback;
  std::string auxiliary_output; bool auxiliary_eof[2]={false,false};std::optional<int> auxiliary_exit;
- std::string prompt_token,prompt_buffer,output_tail;Completion prompt_ready;
  ProcessBackend(std::shared_ptr<Runtime> r,Config c):Backend(r,std::move(c)),input(r->state->io),out(r->state->io),err(r->state->io){}
  std::vector<std::string> adb_args() {return {"-H",config.server_host,"-P",std::to_string(config.server_port),"-s",config.device};}
  void launch(const std::string& command,bool one,Completion cb) {
@@ -295,23 +305,8 @@ struct ProcessBackend : Backend {
   auto self=std::static_pointer_cast<ProcessBackend>(shared_from_this());auto& pipe=stream?err:out;auto& b=stream?err_buffer:out_buffer;
   pipe.async_read_some(asio::buffer(b),[self,stream](ErrorCode ec,size_t n){if(self->stopped) return;auto& buffer=stream?self->err_buffer:self->out_buffer;if(n) {
    std::string data(buffer.data(),n);
-   if(stream==0&&!self->prompt_token.empty()){
-    self->prompt_buffer+=data;
-    if(self->prompt_ready){auto pos=self->prompt_buffer.find(self->prompt_token);if(pos!=std::string::npos){self->prompt_buffer.erase(0,pos+self->prompt_token.size());auto cb=std::exchange(self->prompt_ready,{});cb(CD_OK,{},0);}else {if(self->prompt_buffer.size()>self->config.defaults.max_bytes){auto cb=std::exchange(self->prompt_ready,{});cb(CD_LIMIT_EXCEEDED,"CMD startup exceeded buffer limit",0);}self->pump(stream);return;}}
-    size_t pos;while((pos=self->prompt_buffer.find(self->prompt_token))!=std::string::npos){
-     bool marker_line=false;
-     if(!self->completion_marker.empty()&&pos>=2){auto prefix=self->output_tail+self->prompt_buffer.substr(0,pos-2);auto marker=prefix.rfind(self->completion_marker+":");if(marker!=std::string::npos){auto status=prefix.substr(marker+self->completion_marker.size()+1);int code;auto parsed=std::from_chars(status.data(),status.data()+status.size(),code);marker_line=!status.empty()&&parsed.ec==std::errc()&&parsed.ptr==status.data()+status.size();}}
-     size_t start=!marker_line&&pos>=2&&self->prompt_buffer.compare(pos-2,2,"\r\n")==0?pos-2:pos;self->prompt_buffer.erase(start,pos-start+self->prompt_token.size());
-    }
-    size_t suffix=0;for(size_t i=1;i<self->prompt_token.size()&&i<=self->prompt_buffer.size();++i)if(self->prompt_buffer.compare(self->prompt_buffer.size()-i,i,self->prompt_token.substr(0,i))==0)suffix=i;
-    if(suffix&&self->prompt_buffer.size()>=suffix+2&&self->prompt_buffer.compare(self->prompt_buffer.size()-suffix-2,2,"\r\n")==0)suffix+=2;
-    if(!suffix&&self->prompt_buffer.ends_with("\r\n")){
-     bool marker_line=false;if(!self->completion_marker.empty()){auto prefix=self->output_tail+self->prompt_buffer.substr(0,self->prompt_buffer.size()-2);auto marker=prefix.rfind(self->completion_marker+":");if(marker!=std::string::npos){auto status=prefix.substr(marker+self->completion_marker.size()+1);int code;auto parsed=std::from_chars(status.data(),status.data()+status.size(),code);marker_line=!status.empty()&&parsed.ec==std::errc()&&parsed.ptr==status.data()+status.size();}}
-     if(!marker_line)suffix=2;
-    }else if(!suffix&&self->prompt_buffer.ends_with('\r'))suffix=1;
-    data=self->prompt_buffer.substr(0,self->prompt_buffer.size()-suffix);self->prompt_buffer.erase(0,self->prompt_buffer.size()-suffix);
-   }
-   if(!data.empty()){if(stream==0&&!self->prompt_token.empty()){self->output_tail+=data;auto limit=self->completion_marker.size()+64;if(self->output_tail.size()>limit)self->output_tail.erase(0,self->output_tail.size()-limit);}self->output(stream,std::move(data),false);}
+   if(stream==0&&!self->filter_prompt(data)){self->pump(stream);return;}
+   if(!data.empty())self->output(stream,std::move(data),false);
   }if(ec) {if(self->prompt_ready){auto cb=std::exchange(self->prompt_ready,{});cb(CD_CONNECTION_FAILED,"CMD exited before managed prompt handshake",ec.value());}self->output(stream,{},true);if(ec!=asio::error::eof&&ec!=asio::error::broken_pipe&&ec!=asio::error::operation_aborted) self->failure(CD_IO_ERROR,ec.message(),ec.value());}else self->pump(stream);});
  }
  void write(std::string data,Completion cb) override {auto bytes=std::make_shared<std::string>(std::move(data));auto self=shared_from_this();asio::async_write(input,asio::buffer(*bytes),[self,bytes,cb](ErrorCode ec,size_t){cb(ec?CD_IO_ERROR:CD_OK,ec.message(),ec.value());});}
@@ -357,7 +352,7 @@ void Connection::submit(std::shared_ptr<Request> request) {
   self->queue.push_back(request);self->next();
  });
 }
-void Connection::next() {if(active||queue.empty()) return;active=queue.front();queue.pop_front();start();}
+void Connection::next() {if(active||queue.empty()) return;active=queue.front();queue.pop_front();try{start();}catch(const Fault& error){finish(error.code,error.message,error.native);}catch(const std::exception& error){finish(CD_INTERNAL_ERROR,error.what());}}
 void Connection::ensure_persistent(Completion callback) {
  if(persistent&&!(config.backend>=4&&persistent->command_channels())) {persistent->ensure_stdio(std::move(callback));return;}
  if(persistent){persistent->close();persistent.reset();}
@@ -416,8 +411,8 @@ std::string Connection::framed_command(const std::string& command,const std::str
 #ifdef _WIN32
  if(config.backend==5&&shell==CD_SHELL_DEFAULT) shell=CD_SHELL_CMD;
 #endif
- if(config.backend==5&&shell==CD_SHELL_CMD) return command+"\r\nset \"__cd_exit=%errorlevel%\"\r\necho "+marker+":%__cd_exit%\r\necho "+marker+":%__cd_exit% 1>&2\r\n";
- if(config.backend==5&&(shell==CD_SHELL_PWSH||shell==CD_SHELL_WINDOWS_POWERSHELL)) return command+"\n$__cd_exit = if ($?) { 0 } else { if ($LASTEXITCODE) { $LASTEXITCODE } else { 1 } }; [Console]::Out.Write('"+marker+":'+$__cd_exit+\"`n\"); [Console]::Error.Write('"+marker+":'+$__cd_exit+\"`n\")\n";
+ if((config.backend==3||config.backend==5)&&shell==CD_SHELL_CMD) return command+"\r\nset \"__cd_exit=%errorlevel%\"\r\necho "+marker+":%__cd_exit%\r\necho "+marker+":%__cd_exit% 1>&2\r\n";
+ if((config.backend==3||config.backend==5)&&(shell==CD_SHELL_PWSH||shell==CD_SHELL_WINDOWS_POWERSHELL)) return command+"\n$__cd_exit = if ($?) { 0 } else { if ($LASTEXITCODE) { $LASTEXITCODE } else { 1 } }; [Console]::Out.Write('"+marker+":'+$__cd_exit+\"`n\"); [Console]::Error.Write('"+marker+":'+$__cd_exit+\"`n\")\n";
  // eval preserves cd/env in the current shell while keeping arbitrary multi-line commands intact.
  std::string quoted="'";for(char c:command) quoted+=c=='\''?"'\\''":std::string(1,c);quoted+="'";
  return "eval "+quoted+"\n__cd_exit=$?; printf '"+marker+":%s\\n' \"$__cd_exit\"; printf '"+marker+":%s\\n' \"$__cd_exit\" >&2\n";
@@ -430,8 +425,8 @@ void Connection::receive(int stream,std::string data,bool end,bool isolated) {
  if(config.backend==1&&!end) messages[stream].push_back(data.size());
  pending[stream]+=data;
  uint64_t limit=r?r->options.max_bytes:config.defaults.max_bytes;
- size_t total=pending[0].size()+pending[1].size()+messages[0].size()*sizeof(size_t)+messages[1].size()*sizeof(size_t);if(r) total+=r->result->raw[0].size()+r->result->raw[1].size();
- if(total>limit) {state=CD_STATE_NEEDS_RECOVERY;if(r) {r->result->raw[stream]+=pending[stream];pending[stream].clear();finish(CD_LIMIT_EXCEEDED,"Response buffer limit exceeded");}if(persistent) persistent->close();if(one_shot) one_shot->close();return;}
+ size_t total=pending[0].size()+pending[1].size();if(r) total+=r->result->raw[0].size()+r->result->raw[1].size();
+ if(total>limit||messages[0].size()+messages[1].size()>std::max<uint64_t>(1,limit/sizeof(size_t))) {state=CD_STATE_NEEDS_RECOVERY;if(r) {r->result->raw[stream]+=pending[stream];pending[stream].clear();finish(CD_LIMIT_EXCEEDED,"Response buffer limit exceeded");}if(persistent) persistent->close();if(one_shot) one_shot->close();return;}
  process_data();
 }
 bool Connection::boundary(std::string& data,const Rule& rule,const Options& options,size_t& consume,size_t& keep) {

@@ -159,4 +159,16 @@ static void mixed_batch(int seconds){
  auto begin=Clock::now();uint64_t batches=0;do {Result result;ok(cd_batch_run(driver.handle,items.data(),items.size(),nullptr,&result.handle),result,"mixed batch");cd_batch_info_t info{};info.struct_size=sizeof(info);cd_result_get_batch_info(result.handle,&info);if(!info.all_succeeded){for(int i=0;i<32;++i){cd_batch_item_result_t r{};r.struct_size=sizeof(r);cd_result_get_batch_item(result.handle,i,&r);if(!r.succeeded){std::cerr<<keys[i]<<" status="<<cd_status_name(cd_result_get_status(r.result));for(int stream=0;stream<2;++stream){cd_bytes_view_t partial{};cd_result_get_bytes(r.result,stream,&partial);std::cerr<<" stream"<<stream<<"[";for(size_t j=0;j<partial.size&&j<1024;++j){auto c=partial.data[j];if(c=='\r')std::cerr<<"\\r";else if(c=='\n')std::cerr<<"\\n";else std::cerr<<char(c);}std::cerr<<"]";}std::cerr<<"\n";}}}expect(info.all_succeeded&&info.item_count==32,"32 mixed connections all pass");++batches;if(batches%1000==0)std::cout<<"SOAK batches="<<batches<<" elapsed_s="<<std::chrono::duration_cast<std::chrono::seconds>(Clock::now()-begin).count()<<std::endl;}while(Clock::now()-begin<std::chrono::seconds(seconds));
  std::cout<<"METRIC mixed_connections=32 batches="<<batches<<" operations="<<batches*32<<" elapsed_ms="<<std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now()-begin).count()<<"\n";
 }
-int main(int argc,char** argv){try {if(argc==3&&std::string(argv[1])=="--soak-seconds")mixed_batch(std::stoi(argv[2]));else {core_tests();batch_semantics();mixed_batch(1);}std::cout<<"PASS checks="<<checks<<"\n";return 0;}catch(const std::exception& e){std::cerr<<"FAIL: "<<e.what()<<"\n";return 1;}}
+static void callback_release_race(){
+ struct Context {std::mutex mutex;std::condition_variable cv;int completed=0;bool noninline=true;std::thread::id caller=std::this_thread::get_id();std::vector<cd_result_t*> retained;} context;
+ auto callback=[](cd_operation_t*,cd_result_t* result,void* user){auto& c=*static_cast<Context*>(user);cd_result_retain(result);{std::lock_guard lock(c.mutex);c.retained.push_back(result);++c.completed;c.noninline=c.noninline&&std::this_thread::get_id()!=c.caller;}c.cv.notify_one();};
+ {Driver driver;auto shell=cli(driver);for(int i=0;i<100;++i){cd_operation_t* operation=nullptr;
+#ifdef _WIN32
+ auto input=CD_SV("echo|set /p=READY");
+#else
+ auto input=CD_SV("printf READY");
+#endif
+ expect(cd_execute_string_async(shell.handle,input,nullptr,nullptr,callback,&context,&operation)==CD_OK,"accept operation before concurrent handle release");if(i%2==0)cd_operation_cancel(operation);cd_operation_release(operation);}}
+ std::unique_lock lock(context.mutex);expect(context.cv.wait_for(lock,std::chrono::seconds(10),[&]{return context.completed==100;}),"accepted callbacks complete despite driver, connection and operation release");expect(context.noninline&&context.retained.size()==100,"callbacks are non-inline and exactly once");for(auto result:context.retained){expect(cd_result_get_status(result)!=CD_INTERNAL_ERROR,"retained callback result remains valid");cd_result_release(result);}
+}
+int main(int argc,char** argv){try {if(argc==3&&std::string(argv[1])=="--soak-seconds")mixed_batch(std::stoi(argv[2]));else {core_tests();batch_semantics();mixed_batch(1);callback_release_race();}std::cout<<"PASS checks="<<checks<<"\n";return 0;}catch(const std::exception& e){std::cerr<<"FAIL: "<<e.what()<<"\n";return 1;}}
