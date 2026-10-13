@@ -123,11 +123,13 @@ struct SshBackend : Backend {
  void write(std::string data,Completion cb) override {if(!channel) {cb(CD_NOT_OPEN,"SSH stdio channel unavailable",0);return;}write_data=std::move(data);write_offset=0;write_callback=std::move(cb);drive();}
  void close_input(Completion cb) override {if(!channel) {cb(CD_NOT_OPEN,"SSH stdio channel unavailable",0);return;}write_eof=true;write_callback=std::move(cb);drive();}
  void transfer(bool is_upload,std::string from,std::string to,bool replace,std::function<void(uint64_t)> on_progress,Completion cb) override {
+  transfer_partial_file.clear();
   upload=is_upload;source=std::move(from);destination=std::move(to);overwrite=replace;progress=std::move(on_progress);transfer_callback=std::move(cb);transferred=0;transfer_phase=1;file_size=file_offset=0;
   try {
    if(upload&&!std::filesystem::is_regular_file(utf8_path(source)))throw Fault(CD_INVALID_ARGUMENT,"Source must be a single regular file");
    if(!upload&&std::filesystem::is_directory(utf8_path(destination)))throw Fault(CD_INVALID_ARGUMENT,"Destination must be a single file");
    if(!upload&&!overwrite&&std::filesystem::exists(utf8_path(destination))) throw Fault(CD_PERMISSION_DENIED,"Destination already exists");
+   transfer_partial_file=destination;
    local=std::make_shared<std::fstream>();disk_busy=true;auto self=std::static_pointer_cast<SshBackend>(shared_from_this());auto stream=local;
    runtime->file_job([stream,is_upload=upload,replace=overwrite,path=utf8_path(upload?source:destination)]{stream->open(path,std::ios::binary|(is_upload?std::ios::in:std::ios::out|(replace?std::ios::trunc:std::ios::noreplace)));if(!*stream)throw Fault(CD_IO_ERROR,"Cannot open local file");},[self](std::exception_ptr error){self->disk_busy=false;if(self->stopped)return;if(error){try{std::rethrow_exception(error);}catch(const Fault& f){auto cb=std::exchange(self->transfer_callback,{});cb(f.code,f.message,f.native);}catch(const std::exception& e){auto cb=std::exchange(self->transfer_callback,{});cb(CD_IO_ERROR,e.what(),0);}}else self->drive();});
   }catch(const Fault& f) {auto callback=std::exchange(transfer_callback,{});callback(f.code,f.message,f.native);}

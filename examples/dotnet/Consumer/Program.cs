@@ -12,6 +12,7 @@ class Program {
    await shell.OpenAsync();var r=await shell.ExecuteAsync(ready,Check.Contains("READY"));Assert(r.Response=="READY"&&r.Check.Passed,"async text without newline");
    var bytes=System.Text.Encoding.UTF8.GetBytes(ready);var rb=shell.Execute(bytes,Check.Contains(System.Text.Encoding.UTF8.GetBytes("READY")));Assert(System.Text.Encoding.UTF8.GetString(rb.Response)=="READY"&&rb.Check.Passed,"byte overload");
    Assert(ResponseChecker.IsMatch("READY",Check.Regex("REA(DY)")),"RE2 checker");
+   var empty=await shell.ExecuteAsync(windows?"rem empty":"true",Check.Equals(""));Assert(empty.Check.Passed&&empty.Check.MatchedText==""&&empty.Check.MatchedBytes==null,"empty match differs from absent match");
    if(!windows){var early=await shell.ExecuteUntilAsync("printf BUSY; sleep 0.03; printf READY; sleep 0.05; printf TAIL",Check.Contains("READY"));Assert(early.CompletionReason==CompletionReason.Matched,"until completion reason");Assert((await shell.ExecuteAsync(ready)).Response=="READY","cleanup isolation");}
    var connections=new List<Connection>();var items=new List<BatchItem>();for(int i=0;i<32;++i){var c=driver.CreateCli(new CliOptions());await c.OpenAsync();connections.Add(c);items.Add(BatchItem.Execute("UP"+i,c,ready,Check.Contains("READY")));}
    for(int round=0;round<10;++round){var pending=Batch.RunAsync(items);GC.Collect();GC.WaitForPendingFinalizers();var batch=await pending;Assert(batch.AllSucceeded&&batch.Items.Count==32,"batch under GC pressure");}

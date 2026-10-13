@@ -122,6 +122,7 @@ struct Backend : std::enable_shared_from_this<Backend> {
  std::function<void(int,std::string,bool)> command_output;
  std::function<void(std::optional<int>)> command_exited;
  std::string completion_marker;
+ std::string transfer_partial_file;
  std::string prompt_token,prompt_buffer,output_tail;Completion prompt_ready;
  Backend(std::shared_ptr<Runtime> r,Config c):runtime(std::move(r)),config(std::move(c)){}
  virtual ~Backend()=default;

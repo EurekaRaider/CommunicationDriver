@@ -285,7 +285,7 @@ struct ProcessBackend : Backend {
  }
  void open(Completion cb) override {
   if(config.backend==4){auto args=adb_args();args.push_back("get-state");auto self=std::static_pointer_cast<ProcessBackend>(shared_from_this());run_auxiliary(std::move(args),[self,cb](cd_status_t s,std::string output,int64_t native){
-   if(s!=CD_OK||output!="device\n"){cb(CD_DEVICE_UNAVAILABLE,"Bound ADB device is unavailable: "+output,native);return;}
+   if(s!=CD_OK||(output!="device\n"&&output!="device\r\n"&&output!="device")){cb(CD_DEVICE_UNAVAILABLE,"Bound ADB device is unavailable: "+output,native);return;}
    if(self->config.mode==CD_ONE_SHOT)cb(CD_OK,{},0);else self->launch({},false,cb);
   });return;}
   if(config.mode==CD_ONE_SHOT){auto executable=config.executable.empty()?shell_command(config.shell,true,{}).first:config.executable;if(executable_path(executable).empty())cb(CD_CONNECTION_FAILED,"Executable not found: "+executable,0);else cb(CD_OK,{},0);return;}
@@ -313,13 +313,25 @@ struct ProcessBackend : Backend {
  void close_input(Completion cb) override {ErrorCode e;input.close(e);cb(e?CD_IO_ERROR:CD_OK,e.message(),e.value());}
  void transfer(bool upload,std::string source,std::string destination,bool overwrite,std::function<void(uint64_t)> progress,Completion cb) override {
   if(config.backend!=4){cb(CD_NOT_SUPPORTED,"CLI has no file transfer",0);return;}
+  transfer_partial_file.clear();
   try {
-   if(!upload&&!overwrite&&std::filesystem::exists(destination))throw Fault(CD_PERMISSION_DENIED,"Destination already exists");
-   if(upload&&!std::filesystem::is_regular_file(source))throw Fault(CD_INVALID_ARGUMENT,"Source must be a single regular file");
+   if(!upload&&std::filesystem::is_directory(utf8_path(destination)))throw Fault(CD_INVALID_ARGUMENT,"Destination must be a single file");
+   if(!upload&&!overwrite&&std::filesystem::exists(utf8_path(destination)))throw Fault(CD_PERMISSION_DENIED,"Destination already exists");
+   if(upload&&!std::filesystem::is_regular_file(utf8_path(source)))throw Fault(CD_INVALID_ARGUMENT,"Source must be a single regular file");
    auto self=std::static_pointer_cast<ProcessBackend>(shared_from_this());
-   auto perform=[self,upload,source,destination,progress,cb]{auto args=self->adb_args();args.push_back(upload?"push":"pull");args.push_back(source);args.push_back(destination);self->run_auxiliary(std::move(args),[upload,source,destination,progress,cb](cd_status_t s,std::string m,int64_t n){if(s==CD_OK){std::error_code e;auto size=std::filesystem::file_size(upload?source:destination,e);if(!e)progress(size);}cb(s,std::move(m),n);});};
-   if(upload&&!overwrite){std::string quoted="'";for(char c:destination)quoted+=c=='\''?"'\\''":std::string(1,c);quoted+="'";auto args=adb_args();args.insert(args.end(),{"shell","-T","test -e "+quoted});run_auxiliary(std::move(args),[perform,cb](cd_status_t s,std::string m,int64_t code){if(s==CD_OK)cb(CD_PERMISSION_DENIED,"Destination already exists",0);else if(code==1)perform();else cb(s,m,code);});}
-   else perform();
+   auto quote=[](const std::string& value){std::string text="'";for(char c:value)text+=c=='\''?"'\\''":std::string(1,c);return text+"'";};
+   std::random_device random;auto staging=overwrite?destination:destination+".cd-partial-"+std::to_string(random())+std::to_string(random());
+   auto perform=[self,upload,source,destination,staging,overwrite,progress,cb,quote]{self->transfer_partial_file=staging;auto args=self->adb_args();args.push_back(upload?"push":"pull");args.push_back(source);args.push_back(staging);
+    self->run_auxiliary(std::move(args),[self,upload,source,destination,staging,overwrite,progress,cb,quote](cd_status_t s,std::string m,int64_t n){
+     if(s!=CD_OK){cb(s,std::move(m),n);return;}
+     auto done=[self,upload,source,destination,progress,cb](cd_status_t status,std::string message,int64_t native){if(status==CD_OK){self->transfer_partial_file.clear();std::error_code e;auto size=std::filesystem::file_size(utf8_path(upload?source:destination),e);if(!e)progress(size);}cb(status,std::move(message),native);};
+     if(overwrite){done(CD_OK,{},0);return;}
+     if(upload){auto install=self->adb_args();install.insert(install.end(),{"shell","-T","ln "+quote(staging)+" "+quote(destination)+" && rm "+quote(staging)});self->run_auxiliary(std::move(install),std::move(done));}
+     else {std::error_code error;std::filesystem::create_hard_link(utf8_path(staging),utf8_path(destination),error);if(error){done(error==std::errc::file_exists?CD_PERMISSION_DENIED:CD_IO_ERROR,error.message(),error.value());return;}std::filesystem::remove(utf8_path(staging),error);done(error?CD_IO_ERROR:CD_OK,error.message(),error.value());}
+    });};
+   auto args=adb_args();args.insert(args.end(),{"shell","-T",std::string(upload?"test -d ":"test -f ")+quote(upload?destination:source)});
+   run_auxiliary(std::move(args),[self,upload,overwrite,destination,perform,cb,quote](cd_status_t s,std::string m,int64_t code){if((upload&&s==CD_OK)||(!upload&&code==1)){cb(CD_INVALID_ARGUMENT,"Transfer requires a single file path",0);return;}if((upload&&code!=1)||(!upload&&s!=CD_OK)){cb(s,std::move(m),code);return;}
+    if(upload&&!overwrite){auto probe=self->adb_args();probe.insert(probe.end(),{"shell","-T","test -e "+quote(destination)});self->run_auxiliary(std::move(probe),[perform,cb](cd_status_t status,std::string message,int64_t native){if(status==CD_OK)cb(CD_PERMISSION_DENIED,"Destination already exists",0);else if(native==1)perform();else cb(status,std::move(message),native);});}else perform();});
   }catch(const Fault& f){cb(f.code,f.message,f.native);}catch(const std::exception& e){cb(CD_IO_ERROR,e.what(),0);}
  }
  void close() override {stopped=true;if(auxiliary){auxiliary->close();auxiliary.reset();}auxiliary_callback={};ErrorCode e;input.close(e);out.close(e);err.close(e);if(child) {child->terminate(e);child.reset();}}
@@ -386,7 +398,7 @@ void Connection::start() {
  else if(r->action==Action::Upload||r->action==Action::Download) r->result->kind=CD_RESULT_TRANSFER;
  if(r->action==Action::Upload||r->action==Action::Download) {
   r->result->source=r->source;r->result->destination=r->destination;
-  r->sent=true;persistent->transfer(r->action==Action::Upload,r->source,r->destination,r->overwrite,[weak=std::weak_ptr<Request>(r)](uint64_t bytes){if(auto req=weak.lock()) req->result->progress=bytes;},[self,r](cd_status_t status,std::string message,int64_t native){if(self->active==r) {if(status!=CD_OK&&status!=CD_PERMISSION_DENIED&&status!=CD_INVALID_ARGUMENT){r->result->partial_file=r->destination;self->state=CD_STATE_NEEDS_RECOVERY;++self->generation;self->persistent->close();}self->finish(status,message,native);}});return;
+  r->sent=true;persistent->transfer(r->action==Action::Upload,r->source,r->destination,r->overwrite,[weak=std::weak_ptr<Request>(r)](uint64_t bytes){if(auto req=weak.lock()) req->result->progress=bytes;},[self,r](cd_status_t status,std::string message,int64_t native){if(self->active==r) {if(status!=CD_OK){r->result->partial_file=self->persistent->transfer_partial_file;if(status!=CD_PERMISSION_DENIED&&status!=CD_INVALID_ARGUMENT){self->state=CD_STATE_NEEDS_RECOVERY;++self->generation;self->persistent->close();}}self->finish(status,message,native);}});return;
  }
  if(exec&&config.backend>=3&&config.mode==CD_ONE_SHOT) {
   isolating=true;for(int stream=0;stream<2;++stream){stdio_pending[stream]=std::exchange(pending[stream],{});stdio_eof[stream]=eof[stream];}
@@ -426,7 +438,7 @@ void Connection::receive(int stream,std::string data,bool end,bool isolated) {
  pending[stream]+=data;
  uint64_t limit=r?r->options.max_bytes:config.defaults.max_bytes;
  size_t total=pending[0].size()+pending[1].size();if(r) total+=r->result->raw[0].size()+r->result->raw[1].size();
- if(total>limit||messages[0].size()+messages[1].size()>std::max<uint64_t>(1,limit/sizeof(size_t))) {state=CD_STATE_NEEDS_RECOVERY;if(r) {r->result->raw[stream]+=pending[stream];pending[stream].clear();finish(CD_LIMIT_EXCEEDED,"Response buffer limit exceeded");}if(persistent) persistent->close();if(one_shot) one_shot->close();return;}
+ if(total>limit||messages[0].size()+messages[1].size()>std::max<uint64_t>(1024,limit/sizeof(size_t))) {state=CD_STATE_NEEDS_RECOVERY;if(r) {r->result->raw[stream]+=pending[stream];pending[stream].clear();finish(CD_LIMIT_EXCEEDED,"Response buffer limit exceeded");}if(persistent) persistent->close();if(one_shot) one_shot->close();return;}
  process_data();
 }
 bool Connection::boundary(std::string& data,const Rule& rule,const Options& options,size_t& consume,size_t& keep) {
@@ -455,7 +467,7 @@ void Connection::process_data() {
     r->result->raw[stream]=pending[stream].substr(0,keep);consume_pending(stream,consume);finish();return;
    }
    if(r->options.rule.kind==CD_RECEIVE_IDLE&&!pending[stream].empty()) {
-    r->result->raw[stream]+=std::exchange(pending[stream],{});
+    r->result->raw[stream]+=pending[stream];consume_pending(stream,pending[stream].size());
     if(!r->idle) r->idle=std::make_shared<asio::steady_timer>(runtime->state->io);
     r->idle->expires_after(std::chrono::milliseconds(r->options.rule.idle_ms));auto self=shared_from_this();r->idle->async_wait([self,r](ErrorCode e){if(!e&&self->active==r) {r->result->completion=CD_COMPLETION_IDLE;self->finish();}});
    }
@@ -486,10 +498,10 @@ void Connection::process_data() {
     else {if(raw_until&&!cleanup)state=CD_STATE_NEEDS_RECOVERY;if(!raw_done){messages[0].clear();messages[1].clear();finish();return;}}
    }
   }
-  if(raw_until&&raw_done&&(r->early||r->result->passed)) {
+  if(raw_until&&raw_done) {
    pending[0]=r->result->raw[0].substr(raw_consume)+pending[0];r->result->raw[0].resize(raw_keep);
    size_t left=raw_consume;while(!messages[0].empty()){if(messages[0].front()>left){messages[0].front()-=left;break;}left-=messages[0].front();messages[0].pop_front();if(!left)break;}
-   finish();return;
+   if(r->early||r->result->passed)finish();else finish(CD_END_OF_STREAM,"Protocol response completed without matching");return;
   }
   if(command_done) {r->result->exit_code=r->marker.empty()?process_exit:r->marker_exit;if(!r->early&&r->action==Action::ExecuteUntil&&!r->result->passed) {finish(CD_END_OF_STREAM,"Command completed without matching");return;}if(!r->early&&r->result->completion!=CD_COMPLETION_MATCH) r->result->completion=CD_COMPLETION_COMMAND;finish();return;}
   if(r->marker.empty()&&!(config.backend>=3&&config.mode==CD_ONE_SHOT)&&r->action==Action::Execute) {
@@ -516,7 +528,7 @@ void Connection::abort(const std::shared_ptr<Request>& r,cd_status_t status,std:
  if(r==active) {
   if(r->sent&&(r->action==Action::Execute||r->action==Action::ExecuteUntil||r->action==Action::Write)) state=CD_STATE_NEEDS_RECOVERY;
   r->result->raw[0]+=std::exchange(pending[0],{});r->result->raw[1]+=std::exchange(pending[1],{});
-  if(r->action==Action::Upload||r->action==Action::Download) {if(r->sent)r->result->partial_file=r->destination;state=CD_STATE_NEEDS_RECOVERY;++generation;if(persistent)persistent->close();}
+  if(r->action==Action::Upload||r->action==Action::Download) {if(r->sent&&persistent)r->result->partial_file=persistent->transfer_partial_file;state=CD_STATE_NEEDS_RECOVERY;++generation;if(persistent)persistent->close();}
   if(r->action==Action::Open) {state=CD_STATE_FAULTED;++generation;if(persistent) persistent->close();persistent.reset();}
   finish(status,std::move(message));
  }else {auto it=std::find(queue.begin(),queue.end(),r);if(it==queue.end()) return;queue.erase(it);r->deadline->cancel();r->result->status=status;r->result->message=std::move(message);r->result->elapsed_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now()-r->started).count();r->operation->complete(r->result);}
