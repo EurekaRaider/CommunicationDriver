@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CommunicationDriver architecture</title>
+  <!-- Diagram Design: architecture, doc-inline, balanced, engineer.
+       Custom skin: existing README hero palette; intentional system fonts.
+       Fidelity: C, C++23 and C# are grouped into one Language APIs node.
+       All six backends, the C ABI and the native core are preserved. -->
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper: #080f21;
+      --color-paper-2: #111e35;
+      --color-ink: #f1f5f9;
+      --color-ink-strong: #080f21;
+      --color-muted: #cbd5e1;
+      --color-soft: #94a3b8;
+      --color-rule: rgba(241, 245, 249, 0.12);
+      --color-rule-solid: #64748b;
+      --color-accent: #67e8f9;
+      --color-accent-tint: #102d43;
+      --color-link: #a5b4fc;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      --font-serif: Georgia, "Times New Roman", serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+    body {
+      background: var(--color-paper);
+      color: var(--color-ink);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 32px 20px;
+    }
+    .frame { width: 100%; max-width: 960px; min-width: 0; }
+    .eyebrow {
+      color: var(--color-soft);
+      font: 500 10px var(--font-mono);
+      letter-spacing: 0.14em;
+      margin: 0 0 12px 44px;
+    }
+    h1 {
+      font: 400 28px/1.2 var(--font-serif);
+      margin: 0 0 24px 44px;
+    }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    svg { width: 100%; min-width: 960px; display: block; }
+    .name { font-family: var(--font-sans); font-size: 12px; font-weight: 600; fill: var(--color-ink); }
+    .heading { font-family: var(--font-sans); font-size: 14px; font-weight: 600; fill: var(--color-ink); }
+    .detail { font-family: var(--font-mono); font-size: 9px; fill: var(--color-muted); }
+    .tag { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.08em; fill: var(--color-soft); }
+    .caption { font-family: var(--font-mono); font-size: 9px; fill: var(--color-soft); }
+    .node { fill: var(--color-paper-2); stroke: var(--color-rule-solid); stroke-width: 1; }
+    .core { fill: var(--color-accent-tint); stroke: var(--color-accent); stroke-width: 1.5; }
+    .route { fill: none; stroke: var(--color-muted); stroke-width: 1.2; }
+    .rule { stroke: var(--color-rule); stroke-width: 1; }
+    @media print {
+      body { display: block; padding: 0; }
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="frame">
+    <p class="eyebrow">ARCHITECTURE · DIAGRAM DESIGN</p>
+    <h1>CommunicationDriver architecture</h1>
+    <div class="diagram-container">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" role="img" aria-labelledby="architecture-title architecture-desc">
+        <title id="architecture-title">CommunicationDriver architecture</title>
+        <desc id="architecture-desc">C, C++23 and C# APIs use a stable C ABI and one native async core to dispatch operations to TCP, UDP, Serial, SSH and SFTP, ADB, and CLI backends.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cbd5e1"/></marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#67e8f9"/></marker>
+          <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#a5b4fc"/></marker>
+        </defs>
+
+        <rect width="960" height="600" fill="#080f21"/>
+        <text x="44" y="44" class="tag">COMMUNICATIONDRIVER / NATIVE ASYNC</text>
+        <text x="44" y="84" fill="#f1f5f9" font-family="Georgia, 'Times New Roman', serif" font-size="28">One core. Six backends.</text>
+        <text x="44" y="108" class="caption">One execution and lifecycle model across C, C++23 and C#.</text>
+
+        <!-- Call paths are drawn before nodes. Each core output has its own port. -->
+        <g class="route" marker-end="url(#arrow)">
+          <line x1="220" y1="320" x2="260" y2="320"/>
+          <line x1="388" y1="320" x2="428" y2="320"/>
+          <path d="M668 232H680Q688 232 688 224V156Q688 148 696 148H792"/>
+          <path d="M668 268H696Q704 268 704 260V220Q704 212 712 212H792"/>
+          <path d="M668 304H712Q720 304 720 296V284Q720 276 728 276H792"/>
+          <line x1="668" y1="340" x2="792" y2="340"/>
+          <path d="M668 376H712Q720 376 720 384V396Q720 404 728 404H792"/>
+          <path d="M668 412H696Q704 412 704 420V460Q704 468 712 468H792"/>
+        </g>
+
+        <g>
+          <rect x="44" y="204" width="176" height="232" rx="6" fill="#080f21"/>
+          <rect x="44" y="204" width="176" height="232" rx="6" class="node"/>
+          <text x="60" y="228" class="tag">BINDINGS</text>
+          <text x="60" y="252" class="heading">Language APIs</text>
+          <line x1="60" y1="268" x2="204" y2="268" class="rule"/>
+          <text x="60" y="292" class="name">C</text>
+          <text x="60" y="308" class="detail">handles / callbacks</text>
+          <text x="60" y="340" class="name">C++23</text>
+          <text x="60" y="356" class="detail">RAII / stop_token</text>
+          <text x="60" y="388" class="name">C#</text>
+          <text x="60" y="404" class="detail">SafeHandle / Task</text>
+        </g>
+
+        <g>
+          <rect x="260" y="280" width="128" height="80" rx="6" fill="#080f21"/>
+          <rect x="260" y="280" width="128" height="80" rx="6" class="node"/>
+          <text x="276" y="304" class="tag">CONTRACT</text>
+          <text x="276" y="332" class="name">Stable C ABI</text>
+        </g>
+
+        <g>
+          <rect x="428" y="196" width="240" height="252" rx="6" fill="#080f21"/>
+          <rect x="428" y="196" width="240" height="252" rx="6" class="core"/>
+          <rect x="444" y="212" width="100" height="16" rx="2" fill="#102d43" stroke="#67e8f9" stroke-opacity="0.5"/>
+          <text x="452" y="224" font-family="'SFMono-Regular', Consolas, monospace" font-size="8" letter-spacing="0.08em" fill="#67e8f9">SHARED CORE</text>
+          <text x="444" y="260" class="heading">Native async core</text>
+          <line x1="444" y1="280" x2="652" y2="280" stroke="#67e8f9" stroke-opacity="0.2"/>
+          <text x="444" y="308" class="name">Connection queues</text>
+          <text x="444" y="336" class="name">Response boundaries</text>
+          <text x="444" y="364" class="name">Cancellation</text>
+          <text x="444" y="392" class="name">Results</text>
+          <text x="444" y="420" class="name">Batches</text>
+        </g>
+
+        <g>
+          <rect x="792" y="120" width="124" height="56" rx="6" class="node"/>
+          <rect x="792" y="184" width="124" height="56" rx="6" class="node"/>
+          <rect x="792" y="248" width="124" height="56" rx="6" class="node"/>
+          <rect x="792" y="312" width="124" height="56" rx="6" class="node"/>
+          <rect x="792" y="376" width="124" height="56" rx="6" class="node"/>
+          <rect x="792" y="440" width="124" height="56" rx="6" class="node"/>
+          <text x="854" y="152" text-anchor="middle" class="name">TCP</text>
+          <text x="854" y="216" text-anchor="middle" class="name">UDP</text>
+          <text x="854" y="280" text-anchor="middle" class="name">Serial</text>
+          <text x="854" y="344" text-anchor="middle" class="name">SSH / SFTP</text>
+          <text x="854" y="408" text-anchor="middle" class="name">ADB</text>
+          <text x="854" y="472" text-anchor="middle" class="name">CLI</text>
+        </g>
+
+        <!-- Legend is outside the diagram area, in the bottom 60px strip. -->
+        <line x1="44" y1="540" x2="916" y2="540" class="rule"/>
+        <rect x="44" y="556" width="12" height="12" rx="2" fill="#102d43" stroke="#67e8f9"/>
+        <text x="68" y="565" class="caption">Shared native implementation</text>
+        <rect x="292" y="556" width="12" height="12" rx="2" fill="#111e35" stroke="#64748b"/>
+        <text x="316" y="565" class="caption">Bindings and backends</text>
+        <line x1="528" y1="562" x2="556" y2="562" stroke="#cbd5e1" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="568" y="565" class="caption">Call / dispatch path</text>
+      </svg>
+    </div>
+  </main>
+</body>
+</html>
