@@ -99,7 +99,7 @@ Rule::Rule(const cd_receive_until_t& r):kind(r.kind),count(r.count),idle_ms(r.id
  require(kind>=CD_RECEIVE_NONE&&kind<=CD_RECEIVE_AVAILABLE,"Invalid receive kind");
  if(kind==CD_RECEIVE_BYTES||kind==CD_RECEIVE_CHARACTERS) require(count>0&&count<=SIZE_MAX,"Receive count must be positive");
  if(kind==CD_RECEIVE_DELIMITER) require(!value.empty(),"Delimiter cannot be empty");
- if(kind==CD_RECEIVE_IDLE) require(idle_ms>0,"Idle must be positive");
+ if(kind==CD_RECEIVE_IDLE) require(idle_ms>0&&idle_ms<=INT64_MAX,"Idle must fit a positive duration");
  if(text) valid_utf8(value,true); if(kind==CD_RECEIVE_PATTERN) regex=compile_regex(value);
 }
 Defaults::Defaults(const cd_connection_options_t& d) {
@@ -109,12 +109,14 @@ Defaults::Defaults(const cd_connection_options_t& d) {
  newline=copy(d.new_line); require(!newline.empty(),"NewLine cannot be empty"); valid_utf8(newline,true);
  rule=Rule(d.receive_until); connect_ms=d.connect_timeout_ms;io_ms=d.io_timeout_ms;execution_ms=d.execution_timeout_ms;close_ms=d.close_timeout_ms;max_bytes=d.max_response_bytes;
  require(connect_ms&&io_ms&&execution_ms&&close_ms&&max_bytes,"Timeouts and buffer limit must be positive");
+ require(connect_ms<=INT64_MAX&&io_ms<=INT64_MAX&&execution_ms<=INT64_MAX&&close_ms<=INT64_MAX&&max_bytes<=SIZE_MAX,"Timeout or buffer limit is out of range");
 }
 Options::Options(const Defaults& d,const cd_call_options_t* o,uint64_t fallback):encoding(d.encoding),newline(d.newline),rule(d.rule),timeout(fallback),max_bytes(d.max_bytes) {
  if(!o) return; require(o->struct_size>=sizeof(*o),"CallOptions struct_size too small");
  if(o->encoding!=CD_ENCODING_DEFAULT) encoding=o->encoding;
  require(encoding>=CD_ENCODING_UTF8&&encoding<=CD_ENCODING_GB18030,"Invalid encoding");
  if(o->timeout_ms) timeout=o->timeout_ms; if(o->max_response_bytes) max_bytes=o->max_response_bytes;
+ require(timeout<=INT64_MAX&&max_bytes<=SIZE_MAX,"Timeout or buffer limit is out of range");
  if(o->new_line.size) newline=copy(o->new_line); valid_utf8(newline,true);
  if(o->receive_until.kind!=CD_RECEIVE_NONE) rule=Rule(o->receive_until);
  read_stream=o->read_stream;check_stream=o->check_stream;
@@ -303,7 +305,10 @@ struct ProcessBackend : Backend {
     }
     size_t suffix=0;for(size_t i=1;i<self->prompt_token.size()&&i<=self->prompt_buffer.size();++i)if(self->prompt_buffer.compare(self->prompt_buffer.size()-i,i,self->prompt_token.substr(0,i))==0)suffix=i;
     if(suffix&&self->prompt_buffer.size()>=suffix+2&&self->prompt_buffer.compare(self->prompt_buffer.size()-suffix-2,2,"\r\n")==0)suffix+=2;
-    if(!suffix&&self->prompt_buffer.ends_with("\r\n"))suffix=2;else if(!suffix&&self->prompt_buffer.ends_with('\r'))suffix=1;
+    if(!suffix&&self->prompt_buffer.ends_with("\r\n")){
+     bool marker_line=false;if(!self->completion_marker.empty()){auto prefix=self->output_tail+self->prompt_buffer.substr(0,self->prompt_buffer.size()-2);auto marker=prefix.rfind(self->completion_marker+":");if(marker!=std::string::npos){auto status=prefix.substr(marker+self->completion_marker.size()+1);int code;auto parsed=std::from_chars(status.data(),status.data()+status.size(),code);marker_line=!status.empty()&&parsed.ec==std::errc()&&parsed.ptr==status.data()+status.size();}}
+     if(!marker_line)suffix=2;
+    }else if(!suffix&&self->prompt_buffer.ends_with('\r'))suffix=1;
     data=self->prompt_buffer.substr(0,self->prompt_buffer.size()-suffix);self->prompt_buffer.erase(0,self->prompt_buffer.size()-suffix);
    }
    if(!data.empty()){if(stream==0&&!self->prompt_token.empty()){self->output_tail+=data;auto limit=self->completion_marker.size()+64;if(self->output_tail.size()>limit)self->output_tail.erase(0,self->output_tail.size()-limit);}self->output(stream,std::move(data),false);}
@@ -336,7 +341,9 @@ void Connection::attach(const std::shared_ptr<Backend>& backend,bool isolated) {
  auto weak=weak_from_this();uint64_t g=generation;
  backend->output=[weak,g,isolated](int stream,std::string data,bool end){if(auto self=weak.lock();self&&self->generation==g) self->receive(stream,std::move(data),end,isolated);};
  backend->failure=[weak,g](cd_status_t s,std::string m,int64_t n){if(auto self=weak.lock();self&&self->generation==g) {self->state=CD_STATE_FAULTED;if(self->active) self->finish(s,std::move(m),n);}};
- backend->exited=[weak,g](std::optional<int> code){if(auto self=weak.lock();self&&self->generation==g) {self->process_exit=code;self->process_finished=true;self->process_data();}};
+ backend->exited=[weak,g,isolated](std::optional<int> code){if(auto self=weak.lock();self&&self->generation==g&&(!self->isolating||isolated)) {self->process_exit=code;self->process_finished=true;self->process_data();}};
+ backend->command_output=[weak,g](int stream,std::string data,bool end){if(auto self=weak.lock();self&&self->generation==g)self->receive(stream,std::move(data),end,true);};
+ backend->command_exited=[weak,g](std::optional<int> code){if(auto self=weak.lock();self&&self->generation==g){self->process_exit=code;self->process_finished=true;self->process_data();}};
 }
 void Connection::submit(std::shared_ptr<Request> request) {
  auto self=shared_from_this(); auto op=request->operation;
@@ -352,7 +359,7 @@ void Connection::submit(std::shared_ptr<Request> request) {
 }
 void Connection::next() {if(active||queue.empty()) return;active=queue.front();queue.pop_front();start();}
 void Connection::ensure_persistent(Completion callback) {
- if(persistent&&!(config.backend>=4&&persistent->command_channels())) {callback(CD_OK,{},0);return;}
+ if(persistent&&!(config.backend>=4&&persistent->command_channels())) {persistent->ensure_stdio(std::move(callback));return;}
  if(persistent){persistent->close();persistent.reset();}
  auto c=config;c.mode=CD_PERSISTENT;persistent=make_backend(runtime,c);attach(persistent);
  persistent->open(std::move(callback));
@@ -378,15 +385,16 @@ void Connection::start() {
  bool managed=config.managed();
  if(r->action==Action::Execute&&!managed&&!(config.backend>=3&&config.mode==CD_ONE_SHOT)&& (r->options.rule.kind==CD_RECEIVE_NONE||r->options.rule.kind==CD_RECEIVE_AVAILABLE)) {finish(CD_INVALID_ARGUMENT,"Execute requires a reliable ReceiveUntil rule before sending");return;}
  if(r->action==Action::ExecuteUntil&&(r->check.kind==CD_CHECK_NONE||r->check.kind==CD_CHECK_EQUALS)) {finish(CD_INVALID_ARGUMENT,"ExecuteUntil requires Contains or Regex");return;}
- if(exec&&(!pending[0].empty()||!pending[1].empty())) {state=CD_STATE_NEEDS_RECOVERY;finish(CD_NEEDS_RECOVERY,"Unattributed output exists; consume it explicitly or close/reopen");return;}
+ if(exec&&!(config.backend>=3&&config.mode==CD_ONE_SHOT)&&(!pending[0].empty()||!pending[1].empty())) {state=CD_STATE_NEEDS_RECOVERY;finish(CD_NEEDS_RECOVERY,"Unattributed output exists; consume it explicitly or close/reopen");return;}
  if(exec) r->result->kind=r->text?CD_RESULT_EXECUTION_TEXT:CD_RESULT_EXECUTION_BYTES;
  else if(r->action==Action::Read) r->result->kind=r->text?CD_RESULT_TEXT:CD_RESULT_BYTES;
  else if(r->action==Action::Upload||r->action==Action::Download) r->result->kind=CD_RESULT_TRANSFER;
  if(r->action==Action::Upload||r->action==Action::Download) {
   r->result->source=r->source;r->result->destination=r->destination;
-  ensure_persistent([self,r](cd_status_t s,std::string m,int64_t n){if(self->active!=r) return;if(s!=CD_OK) {self->finish(s,m,n);return;}self->persistent->transfer(r->action==Action::Upload,r->source,r->destination,r->overwrite,[weak=std::weak_ptr<Request>(r)](uint64_t bytes){if(auto req=weak.lock()) req->result->progress=bytes;},[self,r](cd_status_t status,std::string message,int64_t native){if(self->active==r) {if(status!=CD_OK) r->result->partial_file=r->destination;self->finish(status,message,native);}});});return;
+  r->sent=true;persistent->transfer(r->action==Action::Upload,r->source,r->destination,r->overwrite,[weak=std::weak_ptr<Request>(r)](uint64_t bytes){if(auto req=weak.lock()) req->result->progress=bytes;},[self,r](cd_status_t status,std::string message,int64_t native){if(self->active==r) {if(status!=CD_OK&&status!=CD_PERMISSION_DENIED&&status!=CD_INVALID_ARGUMENT){r->result->partial_file=r->destination;self->state=CD_STATE_NEEDS_RECOVERY;++self->generation;self->persistent->close();}self->finish(status,message,native);}});return;
  }
  if(exec&&config.backend>=3&&config.mode==CD_ONE_SHOT) {
+  isolating=true;for(int stream=0;stream<2;++stream){stdio_pending[stream]=std::exchange(pending[stream],{});stdio_eof[stream]=eof[stream];}
   eof[0]=eof[1]=false;process_exit.reset();process_finished=false;
   if(config.backend==3) {one_shot=persistent;}
   else {one_shot=make_backend(runtime,config);attach(one_shot,true);}
@@ -417,11 +425,12 @@ std::string Connection::framed_command(const std::string& command,const std::str
 void Connection::receive(int stream,std::string data,bool end,bool isolated) {
  auto r=active;
  if(isolated&&(!r||(r->action!=Action::Execute&&r->action!=Action::ExecuteUntil))) return;
+ if(isolating&&!isolated){stdio_pending[stream]+=data;stdio_eof[stream]|=end;if(stdio_pending[0].size()+stdio_pending[1].size()>config.defaults.max_bytes){state=CD_STATE_NEEDS_RECOVERY;if(persistent)persistent->close();finish(CD_LIMIT_EXCEEDED,"Persistent stdio buffer limit exceeded");}return;}
  if(end) eof[stream]=true;
  if(config.backend==1&&!end) messages[stream].push_back(data.size());
  pending[stream]+=data;
  uint64_t limit=r?r->options.max_bytes:config.defaults.max_bytes;
- size_t total=pending[0].size()+pending[1].size();if(r) total+=r->result->raw[0].size()+r->result->raw[1].size();
+ size_t total=pending[0].size()+pending[1].size()+messages[0].size()*sizeof(size_t)+messages[1].size()*sizeof(size_t);if(r) total+=r->result->raw[0].size()+r->result->raw[1].size();
  if(total>limit) {state=CD_STATE_NEEDS_RECOVERY;if(r) {r->result->raw[stream]+=pending[stream];pending[stream].clear();finish(CD_LIMIT_EXCEEDED,"Response buffer limit exceeded");}if(persistent) persistent->close();if(one_shot) one_shot->close();return;}
  process_data();
 }
@@ -495,23 +504,24 @@ void Connection::process_data() {
   }
   bool input_ended=eof[0]&&(!(capabilities&CD_CAP_STDERR)||eof[1]);
   if(input_ended&&!command_done&&!(config.backend>=3&&config.mode==CD_ONE_SHOT)) finish(CD_END_OF_STREAM,"Input reached EOF before completion");
- }catch(const Fault& f) {finish(f.code,f.message,f.native);}catch(const std::exception& e) {finish(CD_INTERNAL_ERROR,e.what());}
+ }catch(const Fault& f) {r->result->raw[0]+=std::exchange(pending[0],{});r->result->raw[1]+=std::exchange(pending[1],{});if(r->sent)state=CD_STATE_NEEDS_RECOVERY;finish(f.code,f.message,f.native);}catch(const std::exception& e) {finish(CD_INTERNAL_ERROR,e.what());}
 }
 void Connection::finish(cd_status_t status,std::string message,int64_t native,bool advance) {
  auto r=std::exchange(active,{});if(!r) return;
  r->deadline->cancel();if(r->idle) r->idle->cancel();
  r->result->status=status;r->result->message=std::move(message);r->result->native=native;
  r->result->elapsed_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now()-r->started).count();
- try {if(r->text) for(int i=0;i<2;++i) r->result->text[i]=decode(r->result->raw[i],r->options.encoding,status==CD_OK);if(status==CD_OK&&(r->action==Action::Execute||r->action==Action::ExecuteUntil)) r->result->evaluate(r->check,r->options.check_stream,r->options.encoding,true);}catch(const Fault& f) {r->result->status=f.code;r->result->message=f.message;r->result->native=f.native;}
+ try {if(r->text) for(int i=0;i<2;++i) r->result->text[i]=decode(r->result->raw[i],r->options.encoding,status==CD_OK);if(status==CD_OK&&(r->action==Action::Execute||r->action==Action::ExecuteUntil)) r->result->evaluate(r->check,r->options.check_stream,r->options.encoding,true);}catch(const Fault& f) {if(status==CD_OK){r->result->status=f.code;r->result->message=f.message;r->result->native=f.native;}}
  if(!r->early) r->operation->complete(r->result);
  if(one_shot&&config.backend!=3) {one_shot->close();one_shot.reset();}
+ if(isolating){for(int stream=0;stream<2;++stream){pending[stream]=std::exchange(stdio_pending[stream],{});eof[stream]=stdio_eof[stream];}isolating=false;}
  if(advance) {auto self=shared_from_this();asio::post(runtime->state->io,[self]{self->next();});}
 }
 void Connection::abort(const std::shared_ptr<Request>& r,cd_status_t status,std::string message) {
  if(r==active) {
   if(r->sent&&(r->action==Action::Execute||r->action==Action::ExecuteUntil||r->action==Action::Write)) state=CD_STATE_NEEDS_RECOVERY;
   r->result->raw[0]+=std::exchange(pending[0],{});r->result->raw[1]+=std::exchange(pending[1],{});
-  if(r->action==Action::Upload||r->action==Action::Download) {r->result->partial_file=r->destination;state=CD_STATE_NEEDS_RECOVERY;}
+  if(r->action==Action::Upload||r->action==Action::Download) {if(r->sent)r->result->partial_file=r->destination;state=CD_STATE_NEEDS_RECOVERY;++generation;if(persistent)persistent->close();}
   if(r->action==Action::Open) {state=CD_STATE_FAULTED;++generation;if(persistent) persistent->close();persistent.reset();}
   finish(status,std::move(message));
  }else {auto it=std::find(queue.begin(),queue.end(),r);if(it==queue.end()) return;queue.erase(it);r->deadline->cancel();r->result->status=status;r->result->message=std::move(message);r->result->elapsed_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now()-r->started).count();r->operation->complete(r->result);}
@@ -523,6 +533,7 @@ void Connection::force_close() {
  if(active&&!closing) {active->result->raw[0]+=std::exchange(pending[0],{});active->result->raw[1]+=std::exchange(pending[1],{});finish(CD_CLOSED,"Connection closed",0,false);}
  for(auto& r:queued) {r->deadline->cancel();r->result->status=CD_CLOSED;r->result->message="Connection closed";r->operation->complete(r->result);}
  pending[0].clear();pending[1].clear();messages[0].clear();messages[1].clear();
+ stdio_pending[0].clear();stdio_pending[1].clear();isolating=false;
  if(closing){auto self=shared_from_this();runtime->after_files([self,closing]{self->state=CD_STATE_CLOSED;if(self->active==closing)self->finish();});}
  else state=CD_STATE_CLOSED;
 }

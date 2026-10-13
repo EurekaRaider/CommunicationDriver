@@ -119,6 +119,8 @@ struct Backend : std::enable_shared_from_this<Backend> {
  std::function<void(int,std::string,bool)> output;
  std::function<void(cd_status_t,std::string,int64_t)> failure;
  std::function<void(std::optional<int>)> exited;
+ std::function<void(int,std::string,bool)> command_output;
+ std::function<void(std::optional<int>)> command_exited;
  std::string completion_marker;
  Backend(std::shared_ptr<Runtime> r,Config c):runtime(std::move(r)),config(std::move(c)){}
  virtual ~Backend()=default;
@@ -129,6 +131,7 @@ struct Backend : std::enable_shared_from_this<Backend> {
  virtual void command(std::string,Completion cb) { cb(CD_NOT_SUPPORTED,"Command channels unavailable",0); }
  virtual void transfer(bool,std::string,std::string,bool,std::function<void(uint64_t)>,Completion cb) { cb(CD_NOT_SUPPORTED,"File transfer unavailable",0); }
  virtual bool command_channels() const { return false; }
+ virtual void ensure_stdio(Completion cb) { cb(CD_OK,{},0); }
 };
 std::shared_ptr<Backend> make_ssh(std::shared_ptr<Runtime>,Config);
 std::shared_ptr<Backend> make_backend(std::shared_ptr<Runtime>,Config);
@@ -137,6 +140,7 @@ struct Connection : std::enable_shared_from_this<Connection> {
  std::atomic<int> state{CD_STATE_CREATED}; std::shared_ptr<Backend> persistent,one_shot;
  std::deque<std::shared_ptr<Request>> queue; std::shared_ptr<Request> active;
  std::string pending[2]; std::deque<size_t> messages[2]; bool eof[2]={false,false};
+ std::string stdio_pending[2];bool stdio_eof[2]={false,false},isolating=false;
  std::optional<int> process_exit; bool process_finished=false; uint64_t generation=0;
  Connection(std::shared_ptr<Runtime>,Config);
  ~Connection(); void submit(std::shared_ptr<Request>); void next(); void start();

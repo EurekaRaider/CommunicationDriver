@@ -46,6 +46,7 @@ struct Peers {
  struct Session:std::enable_shared_from_this<Session> {Peers& owner;asio::ip::tcp::socket socket;std::array<char,1024> buffer;Session(Peers& p,asio::ip::tcp::socket s):owner(p),socket(std::move(s)){}
   void read(){auto self=shared_from_this();socket.async_read_some(asio::buffer(buffer),[self](auto e,size_t n){if(e)return;std::string command(self->buffer.data(),n);++self->owner.requests;
    if(command=="UTF")self->send_chunks({"A\xf0\x9f","\x98\x84"});
+   else if(command=="BAD")self->send_chunks({std::string("A\xff",2)});
    else if(command=="LATE")self->send_chunks({"BUSY","READY"},150);
    else if(command=="FRAME")self->send_chunks({"NOT","\n"});
    else self->send_chunks({command});self->read();});}
@@ -105,6 +106,11 @@ static void core_tests(){
  {Result r;int before=peers.requests;expect(cd_execute_string(unframed.handle,CD_SV("FRAME"),nullptr,nullptr,&r.handle)==CD_INVALID_ARGUMENT,"unframed execute rejected");expect(peers.requests==before,"configuration failure sends no bytes");}
  {Result r;execute(tcp,"FRAME",r,&match);expect(r.text()=="NOT"&&!r.passed(),"TCP framed mismatch returns normally");}
  {Result w;ok(cd_write_string(unframed.handle,CD_SV("UTF"),nullptr,&w.handle),w,"write UTF request");Result r;ok(cd_read_exactly_string(unframed.handle,2,nullptr,&r.handle),r,"read exact unicode scalars");expect(r.text()=="A\xf0\x9f\x98\x84","UTF8 split block and scalar count");}
+ {Result w;ok(cd_write_string(unframed.handle,CD_SV("BAD"),nullptr,&w.handle),w,"write malformed UTF request");Result r;expect(cd_read_exactly_string(unframed.handle,2,nullptr,&r.handle)==CD_ENCODING_ERROR&&r.bytes()==std::string("A\xff",2),"encoding error retains original partial bytes");}
+ {cd_call_options_t overflow;cd_call_options_init(&overflow);overflow.timeout_ms=UINT64_MAX;Result r;expect(cd_read_string(unframed.handle,&overflow,&r.handle)==CD_INVALID_ARGUMENT,"oversized duration is rejected before IO");}
+#ifndef _WIN32
+ {auto isolated=cli(d,true);Result w;ok(cd_write_line(isolated.handle,CD_SV("printf RAW; sleep 0.1; printf LATE"),nullptr,&w.handle),w,"oneshot persistent stdio write");Result command;execute(isolated,"printf OUT",command);expect(command.text()=="OUT","CLI oneshot does not mix persistent output");Result raw;ok(cd_read_exactly_string(isolated.handle,7,nullptr,&raw.handle),raw,"isolated persistent read");expect(raw.text()=="RAWLATE","CLI persistent raw buffer retained across oneshot command");}
+#endif
  {Result r;execute(udp,"UDP",r,&match);expect(r.text()=="READY"&&r.passed(),"READY spans UDP datagrams");}
  {Result w;ok(cd_write_string(udp.handle,CD_SV("UTF"),nullptr,&w.handle),w,"UDP UTF request");Result r;ok(cd_read_exactly_string(udp.handle,2,nullptr,&r.handle),r,"UDP exact scalars");expect(r.text()=="\xe4\xbd\xa0\xf0\x9f\x98\x84","UTF8 spans datagrams");}
  {Result r;expect(cd_close_input(udp.handle,nullptr,&r.handle)==CD_NOT_SUPPORTED,"UDP input EOF unsupported");Result transfer;expect(cd_upload(tcp.handle,CD_SV("a"),CD_SV("b"),nullptr,&transfer.handle)==CD_NOT_SUPPORTED,"TCP upload unsupported");}
