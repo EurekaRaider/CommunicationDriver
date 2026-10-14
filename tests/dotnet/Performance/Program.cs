@@ -12,6 +12,7 @@ static class Program {
   Console.WriteLine($"METRIC {name} count={count} elapsed_us={watch.Elapsed.TotalMicroseconds:F0} allocated_bytes={allocated}");
  }
  static void Main(){
+  var expected=Environment.GetEnvironmentVariable("CD_EXPECT_POINTER_BYTES");if(expected!=null)Expect(IntPtr.Size==int.Parse(expected),"managed interop process bitness");Console.WriteLine("METRIC managed interop pointer_bytes="+IntPtr.Size);
   var sized=Interop.Sized<NExecutionInfo>();Expect(sized.struct_size==Marshal.SizeOf<NExecutionInfo>(),"ABI struct size");sized.exit_code=123;Expect(Interop.Sized<NExecutionInfo>().exit_code==0,"fresh zeroed struct");
   foreach(var value in new[]{"","a\0b","你好😄",new string('x',256*1024)})using(var arena=new Arena()){var view=arena.Text(value);Expect(Interop.Text(view)==value,"UTF8 round trip including embedded NUL");}
   using(var arena=new Arena()){

@@ -57,7 +57,10 @@ jobs:
           CD_TEST_VERBOSE: 1
         run: ctest --test-dir build --output-on-failure
       - name: Managed interop regression
-        run: dotnet run --project tests/dotnet/Performance -c Release
+        if: matrix.rid != 'win-x86'
+        env:
+          CD_EXPECT_POINTER_BYTES: 8
+        run: dotnet run --project tests/dotnet/Performance -c Release -p:Platform=AnyCPU
       - name: Real loopback OpenSSH and SFTP integration
         if: runner.os != 'Windows'
         run: python scripts/test_ssh_local.py --build build
@@ -108,7 +111,7 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           examples/dotnet/PackageConsumer/bin/Release/net48/PackageConsumer.exe
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-      - name: Windows x86 consumers
+      - name: Windows x86 interop and consumers
         if: matrix.rid == 'win-x86'
         env:
           CD_EXPECT_POINTER_BYTES: 4
@@ -116,6 +119,10 @@ jobs:
         run: |
           Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile artifacts/dotnet-install.ps1
           & artifacts/dotnet-install.ps1 -Channel 10.0 -Architecture x86 -InstallDir "$PWD/artifacts/dotnet-x86"
+          dotnet build tests/dotnet/Performance -c Release -p:Platform=AnyCPU -p:PlatformTarget=x86
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          & artifacts/dotnet-x86/dotnet.exe tests/dotnet/Performance/bin/Release/net10.0/Performance.dll
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           & artifacts/dotnet-x86/dotnet.exe examples/dotnet/PackageConsumer/bin/Release/net10.0/PackageConsumer.dll
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           examples/dotnet/PackageConsumer/bin/Release/net48/PackageConsumer.exe
