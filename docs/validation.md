@@ -227,6 +227,44 @@ DYLD_LIBRARY_PATH="$PWD/build-locked" dotnet tests/dotnet/Stress/bin/Release/net
 
 `--library-dir` 在 Python 启动子进程时设置动态库目录，避免 macOS 系统 Python 启动时清除 DYLD_LIBRARY_PATH；采样同时记录测试程序集和原生库 SHA256。完整运行日志和 5 秒采样保留在忽略目录 `artifacts/soak-round4/`。
 
+## 第五轮：小时级资源与死锁/崩溃压力（2026-10-14）
+
+以 `9ae79a4c129bf87412ba76253da0c808d6cec828` 为基线，在 macOS ARM64 完成三项各 3,600 秒的连续压力测试；另完成 ASan/UBSan、TSan 各 1,800 秒，以及批次取消/连接关闭/驱动关闭的交叉竞态。有效运行均退出码 0、未触发 watchdog；未确认新的库内泄漏、死锁、崩溃或数据竞争，因此本轮没有修改库实现。汇总含二进制 SHA256、5 分钟资源窗口、原始日志位置及无库对照源码，见 [soak-hour-macos-arm64.json](evidence/soak-hour-macos-arm64.json)。
+
+| 负载 | 实际采样时长 | 完成量及验证 |
+| --- | --- | --- |
+| 原生 32 生产线程取消/关闭，复用 8 个连接和长寿命取消源 | 3,600.049 秒 | 525,832 轮，2,153,807,872 次请求；每请求恰好一次回调，每轮排空后重开 |
+| 32 路 TCP/UDP/CLI/虚拟串口混合通信 | 3,600.097 秒 | 6,408,743 批次，205,079,776 次操作；全部回复及批次结果通过 |
+| C# 32 生产者取消/关闭及周期性并发 Dispose | 3,600.136 秒 | 249,479,168 次主负载请求；另有 359 轮、每轮 16 路 Dispose 竞态与合计 735,232 次伴随读取；716 个已检查包装对象全部回收 |
+| ASan/UBSan 取消/关闭 | 1,800.167 秒 | 110,809,088 次请求，无诊断 |
+| TSan 取消/关闭 | 1,801.176 秒 | 70,197,248 次请求，无诊断 |
+
+托管回收检查仍延后一轮，最后一组尚未接受后续 GC 检查的两个对象不计入已回收数量。原生/托管进度日志最长间隔分别为 10.008/10.119 秒，与约 10 秒采样设计相符；外部资源采样最长间隔不超过 5.108 秒。这里是完成进度的连续性证据，不是单请求延迟上界。
+
+内存与资源结论：
+
+- 原生在 30 秒后、每轮排空时的 malloc 存活分配为 680,576–721,664 字节，各 5 分钟窗口中位数保持约 0.71 MB；释放句柄后为 96,656 字节。RSS 的首/末 5 分钟中位数从 21,696 升至 27,536 KiB，不能说 RSS 完全不增长；测试累计创建并回收了 16,826,624 个生产线程。结合活跃堆、资源数量和泄漏扫描，没有确认持续存活内存泄漏。
+- C# 在 30 秒后的 GC 存活量为 633,840–698,752 字节，末次为 684,888 字节。5 分钟预热后，各窗口中位数为 681,372–687,872 字节，没有持续上升。RSS 的首/末窗口中位数为 81,480/84,672 KiB，包含运行时及原生内存，独立于 GC 指标。
+- 混合通信的 RSS 窗口中位数为 10,352–10,368 KiB；启动后线程 14、文件描述符 109 保持稳定。原生取消/关闭采样线程 5–37、FD 6–14；C# 在前 5 分钟后线程 35–43、FD 59–67，均未随时间累积。
+- 原生取消/关闭与混合通信进程在启动后、15、30、45、59 分钟共 10 次 macOS `leaks` 扫描均为 0 leaks / 0 leaked bytes，同时保留 `vmmap`。测试结束后三个测试进程、8 个 CLI 子进程及三个临时防休眠进程全部退出，未遗留僵尸。父进程 RSS 不包含 CLI 子进程内存；子进程数量及退出清理另行核对。
+
+针对死锁/崩溃，额外跑了 Release 10,000 轮、ASan/UBSan 和 TSan 各 1,000 轮批次交叉竞态：每轮确保 1,024 项已准入、3 项未准入，再让 32 路批次取消、连接关闭和驱动关闭竞争。12,000 轮全部通过；已准入项终态、未准入项 NotStarted、所有关闭操作完成及完整报告均有断言。常规 Release、ASan/UBSan、TSan 各 5 项 CTest 全部通过；托管回归、44,000 次 CLI 操作、1,408 次并发关闭及 20 个对象回收通过；真实回环 OpenSSH/SFTP 3 轮通过。没有放宽断言或延长操作超时来消除失败。
+
+本轮保留了两类必须区分的现象：
+
+1. 首次小时测试在约 55 分钟遇到本机合盖休眠。系统日志记录 13:47:49（UTC+8）Clamshell Sleep，之后多次维护休眠，14:26:55 完整唤醒。混合批次返回 Timeout；原生程序时钟跳变后提前结束，其采样器有效时长只有 3,320.715 秒。C# 恢复后完成，但不属于连续一小时。首次运行及被中断的线程对照均排除在连续小时验收之外，原始失败日志保留。随后使用 `caffeinate -i -s` 临时阻止自动休眠，重新完整跑上述三项；不修改系统电源设置，也不把防自动休眠当成能够阻止显式合盖休眠的保证。
+2. sanitizer 进程 RSS 随反复创建线程增长。为避免直接归因于库，另用完全不链接通信库的程序做三组各 300 秒对照：每秒 10 轮，每轮创建/同步/回收 32 个线程，每组共 96,000 个线程生命周期。Release 各分钟 RSS 中位数均为 1,952 KiB；ASan/UBSan 为 101,376、284,032、328,632、337,032、344,632 KiB；TSan 为 47,064、60,152、70,272、78,584、88,440 KiB。说明此增长无需通信库也可出现，不能把插桩 RSS 当作生产活跃堆或直接判定库泄漏；也不据此断言插桩 RSS 的每个字节都已定位。macOS LeakSanitizer 不可用，`leaks` 不等同于 LeakSanitizer。
+
+复跑主负载（先构建原生程序及 `tests/dotnet/Stress`；macOS 需保持机器处于唤醒状态）：
+
+```sh
+caffeinate -i -s python3 scripts/run_stress.py --output artifacts/soak-hour-repeat/native.json --timeout 3900 --interval 5 -- build-locked/cd_stress_tests --soak-seconds 3600
+caffeinate -i -s python3 scripts/run_stress.py --output artifacts/soak-hour-repeat/mixed.json --timeout 3900 --interval 5 -- build-locked/cd_tests --soak-seconds 3600
+caffeinate -i -s python3 scripts/run_stress.py --output artifacts/soak-hour-repeat/managed.json --library-dir build-locked --timeout 3900 --interval 5 -- dotnet tests/dotnet/Stress/bin/Release/net10.0/Stress.dll --soak-seconds 3600
+```
+
+本轮原始日志、5 秒采样、映射、泄漏扫描和诊断对照保留在忽略目录 `artifacts/soak-hour/`。多个负载同时运行，操作量不作为吞吐性能对比。结论限于本机 macOS ARM64 的上述有限负载；没有新增其他平台的小时级测试，也不代表隔夜运行、真实 Android 或实体串口已通过。
+
 ## 既有平台与制品验收
 
 [最终软件提交 `3da0d8c`](https://github.com/EurekaRaider/CommunicationDriver/commit/3da0d8cab143ae1ea1d2c3e2f0a6e4e7b2150177) 的 [Platform CI #38397256682](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/38397256682) 六平台任务与合并 NuGet 任务均已终态成功。本机仅 macOS ARM64；其他平台结论来自对应真实 CI runner 上的实际程序执行。

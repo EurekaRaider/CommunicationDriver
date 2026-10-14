@@ -1,0 +1,1680 @@
+{
+  "date": "2026-10-14",
+  "generated_at": "2026-10-14T07:37:43.339446+00:00",
+  "base_commit": "9ae79a4c129bf87412ba76253da0c808d6cec828",
+  "scope": "Local macOS ARM64. Overlapping workloads are correctness and resource stress, not throughput comparisons. No real Android or physical serial hardware.",
+  "workloads": {
+    "native-awake": {
+      "command": [
+        "build-locked/cd_stress_tests",
+        "--soak-seconds",
+        "3600"
+      ],
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 3600.049,
+      "log": "artifacts/soak-hour/native-awake.log",
+      "artifact_sha256": {
+        "build-locked/cd_stress_tests": "ccdc1fbad1082400b1a31630ecd82ee1d6421ef05599dd431a8be1223137b6fa",
+        "build-locked/libcommunicationdriver_native.dylib": "01a27c0e68bc391aefab304ede8e653ee79872709d4a47be1bcbe1f8a54acb91"
+      },
+      "sample_count": 712,
+      "max_resource_sample_gap_s": 5.088,
+      "resource_windows": [
+        {
+          "start_s": 0,
+          "samples": 60,
+          "rss_kib": {
+            "min": 560,
+            "median": 21696.0,
+            "max": 25312
+          },
+          "threads": {
+            "min": 5,
+            "median": 20.0,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6.0,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 300,
+          "samples": 59,
+          "rss_kib": {
+            "min": 24800,
+            "median": 26128,
+            "max": 26672
+          },
+          "threads": {
+            "min": 5,
+            "median": 10,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 600,
+          "samples": 59,
+          "rss_kib": {
+            "min": 26128,
+            "median": 26304,
+            "max": 26816
+          },
+          "threads": {
+            "min": 5,
+            "median": 15,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 900,
+          "samples": 60,
+          "rss_kib": {
+            "min": 26304,
+            "median": 26704.0,
+            "max": 26816
+          },
+          "threads": {
+            "min": 5,
+            "median": 5.0,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6.0,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 1200,
+          "samples": 59,
+          "rss_kib": {
+            "min": 26304,
+            "median": 26768,
+            "max": 26832
+          },
+          "threads": {
+            "min": 5,
+            "median": 5,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 1500,
+          "samples": 59,
+          "rss_kib": {
+            "min": 26304,
+            "median": 26576,
+            "max": 26816
+          },
+          "threads": {
+            "min": 5,
+            "median": 5,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 1800,
+          "samples": 60,
+          "rss_kib": {
+            "min": 26304,
+            "median": 26680.0,
+            "max": 26832
+          },
+          "threads": {
+            "min": 5,
+            "median": 5.0,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6.0,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 2100,
+          "samples": 59,
+          "rss_kib": {
+            "min": 26304,
+            "median": 26304,
+            "max": 26832
+          },
+          "threads": {
+            "min": 5,
+            "median": 7,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 2400,
+          "samples": 59,
+          "rss_kib": {
+            "min": 26304,
+            "median": 26816,
+            "max": 27280
+          },
+          "threads": {
+            "min": 5,
+            "median": 5,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 2700,
+          "samples": 59,
+          "rss_kib": {
+            "min": 26768,
+            "median": 26864,
+            "max": 27376
+          },
+          "threads": {
+            "min": 5,
+            "median": 7,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 3000,
+          "samples": 60,
+          "rss_kib": {
+            "min": 26864,
+            "median": 27536.0,
+            "max": 28048
+          },
+          "threads": {
+            "min": 5,
+            "median": 13.0,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6.0,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 3300,
+          "samples": 59,
+          "rss_kib": {
+            "min": 27536,
+            "median": 27536,
+            "max": 28048
+          },
+          "threads": {
+            "min": 5,
+            "median": 6,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        }
+      ],
+      "final_output": [
+        "SOAK waves=525832 operations=2153807872 elapsed_ms=3600004 malloc_in_use=96656 malloc_blocks=856",
+        "PASS cancel_close_soak producers=32 connections=8 operations=2153807872",
+        "PASS native stress"
+      ],
+      "max_progress_report_gap_s": 10.008,
+      "waves": 525832,
+      "operations": 2153807872,
+      "producer_thread_lifetimes": 16826624,
+      "drained_malloc_bytes": {
+        "min": 680576,
+        "median": 713856,
+        "max": 721664
+      },
+      "after_handle_release_malloc_bytes": 96656,
+      "live_allocation_windows": [
+        {
+          "start_s": 0,
+          "samples": 30,
+          "min_bytes": 679216,
+          "median_bytes": 715392.0,
+          "max_bytes": 721664
+        },
+        {
+          "start_s": 300,
+          "samples": 30,
+          "min_bytes": 680576,
+          "median_bytes": 710656.0,
+          "max_bytes": 720768
+        },
+        {
+          "start_s": 600,
+          "samples": 30,
+          "min_bytes": 688000,
+          "median_bytes": 714368.0,
+          "max_bytes": 721024
+        },
+        {
+          "start_s": 900,
+          "samples": 30,
+          "min_bytes": 695936,
+          "median_bytes": 713344.0,
+          "max_bytes": 721408
+        },
+        {
+          "start_s": 1200,
+          "samples": 30,
+          "min_bytes": 685696,
+          "median_bytes": 715392.0,
+          "max_bytes": 721024
+        },
+        {
+          "start_s": 1500,
+          "samples": 30,
+          "min_bytes": 692608,
+          "median_bytes": 713088.0,
+          "max_bytes": 721024
+        },
+        {
+          "start_s": 1800,
+          "samples": 30,
+          "min_bytes": 692096,
+          "median_bytes": 716544.0,
+          "max_bytes": 721024
+        },
+        {
+          "start_s": 2100,
+          "samples": 30,
+          "min_bytes": 695856,
+          "median_bytes": 712192.0,
+          "max_bytes": 721024
+        },
+        {
+          "start_s": 2400,
+          "samples": 30,
+          "min_bytes": 687488,
+          "median_bytes": 712768.0,
+          "max_bytes": 721664
+        },
+        {
+          "start_s": 2700,
+          "samples": 30,
+          "min_bytes": 693120,
+          "median_bytes": 714496.0,
+          "max_bytes": 721024
+        },
+        {
+          "start_s": 3000,
+          "samples": 30,
+          "min_bytes": 693504,
+          "median_bytes": 714752.0,
+          "max_bytes": 721024
+        },
+        {
+          "start_s": 3300,
+          "samples": 30,
+          "min_bytes": 688512,
+          "median_bytes": 713216.0,
+          "max_bytes": 721664
+        }
+      ]
+    },
+    "mixed-awake": {
+      "command": [
+        "build-locked/cd_tests",
+        "--soak-seconds",
+        "3600"
+      ],
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 3600.097,
+      "log": "artifacts/soak-hour/mixed-awake.log",
+      "artifact_sha256": {
+        "build-locked/cd_tests": "866513400d088557708b6660085fc2475a87dfefa8a9a2caf34230d34f00a716",
+        "build-locked/libcommunicationdriver_native.dylib": "01a27c0e68bc391aefab304ede8e653ee79872709d4a47be1bcbe1f8a54acb91"
+      },
+      "sample_count": 712,
+      "max_resource_sample_gap_s": 5.074,
+      "resource_windows": [
+        {
+          "start_s": 0,
+          "samples": 60,
+          "rss_kib": {
+            "min": 320,
+            "median": 10352.0,
+            "max": 10352
+          },
+          "threads": {
+            "min": 1,
+            "median": 14.0,
+            "max": 14
+          },
+          "fds": {
+            "min": 109,
+            "median": 109.0,
+            "max": 109
+          }
+        },
+        {
+          "start_s": 300,
+          "samples": 59,
+          "rss_kib": {
+            "min": 10352,
+            "median": 10352,
+            "max": 10352
+          },
+          "threads": {
+            "min": 14,
+            "median": 14,
+            "max": 14
+          },
+          "fds": {
+            "min": 109,
+            "median": 109,
+            "max": 109
+          }
+        },
+        {
+          "start_s": 600,
+          "samples": 59,
+          "rss_kib": {
+            "min": 10352,
+            "median": 10352,
+            "max": 10352
+          },
+          "threads": {
+            "min": 14,
+            "median": 14,
+            "max": 14
+          },
+          "fds": {
+            "min": 109,
+            "median": 109,
+            "max": 109
+          }
+        },
+        {
+          "start_s": 900,
+          "samples": 60,
+          "rss_kib": {
+            "min": 10352,
+            "median": 10352.0,
+            "max": 10352
+          },
+          "threads": {
+            "min": 14,
+            "median": 14.0,
+            "max": 14
+          },
+          "fds": {
+            "min": 109,
+            "median": 109.0,
+            "max": 109
+          }
+        },
+        {
+          "start_s": 1200,
+          "samples": 59,
+          "rss_kib": {
+            "min": 10352,
+            "median": 10352,
+            "max": 10352
+          },
+          "threads": {
+            "min": 14,
+            "median": 14,
+            "max": 14
+          },
+          "fds": {
+            "min": 109,
+            "median": 109,
+            "max": 109
+          }
+        },
+        {
+          "start_s": 1500,
+          "samples": 59,
+          "rss_kib": {
+            "min": 10352,
+            "median": 10352,
+            "max": 10352
+          },
+          "threads": {
+            "min": 14,
+            "median": 14,
+            "max": 14
+          },
+          "fds": {
+            "min": 109,
+            "median": 109,
+            "max": 109
+          }
+        },
+        {
+          "start_s": 1800,
+          "samples": 60,
+          "rss_kib": {
+            "min": 10352,
+            "median": 10352.0,
+            "max": 10368
+          },
+          "threads": {
+            "min": 14,
+            "median": 14.0,
+            "max": 14
+          },
+          "fds": {
+            "min": 109,
+            "median": 109.0,
+            "max": 109
+          }
+        },
+        {
+          "start_s": 2100,
+          "samples": 59,
+          "rss_kib": {
+            "min": 10368,
+            "median": 10368,
+            "max": 10368
+          },
+          "threads": {
+            "min": 14,
+            "median": 14,
+            "max": 14
+          },
+          "fds": {
+            "min": 109,
+            "median": 109,
+            "max": 109
+          }
+        },
+        {
+          "start_s": 2400,
+          "samples": 59,
+          "rss_kib": {
+            "min": 10368,
+            "median": 10368,
+            "max": 10368
+          },
+          "threads": {
+            "min": 14,
+            "median": 14,
+            "max": 14
+          },
+          "fds": {
+            "min": 109,
+            "median": 109,
+            "max": 109
+          }
+        },
+        {
+          "start_s": 2700,
+          "samples": 59,
+          "rss_kib": {
+            "min": 10368,
+            "median": 10368,
+            "max": 10368
+          },
+          "threads": {
+            "min": 14,
+            "median": 14,
+            "max": 14
+          },
+          "fds": {
+            "min": 109,
+            "median": 109,
+            "max": 109
+          }
+        },
+        {
+          "start_s": 3000,
+          "samples": 60,
+          "rss_kib": {
+            "min": 10368,
+            "median": 10368.0,
+            "max": 10368
+          },
+          "threads": {
+            "min": 14,
+            "median": 14.0,
+            "max": 14
+          },
+          "fds": {
+            "min": 109,
+            "median": 109.0,
+            "max": 109
+          }
+        },
+        {
+          "start_s": 3300,
+          "samples": 59,
+          "rss_kib": {
+            "min": 10368,
+            "median": 10368,
+            "max": 10368
+          },
+          "threads": {
+            "min": 14,
+            "median": 14,
+            "max": 14
+          },
+          "fds": {
+            "min": 109,
+            "median": 109,
+            "max": 109
+          }
+        }
+      ],
+      "final_output": [
+        "SOAK batches=6408000 elapsed_s=3599",
+        "METRIC mixed_connections=32 batches=6408743 operations=205079776 elapsed_ms=3600000",
+        "PASS checks=12817551"
+      ]
+    },
+    "managed-awake": {
+      "command": [
+        "dotnet",
+        "artifacts/soak-hour/managed/Stress.dll",
+        "--soak-seconds",
+        "3600"
+      ],
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 3600.136,
+      "log": "artifacts/soak-hour/managed-awake.log",
+      "artifact_sha256": {
+        "/usr/local/share/dotnet/dotnet": "2ff302a3c5cecc4a371fd6482d2f5547c57d93eff9fe19919ef729a54f69ce04",
+        "artifacts/soak-hour/managed/Stress.dll": "7b77e89280eb6426460f1e4a6eb1864046d65be04382a89472dbc9374d895de1",
+        "build-locked/libcommunicationdriver_native.dylib": "01a27c0e68bc391aefab304ede8e653ee79872709d4a47be1bcbe1f8a54acb91"
+      },
+      "sample_count": 712,
+      "max_resource_sample_gap_s": 5.108,
+      "resource_windows": [
+        {
+          "start_s": 0,
+          "samples": 60,
+          "rss_kib": {
+            "min": 2096,
+            "median": 81480.0,
+            "max": 91632
+          },
+          "threads": {
+            "min": 1,
+            "median": 39.0,
+            "max": 46
+          },
+          "fds": {
+            "min": 38,
+            "median": 59.0,
+            "max": 67
+          }
+        },
+        {
+          "start_s": 300,
+          "samples": 59,
+          "rss_kib": {
+            "min": 81024,
+            "median": 83056,
+            "max": 91808
+          },
+          "threads": {
+            "min": 35,
+            "median": 38,
+            "max": 41
+          },
+          "fds": {
+            "min": 59,
+            "median": 59,
+            "max": 67
+          }
+        },
+        {
+          "start_s": 600,
+          "samples": 59,
+          "rss_kib": {
+            "min": 81408,
+            "median": 83856,
+            "max": 92304
+          },
+          "threads": {
+            "min": 36,
+            "median": 38,
+            "max": 43
+          },
+          "fds": {
+            "min": 59,
+            "median": 59,
+            "max": 66
+          }
+        },
+        {
+          "start_s": 900,
+          "samples": 60,
+          "rss_kib": {
+            "min": 81888,
+            "median": 84192.0,
+            "max": 92784
+          },
+          "threads": {
+            "min": 36,
+            "median": 39.0,
+            "max": 42
+          },
+          "fds": {
+            "min": 59,
+            "median": 59.0,
+            "max": 67
+          }
+        },
+        {
+          "start_s": 1200,
+          "samples": 59,
+          "rss_kib": {
+            "min": 81824,
+            "median": 84800,
+            "max": 93136
+          },
+          "threads": {
+            "min": 35,
+            "median": 39,
+            "max": 43
+          },
+          "fds": {
+            "min": 59,
+            "median": 59,
+            "max": 66
+          }
+        },
+        {
+          "start_s": 1500,
+          "samples": 59,
+          "rss_kib": {
+            "min": 82368,
+            "median": 84432,
+            "max": 92672
+          },
+          "threads": {
+            "min": 36,
+            "median": 39,
+            "max": 42
+          },
+          "fds": {
+            "min": 59,
+            "median": 59,
+            "max": 67
+          }
+        },
+        {
+          "start_s": 1800,
+          "samples": 60,
+          "rss_kib": {
+            "min": 82336,
+            "median": 84720.0,
+            "max": 93312
+          },
+          "threads": {
+            "min": 36,
+            "median": 38.0,
+            "max": 43
+          },
+          "fds": {
+            "min": 59,
+            "median": 59.0,
+            "max": 67
+          }
+        },
+        {
+          "start_s": 2100,
+          "samples": 59,
+          "rss_kib": {
+            "min": 82544,
+            "median": 85200,
+            "max": 93440
+          },
+          "threads": {
+            "min": 35,
+            "median": 38,
+            "max": 42
+          },
+          "fds": {
+            "min": 59,
+            "median": 59,
+            "max": 67
+          }
+        },
+        {
+          "start_s": 2400,
+          "samples": 59,
+          "rss_kib": {
+            "min": 82384,
+            "median": 84912,
+            "max": 92880
+          },
+          "threads": {
+            "min": 35,
+            "median": 39,
+            "max": 42
+          },
+          "fds": {
+            "min": 59,
+            "median": 59,
+            "max": 66
+          }
+        },
+        {
+          "start_s": 2700,
+          "samples": 59,
+          "rss_kib": {
+            "min": 82464,
+            "median": 84736,
+            "max": 93424
+          },
+          "threads": {
+            "min": 35,
+            "median": 39,
+            "max": 43
+          },
+          "fds": {
+            "min": 59,
+            "median": 59,
+            "max": 66
+          }
+        },
+        {
+          "start_s": 3000,
+          "samples": 60,
+          "rss_kib": {
+            "min": 82416,
+            "median": 85264.0,
+            "max": 92432
+          },
+          "threads": {
+            "min": 36,
+            "median": 39.0,
+            "max": 41
+          },
+          "fds": {
+            "min": 59,
+            "median": 59.0,
+            "max": 64
+          }
+        },
+        {
+          "start_s": 3300,
+          "samples": 59,
+          "rss_kib": {
+            "min": 82768,
+            "median": 84672,
+            "max": 92640
+          },
+          "threads": {
+            "min": 35,
+            "median": 38,
+            "max": 41
+          },
+          "fds": {
+            "min": 59,
+            "median": 59,
+            "max": 67
+          }
+        }
+      ],
+      "final_output": [
+        "SOAK waves=60723 operations=248721408 dispose_race_operations=733184 collected_wrappers=714 gc_bytes=689272 rss_bytes=84393984 elapsed_ms=3589645",
+        "SOAK waves=60899 operations=249442304 dispose_race_operations=735232 collected_wrappers=716 gc_bytes=684888 rss_bytes=84426752 elapsed_ms=3599703",
+        "PASS managed_soak producers=32 connections=8 waves=60908 operations=249479168 collected_wrappers=716"
+      ],
+      "max_progress_report_gap_s": 10.119,
+      "gc_bytes_after_30s": {
+        "min": 633840,
+        "median": 683012.0,
+        "max": 698752
+      },
+      "gc_bytes_last": 684888,
+      "dispose_race_read_operations": 735232,
+      "dispose_race_rounds": 359,
+      "concurrent_disposers_per_round": 16,
+      "completion": {
+        "producers": 32,
+        "connections": 8,
+        "waves": 60908,
+        "operations": 249479168,
+        "collected_wrappers": 716
+      },
+      "binding_sha256": "0389c90cdc05108d5de59b64a22a5b85fd7783f12c19e4b270f76da2849e467f",
+      "live_allocation_windows": [
+        {
+          "start_s": 0,
+          "samples": 30,
+          "min_bytes": 566528,
+          "median_bytes": 639568.0,
+          "max_bytes": 683112
+        },
+        {
+          "start_s": 300,
+          "samples": 30,
+          "min_bytes": 671648,
+          "median_bytes": 681400.0,
+          "max_bytes": 691904
+        },
+        {
+          "start_s": 600,
+          "samples": 30,
+          "min_bytes": 677656,
+          "median_bytes": 687764.0,
+          "max_bytes": 696544
+        },
+        {
+          "start_s": 900,
+          "samples": 30,
+          "min_bytes": 669648,
+          "median_bytes": 681732.0,
+          "max_bytes": 691640
+        },
+        {
+          "start_s": 1200,
+          "samples": 30,
+          "min_bytes": 676904,
+          "median_bytes": 687872.0,
+          "max_bytes": 697720
+        },
+        {
+          "start_s": 1500,
+          "samples": 29,
+          "min_bytes": 674768,
+          "median_bytes": 682496,
+          "max_bytes": 692584
+        },
+        {
+          "start_s": 1800,
+          "samples": 30,
+          "min_bytes": 674872,
+          "median_bytes": 681424.0,
+          "max_bytes": 693592
+        },
+        {
+          "start_s": 2100,
+          "samples": 30,
+          "min_bytes": 669296,
+          "median_bytes": 682328.0,
+          "max_bytes": 697336
+        },
+        {
+          "start_s": 2400,
+          "samples": 30,
+          "min_bytes": 675304,
+          "median_bytes": 682660.0,
+          "max_bytes": 691912
+        },
+        {
+          "start_s": 2700,
+          "samples": 30,
+          "min_bytes": 676280,
+          "median_bytes": 684544.0,
+          "max_bytes": 698752
+        },
+        {
+          "start_s": 3000,
+          "samples": 30,
+          "min_bytes": 675152,
+          "median_bytes": 683816.0,
+          "max_bytes": 691040
+        },
+        {
+          "start_s": 3300,
+          "samples": 30,
+          "min_bytes": 674304,
+          "median_bytes": 681372.0,
+          "max_bytes": 693496
+        }
+      ]
+    },
+    "asan": {
+      "command": [
+        "build-sanitize/cd_stress_tests",
+        "--soak-seconds",
+        "1800"
+      ],
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 1800.167,
+      "log": "artifacts/soak-hour/asan.log",
+      "artifact_sha256": {
+        "build-sanitize/cd_stress_tests": "0609c7b0355cdf4906af92a51f253688ceb301095d1c38362b668f13dae6f162",
+        "build-sanitize/libcommunicationdriver_native.dylib": "0ac08480a7174f9a379f24ec891e0ab39e5680207a241d83e8a67c34eb63531a"
+      },
+      "sample_count": 356,
+      "max_resource_sample_gap_s": 5.084,
+      "resource_windows": [
+        {
+          "start_s": 0,
+          "samples": 60,
+          "rss_kib": {
+            "min": 608,
+            "median": 464656.0,
+            "max": 478064
+          },
+          "threads": {
+            "min": 1,
+            "median": 5.0,
+            "max": 37
+          },
+          "fds": {
+            "min": 3,
+            "median": 6.0,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 300,
+          "samples": 59,
+          "rss_kib": {
+            "min": 478528,
+            "median": 496432,
+            "max": 508816
+          },
+          "threads": {
+            "min": 5,
+            "median": 5,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 600,
+          "samples": 59,
+          "rss_kib": {
+            "min": 509696,
+            "median": 522272,
+            "max": 536784
+          },
+          "threads": {
+            "min": 5,
+            "median": 5,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 900,
+          "samples": 59,
+          "rss_kib": {
+            "min": 535664,
+            "median": 548768,
+            "max": 564032
+          },
+          "threads": {
+            "min": 5,
+            "median": 5,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 1200,
+          "samples": 60,
+          "rss_kib": {
+            "min": 562320,
+            "median": 575736.0,
+            "max": 590144
+          },
+          "threads": {
+            "min": 5,
+            "median": 5.0,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6.0,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 1500,
+          "samples": 59,
+          "rss_kib": {
+            "min": 588560,
+            "median": 601872,
+            "max": 615024
+          },
+          "threads": {
+            "min": 5,
+            "median": 5,
+            "max": 37
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        }
+      ],
+      "final_output": [
+        "SOAK waves=27053 operations=110809088 elapsed_ms=1800052",
+        "PASS cancel_close_soak producers=32 connections=8 operations=110809088",
+        "PASS native stress"
+      ],
+      "max_progress_report_gap_s": 10.095
+    },
+    "tsan": {
+      "command": [
+        "build-tsan/cd_stress_tests",
+        "--soak-seconds",
+        "1800"
+      ],
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 1801.176,
+      "log": "artifacts/soak-hour/tsan.log",
+      "artifact_sha256": {
+        "build-tsan/cd_stress_tests": "e2b6997713c8c924faea21c25c566c309ea2e427c846cd073bbd246e62d512e0",
+        "build-tsan/libcommunicationdriver_native.dylib": "be83d65dcc6a04196e7b37cdb05fdc25f30355b8154e743c6a14e47aab23c5a4"
+      },
+      "sample_count": 356,
+      "max_resource_sample_gap_s": 5.087,
+      "resource_windows": [
+        {
+          "start_s": 0,
+          "samples": 60,
+          "rss_kib": {
+            "min": 736,
+            "median": 149256.0,
+            "max": 161200
+          },
+          "threads": {
+            "min": 1,
+            "median": 6.0,
+            "max": 38
+          },
+          "fds": {
+            "min": 3,
+            "median": 6.0,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 300,
+          "samples": 59,
+          "rss_kib": {
+            "min": 162112,
+            "median": 173040,
+            "max": 185168
+          },
+          "threads": {
+            "min": 6,
+            "median": 6,
+            "max": 38
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 600,
+          "samples": 59,
+          "rss_kib": {
+            "min": 184720,
+            "median": 197328,
+            "max": 207920
+          },
+          "threads": {
+            "min": 6,
+            "median": 6,
+            "max": 38
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 900,
+          "samples": 59,
+          "rss_kib": {
+            "min": 208304,
+            "median": 219920,
+            "max": 231440
+          },
+          "threads": {
+            "min": 6,
+            "median": 6,
+            "max": 38
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 1200,
+          "samples": 60,
+          "rss_kib": {
+            "min": 231872,
+            "median": 243568.0,
+            "max": 257024
+          },
+          "threads": {
+            "min": 6,
+            "median": 6.0,
+            "max": 38
+          },
+          "fds": {
+            "min": 6,
+            "median": 6.0,
+            "max": 14
+          }
+        },
+        {
+          "start_s": 1500,
+          "samples": 59,
+          "rss_kib": {
+            "min": 255568,
+            "median": 267280,
+            "max": 280784
+          },
+          "threads": {
+            "min": 6,
+            "median": 6,
+            "max": 38
+          },
+          "fds": {
+            "min": 6,
+            "median": 6,
+            "max": 14
+          }
+        }
+      ],
+      "final_output": [
+        "SOAK waves=17138 operations=70197248 elapsed_ms=1800018",
+        "PASS cancel_close_soak producers=32 connections=8 operations=70197248",
+        "PASS native stress"
+      ],
+      "max_progress_report_gap_s": 10.133
+    },
+    "batch-close": {
+      "command": [
+        "build-locked/cd_tests",
+        "--batch-close-rounds",
+        "10000"
+      ],
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 39.451,
+      "log": "artifacts/soak-hour/batch-close.log",
+      "artifact_sha256": {
+        "build-locked/cd_tests": "866513400d088557708b6660085fc2475a87dfefa8a9a2caf34230d34f00a716",
+        "build-locked/libcommunicationdriver_native.dylib": "01a27c0e68bc391aefab304ede8e653ee79872709d4a47be1bcbe1f8a54acb91"
+      },
+      "sample_count": 8,
+      "max_resource_sample_gap_s": 5.078,
+      "resource_windows": [
+        {
+          "start_s": 0,
+          "samples": 8,
+          "rss_kib": {
+            "min": 656,
+            "median": 12136.0,
+            "max": 12192
+          },
+          "threads": {
+            "min": 6,
+            "median": 6.0,
+            "max": 6
+          },
+          "fds": {
+            "min": 6,
+            "median": 13.0,
+            "max": 13
+          }
+        }
+      ],
+      "final_output": [
+        "METRIC batch_cancel count=1024 close_race=1 elapsed_us=1161",
+        "METRIC batch_cancel count=1024 close_race=1 elapsed_us=1257",
+        "PASS checks=11040000"
+      ]
+    },
+    "batch-close-asan": {
+      "command": [
+        "build-sanitize/cd_tests",
+        "--batch-close-rounds",
+        "1000"
+      ],
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 26.509,
+      "log": "artifacts/soak-hour/batch-close-asan.log",
+      "artifact_sha256": {
+        "build-sanitize/cd_tests": "284ce293592a40950267a5f1ef8f2412134a74a782173f4b34558f37e71f8013",
+        "build-sanitize/libcommunicationdriver_native.dylib": "0ac08480a7174f9a379f24ec891e0ab39e5680207a241d83e8a67c34eb63531a"
+      },
+      "sample_count": 6,
+      "max_resource_sample_gap_s": 5.076,
+      "resource_windows": [
+        {
+          "start_s": 0,
+          "samples": 6,
+          "rss_kib": {
+            "min": 816,
+            "median": 457736.0,
+            "max": 488304
+          },
+          "threads": {
+            "min": 1,
+            "median": 6.0,
+            "max": 6
+          },
+          "fds": {
+            "min": 3,
+            "median": 13.0,
+            "max": 13
+          }
+        }
+      ],
+      "final_output": [
+        "METRIC batch_cancel count=1024 close_race=1 elapsed_us=9100",
+        "METRIC batch_cancel count=1024 close_race=1 elapsed_us=10176",
+        "PASS checks=1104000"
+      ]
+    },
+    "batch-close-tsan": {
+      "command": [
+        "build-tsan/cd_tests",
+        "--batch-close-rounds",
+        "1000"
+      ],
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 36.416,
+      "log": "artifacts/soak-hour/batch-close-tsan.log",
+      "artifact_sha256": {
+        "build-tsan/cd_tests": "632ef96b4c0625e3e87bf1949190dd96e1d673b0cf1a6a3f3079ee6f7ff89eb9",
+        "build-tsan/libcommunicationdriver_native.dylib": "be83d65dcc6a04196e7b37cdb05fdc25f30355b8154e743c6a14e47aab23c5a4"
+      },
+      "sample_count": 8,
+      "max_resource_sample_gap_s": 5.077,
+      "resource_windows": [
+        {
+          "start_s": 0,
+          "samples": 8,
+          "rss_kib": {
+            "min": 592,
+            "median": 101856.0,
+            "max": 110656
+          },
+          "threads": {
+            "min": 1,
+            "median": 7.0,
+            "max": 7
+          },
+          "fds": {
+            "min": 3,
+            "median": 13.0,
+            "max": 13
+          }
+        }
+      ],
+      "final_output": [
+        "METRIC batch_cancel count=1024 close_race=1 elapsed_us=14119",
+        "METRIC batch_cancel count=1024 close_race=1 elapsed_us=14917",
+        "PASS checks=1104000"
+      ]
+    }
+  },
+  "confirmed_library_fixes": [],
+  "instrumentation_control": {
+    "description": "No communication library linked. 32 threads per wave, barrier then join, 10 waves/s for 300s. Same source compiled without sanitizers, with ASan/UBSan, and with TSan.",
+    "source": "#include <barrier>\n#include <chrono>\n#include <iostream>\n#include <thread>\n#include <vector>\nint main(){\n using Clock=std::chrono::steady_clock;\n auto begin=Clock::now();unsigned long long waves=0;\n do{\n  std::barrier gate(32);std::vector<std::thread> threads;\n  for(int i=0;i<32;++i)threads.emplace_back([&]{gate.arrive_and_wait();});\n  for(auto& thread:threads)thread.join();\n  ++waves;std::this_thread::sleep_until(begin+std::chrono::milliseconds(waves*100));\n  if(waves%100==0)std::cout<<\"SOAK waves=\"<<waves<<\" elapsed_ms=\"<<std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now()-begin).count()<<std::endl;\n }while(Clock::now()-begin<std::chrono::seconds(300));\n std::cout<<\"PASS thread_control waves=\"<<waves<<\" thread_lifetimes=\"<<waves*32<<std::endl;\n}\n",
+    "compiler": "/usr/bin/c++ -std=c++23 -O2 (sanitizer variants also -g and -fsanitize=address,undefined or -fsanitize=thread)",
+    "workloads": {
+      "release": {
+        "command": [
+          "artifacts/soak-hour/thread-control-release"
+        ],
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_s": 300.071,
+        "log": "artifacts/soak-hour/thread-control-release-awake.log",
+        "artifact_sha256": {
+          "artifacts/soak-hour/thread-control-release": "6cd42eea9e86f8ef0ce87e2e4dd12c37d0b13be74f25f4ab507099e3ac193ce0"
+        },
+        "sample_count": 60,
+        "max_resource_sample_gap_s": 5.072,
+        "resource_windows": [
+          {
+            "start_s": 0,
+            "samples": 60,
+            "rss_kib": {
+              "min": 1776,
+              "median": 1952.0,
+              "max": 2496
+            },
+            "threads": {
+              "min": 1,
+              "median": 1.0,
+              "max": 7
+            },
+            "fds": {
+              "min": 3,
+              "median": 3.0,
+              "max": 3
+            }
+          }
+        ],
+        "final_output": [
+          "SOAK waves=2900 elapsed_ms=290008",
+          "SOAK waves=3000 elapsed_ms=300001",
+          "PASS thread_control waves=3000 thread_lifetimes=96000"
+        ],
+        "max_progress_report_gap_s": 10.007,
+        "rss_60s_medians_kib": [
+          1952.0,
+          1952.0,
+          1952.0,
+          1952.0,
+          1952.0
+        ]
+      },
+      "asan": {
+        "command": [
+          "artifacts/soak-hour/thread-control-asan"
+        ],
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_s": 300.082,
+        "log": "artifacts/soak-hour/thread-control-asan-awake.log",
+        "artifact_sha256": {
+          "artifacts/soak-hour/thread-control-asan": "75a4d01af412894e581740dc8062e4367998419c34cba3966ace2188dae67428"
+        },
+        "sample_count": 60,
+        "max_resource_sample_gap_s": 5.067,
+        "resource_windows": [
+          {
+            "start_s": 0,
+            "samples": 60,
+            "rss_kib": {
+              "min": 272,
+              "median": 328632.0,
+              "max": 348208
+            },
+            "threads": {
+              "min": 1,
+              "median": 1.0,
+              "max": 1
+            },
+            "fds": {
+              "min": 3,
+              "median": 3.0,
+              "max": 3
+            }
+          }
+        ],
+        "final_output": [
+          "SOAK waves=2900 elapsed_ms=290000",
+          "SOAK waves=3000 elapsed_ms=300000",
+          "PASS thread_control waves=3000 thread_lifetimes=96000"
+        ],
+        "max_progress_report_gap_s": 10.006,
+        "rss_60s_medians_kib": [
+          101376.0,
+          284032.0,
+          328632.0,
+          337032.0,
+          344632.0
+        ]
+      },
+      "tsan": {
+        "command": [
+          "artifacts/soak-hour/thread-control-tsan"
+        ],
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_s": 300.075,
+        "log": "artifacts/soak-hour/thread-control-tsan-awake.log",
+        "artifact_sha256": {
+          "artifacts/soak-hour/thread-control-tsan": "3ad9cdf6bff5658d0ef1f3f6a8e8e17b2fbe06ed46456a1906dfefe6a54a8baa"
+        },
+        "sample_count": 60,
+        "max_resource_sample_gap_s": 5.087,
+        "resource_windows": [
+          {
+            "start_s": 0,
+            "samples": 60,
+            "rss_kib": {
+              "min": 192,
+              "median": 70272.0,
+              "max": 92832
+            },
+            "threads": {
+              "min": 1,
+              "median": 2.0,
+              "max": 28
+            },
+            "fds": {
+              "min": 3,
+              "median": 3.0,
+              "max": 3
+            }
+          }
+        ],
+        "final_output": [
+          "SOAK waves=2900 elapsed_ms=290007",
+          "SOAK waves=3000 elapsed_ms=300000",
+          "PASS thread_control waves=3000 thread_lifetimes=96000"
+        ],
+        "max_progress_report_gap_s": 10.009,
+        "rss_60s_medians_kib": [
+          47064.0,
+          60152.0,
+          70272.0,
+          78584.0,
+          88440.0
+        ]
+      }
+    },
+    "interpretation": "RSS growth is reproducible without linking the communication library when repeatedly creating/joining threads under ASan/TSan. Do not equate instrumented RSS with production live allocations, or attribute all instrumented RSS growth specifically to the library."
+  },
+  "excluded_sleep_interrupted_attempts": {
+    "native": {
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 3320.715,
+      "log": "artifacts/soak-hour/native.log"
+    },
+    "mixed": {
+      "exit_code": 1,
+      "timed_out": false,
+      "elapsed_s": 3318.14,
+      "log": "artifacts/soak-hour/mixed.log"
+    },
+    "managed": {
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 3600.167,
+      "log": "artifacts/soak-hour/managed.log"
+    },
+    "thread-control-release": {
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 19.956,
+      "log": "artifacts/soak-hour/thread-control-release.log"
+    },
+    "thread-control-asan": {
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 21.383,
+      "log": "artifacts/soak-hour/thread-control-asan.log"
+    },
+    "thread-control-tsan": {
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 23.341,
+      "log": "artifacts/soak-hour/thread-control-tsan.log"
+    },
+    "reason": "macOS Clamshell Sleep at 2026-10-14 13:47:49 +0800 and subsequent maintenance sleeps; full wake at 14:26:55. Mixed batch returned Timeout, native program clock jumped and exited early relative to sampler active time. Managed run resumed and passed but was not continuous. These are excluded from continuous-hour acceptance. Raw power events retained locally; reruns use caffeinate -i -s."
+  },
+  "leak_scans": [
+    {
+      "workload": "native",
+      "native_elapsed_s": 80.038,
+      "leaks": 0,
+      "leaked_bytes": 0,
+      "log": "artifacts/soak-hour/native-leaks-awake-0s.log"
+    },
+    {
+      "workload": "mixed",
+      "native_elapsed_s": 80.038,
+      "leaks": 0,
+      "leaked_bytes": 0,
+      "log": "artifacts/soak-hour/mixed-leaks-awake-0s.log"
+    },
+    {
+      "workload": "native",
+      "native_elapsed_s": 900.347,
+      "leaks": 0,
+      "leaked_bytes": 0,
+      "log": "artifacts/soak-hour/native-leaks-awake-900s.log"
+    },
+    {
+      "workload": "mixed",
+      "native_elapsed_s": 900.347,
+      "leaks": 0,
+      "leaked_bytes": 0,
+      "log": "artifacts/soak-hour/mixed-leaks-awake-900s.log"
+    },
+    {
+      "workload": "native",
+      "native_elapsed_s": 1800.702,
+      "leaks": 0,
+      "leaked_bytes": 0,
+      "log": "artifacts/soak-hour/native-leaks-awake-1800s.log"
+    },
+    {
+      "workload": "mixed",
+      "native_elapsed_s": 1800.702,
+      "leaks": 0,
+      "leaked_bytes": 0,
+      "log": "artifacts/soak-hour/mixed-leaks-awake-1800s.log"
+    },
+    {
+      "workload": "native",
+      "native_elapsed_s": 2701.047,
+      "leaks": 0,
+      "leaked_bytes": 0,
+      "log": "artifacts/soak-hour/native-leaks-awake-2700s.log"
+    },
+    {
+      "workload": "mixed",
+      "native_elapsed_s": 2701.047,
+      "leaks": 0,
+      "leaked_bytes": 0,
+      "log": "artifacts/soak-hour/mixed-leaks-awake-2700s.log"
+    },
+    {
+      "workload": "native",
+      "native_elapsed_s": 3541.346,
+      "leaks": 0,
+      "leaked_bytes": 0,
+      "log": "artifacts/soak-hour/native-leaks-awake-3540s.log"
+    },
+    {
+      "workload": "mixed",
+      "native_elapsed_s": 3541.346,
+      "leaks": 0,
+      "leaked_bytes": 0,
+      "log": "artifacts/soak-hour/mixed-leaks-awake-3540s.log"
+    }
+  ],
+  "regression": {
+    "release_ctest": "5/5 passed",
+    "asan_ubsan_ctest": "5/5 passed",
+    "tsan_ctest": "5/5 passed",
+    "managed_regressions": "passed",
+    "managed_cli_operations": 44000,
+    "managed_cli_concurrent_closes": 1408,
+    "managed_cli_collected_wrappers": 20,
+    "ssh_sftp_rounds": 3,
+    "logs": [
+      "artifacts/soak-hour/regression-release.log",
+      "artifacts/soak-hour/regression-asan.log",
+      "artifacts/soak-hour/regression-tsan.log",
+      "artifacts/soak-hour/regression-managed.log",
+      "artifacts/soak-hour/regression-managed-cli.log",
+      "artifacts/soak-hour/regression-ssh.log"
+    ]
+  },
+  "cleanup": {
+    "test_processes": 3,
+    "persistent_cli_children": 8,
+    "temporary_caffeinate_processes": 3,
+    "remaining": 0,
+    "checked_at": "2026-10-14T07:35:02.380256+00:00",
+    "log": "artifacts/soak-hour/awake-cleanup.json"
+  },
+  "interpretation": {
+    "native": "Drained live malloc remains 680576..721664 bytes after 30s, then 96656 after handles are released. RSS five-minute medians rise from 21696 to 27536 KiB; later growth is much smaller than warmup, but RSS is not claimed constant. The harness creates/joins 16826624 producer thread lifetimes. Live allocations, bounded resources, and repeated leak scans did not confirm a persistent library leak.",
+    "managed": "Post-GC live bytes after 30s remain 633840..698752, final 684888. All 716 examined wrappers collected. The final unexamined pair is excluded. RSS is sampled independently and includes runtime/native memory.",
+    "liveness": "Every accepted native request completes exactly once with an allowed terminal status. Each wave drains and reopens connections. Managed Task waits and process watchdogs bound failures. No deadlock, crash, or sanitizer diagnostic observed in accepted runs.",
+    "limits": "Finite local macOS ARM64 evidence, not proof of absence of all leaks/races; no new cross-platform hour-scale or real Android/physical serial acceptance. CLI child RSS is not included in parent RSS; child process count and eventual exit are checked."
+  }
+}
