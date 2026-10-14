@@ -1,0 +1,111 @@
+{
+  "baseline_commit": "7b9469c4b0793707cfce1e4860f73f881bdc5e6a",
+  "platform": "macOS ARM64",
+  "workload": "queued reads cancelled in reverse order behind an active read; same Release executable; alternate native libraries; includes cancellation dispatch and completion barrier",
+  "repeat": 3,
+  "rows": [
+    {
+      "count": 2000,
+      "samples_us": {
+        "before": [
+          1879,
+          1369,
+          1180
+        ],
+        "after": [
+          1183,
+          981,
+          821
+        ]
+      },
+      "median_us": {
+        "before": 1369,
+        "after": 981
+      }
+    },
+    {
+      "count": 4000,
+      "samples_us": {
+        "before": [
+          3059,
+          2763,
+          2786
+        ],
+        "after": [
+          1483,
+          1315,
+          1288
+        ]
+      },
+      "median_us": {
+        "before": 2786,
+        "after": 1315
+      }
+    },
+    {
+      "count": 8000,
+      "samples_us": {
+        "before": [
+          9716,
+          9853,
+          9734
+        ],
+        "after": [
+          2522,
+          2693,
+          3260
+        ]
+      },
+      "median_us": {
+        "before": 9734,
+        "after": 2693
+      }
+    },
+    {
+      "count": 16000,
+      "samples_us": {
+        "before": [
+          38913,
+          39115,
+          38665
+        ],
+        "after": [
+          5541,
+          4913,
+          5338
+        ]
+      },
+      "median_us": {
+        "before": 38913,
+        "after": 5338
+      }
+    },
+    {
+      "count": 32000,
+      "samples_us": {
+        "before": [
+          151214,
+          150775,
+          148815
+        ],
+        "after": [
+          12691,
+          13319,
+          12461
+        ]
+      },
+      "median_us": {
+        "before": 150775,
+        "after": 12691
+      }
+    }
+  ],
+  "sha256": {
+    "src/core.cpp": "56f82c91c3ace993fdf623b14eabca6776d384273a843f5f75331733bfdf5d27",
+    "src/core.hpp": "7951ce4efbf47fc14dfe70f70c9d37d93d2bbe2913371ac3b924e3d1ec65d161",
+    "src/c_api.cpp": "4a82e86b444660b005016101bc376c00f674299f3ebb96a6aced820edc99b53f",
+    "tests/stress_tests.cpp": "0bde404eebf541547497d0d1818acf27a09e8ee6bf870a2dfaf66f8f045a77f4",
+    "artifacts/performance-round3/before/libcommunicationdriver_native.0.1.0.dylib": "b19f027511ebc469be2ea932317c2519771b041728412eeea40a612651cdf87f",
+    "build-locked/libcommunicationdriver_native.0.1.0.dylib": "01a27c0e68bc391aefab304ede8e653ee79872709d4a47be1bcbe1f8a54acb91"
+  }
+}

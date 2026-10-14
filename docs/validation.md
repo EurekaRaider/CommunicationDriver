@@ -147,6 +147,44 @@ python3 scripts/test_ssh_local.py --build build-locked --user-server --repeat 3
 
 保留修复前的动态库及两份 C# 基准输出后，可用 `scripts/compare_performance.py --build <基准构建目录> --before-native <旧库目录> --after-native <新库目录> --before-managed <旧包装层Performance.dll> --after-managed <新包装层Performance.dll> --output <结果.json>` 交替复测。C# 基准项目支持 `-p:DriverSourceRoot=<包装层源码目录>`，用于让两侧复用相同测试程序。TCP 大回复显式调高响应上限，默认 1 MiB 未改变；这些结果来自本机回环与受控排队负载。
 
+## 第三轮：取消队列、结果发布与托管选项快照（2026-10-14）
+
+从 `7b9469c` 重新审查原生请求入队/开始/关闭、取消源与操作发布、批次调度、收发缓冲、SSH/SFTP 文件任务，以及 C++/C# 包装层生命周期。确认并修复以下五处问题：
+
+- 已取消的 token 在请求入队前发出取消通知，原先通知找不到请求就丢弃；当连接已有阻塞读取时，新请求会一直留在队列。现在入队后重新检查取消状态，立即完成该请求，不影响正在执行的请求。
+- 已取消空批次会同时排入取消调度和初始调度，第二次调度改写已发布结果的 `elapsed_ns`，与调用方读取存在竞争。现在批次完成后不再调度或修改结果。
+- 从队尾或队中取消请求时，原先每次遍历整个 deque 查找，逆序取消总成本为 O(N²)。现在用 list 的稳定迭代器直接删除，开始执行和关闭时同步清除队列成员状态；单次定位/删除为 O(1)。代价是每个排队节点的独立分配和迭代器元数据。
+- 事件循环阻塞期间已超过截止时间的请求，原先可能先执行后端操作再收到计时器事件。现在开始执行前检查绝对截止时间，超时的 Open 不会启动后端。
+- 七种 C# Read*Async 回调原先重新读取可变 `CallOptions.ReadStream`；提交后复用并修改 options 会让回调取错流。现在捕获提交时的读取流，不再于完成回调访问该可变字段。调用返回后修改 options 的回归已覆盖全部七种读取接口；这不承诺多个线程在提交过程中同时修改配置对象是安全的。
+
+三个原生功能缺陷及 C# 选项缺陷都先在旧实现复现失败，再在修复后通过。测试使用事件循环屏障控制顺序；截止时间测试仅在屏障内等待截止时间过去，不以机器性能快慢作为判定。回归继续检查预取消不影响活动读取、恰好一次批次回调、已交付结果不变、队列取消状态及随后关闭。
+
+取消性能对比：macOS ARM64，相同锁定依赖的 Release 构建，同一测试程序交替加载旧、新动态库，每组串行三轮中位数。计时包含取消通知、事件循环处理及完成屏障。原始样本与摘要见 [performance-round3-macos-arm64.json](evidence/performance-round3-macos-arm64.json)。
+
+| 逆序取消的排队请求数 | 修复前 | 修复后 |
+| --- | --- | --- |
+| 2,000 | 1.369 ms | 0.981 ms |
+| 4,000 | 2.786 ms | 1.315 ms |
+| 8,000 | 9.734 ms | 2.693 ms |
+| 16,000 | 38.913 ms | 5.338 ms |
+| 32,000 | 150.775 ms | 12.691 ms |
+
+本机验证：Release 四项 CTest 通过；ASan/UBSan 和 ThreadSanitizer 四项各三轮通过；C# net48/net10 编译零警告/错误，net10 七种读取接口、预取消队列、既有互操作回归全部通过；托管压力 44,000 次操作、1,408 次并发关闭、20 个释放对象全部可回收；真实回环 OpenSSH/SFTP 三轮通过。macOS 的 ASan 不支持 `detect_leaks=1`，该参数导致测试启动失败后已移除；本轮不声称完成了 LeakSanitizer 检查。
+
+新增托管集成回归已接入六平台 CI 配置（Windows x86 使用实际 x86 host）；上述测量与验证来自本机，跨平台结果以对应提交的 Platform CI 为准，net48 本机只编译。真实 Android、实体串口仍未验证。任意 Regex/Pattern 的完整文本匹配成本、子进程启动、操作系统及远端服务开销仍取决于负载，不能由本轮测试推断所有场景都没有瓶颈。
+
+`git diff --check` 与 actionlint 工作流语法/表达式检查通过。完整 actionlint 仍报告原有 macOS 工具链脚本的五条 ShellCheck 引号/风格提示；对比 `7b9469c` 的工作流，提示完全相同，本轮未改动该脚本。
+
+复跑新增回归与基准：
+
+```sh
+build-locked/cd_stress_tests --precancelled
+build-locked/cd_stress_tests --batch-snapshot
+build-locked/cd_stress_tests --expired
+build-locked/cd_stress_tests --reverse-cancel 32000
+DYLD_LIBRARY_PATH="$PWD/build-locked" dotnet run --project tests/dotnet/Stress -c Release -- --regressions-only
+```
+
 ## 既有平台与制品验收
 
 [最终软件提交 `3da0d8c`](https://github.com/EurekaRaider/CommunicationDriver/commit/3da0d8cab143ae1ea1d2c3e2f0a6e4e7b2150177) 的 [Platform CI #38397256682](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/38397256682) 六平台任务与合并 NuGet 任务均已终态成功。本机仅 macOS ARM64；其他平台结论来自对应真实 CI runner 上的实际程序执行。

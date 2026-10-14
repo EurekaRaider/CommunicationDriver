@@ -13,6 +13,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <list>
 #include <thread>
 #include <vector>
 #include <filesystem>
@@ -124,6 +125,7 @@ struct Request {
  std::string delimiter; size_t delimiter_scanned=0;
  DecodedText boundary_text,check_text; size_t check_scanned=0;
  std::string marker; int marker_mask=0; std::optional<int> marker_exit;
+ bool queued=false; std::list<std::shared_ptr<Request>>::iterator queue_position;
  Request(Action a,bool t,Options o):action(a),text(t),options(std::move(o)){}
 };
 struct Backend : std::enable_shared_from_this<Backend> {
@@ -153,7 +155,7 @@ std::shared_ptr<Backend> make_backend(std::shared_ptr<Runtime>,Config);
 struct Connection : std::enable_shared_from_this<Connection> {
  std::shared_ptr<Runtime> runtime; Config config; cd_capabilities_t capabilities;
  std::atomic<int> state{CD_STATE_CREATED}; std::shared_ptr<Backend> persistent,one_shot;
- std::deque<std::shared_ptr<Request>> queue; std::shared_ptr<Request> active;
+ std::list<std::shared_ptr<Request>> queue; std::shared_ptr<Request> active;
  size_t closing_count=0;
  std::string pending[2]; std::deque<size_t> messages[2]; bool eof[2]={false,false};
  std::string stdio_pending[2];bool stdio_eof[2]={false,false},isolating=false;

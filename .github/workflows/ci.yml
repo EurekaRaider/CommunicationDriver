@@ -101,6 +101,13 @@ jobs:
       - name: net10 consumer (Unix)
         if: runner.os != 'Windows'
         run: dotnet examples/dotnet/PackageConsumer/bin/Release/net10.0/PackageConsumer.dll
+      - name: Managed stream and cancellation regression (Unix)
+        if: runner.os != 'Windows'
+        env:
+          LD_LIBRARY_PATH: ${{ github.workspace }}/build
+          DYLD_LIBRARY_PATH: ${{ github.workspace }}/build
+          CD_EXPECT_POINTER_BYTES: 8
+        run: dotnet run --project tests/dotnet/Stress -c Release -p:Platform=AnyCPU -- --regressions-only
       - name: net10 / net48 consumers (Windows x64)
         if: matrix.rid == 'win-x64'
         env:
@@ -110,6 +117,9 @@ jobs:
           dotnet examples/dotnet/PackageConsumer/bin/Release/net10.0/PackageConsumer.dll
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           examples/dotnet/PackageConsumer/bin/Release/net48/PackageConsumer.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:PATH="$PWD/install/bin;$env:PATH"
+          dotnet run --project tests/dotnet/Stress -c Release -p:Platform=AnyCPU -- --regressions-only
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Windows x86 interop and consumers
         if: matrix.rid == 'win-x86'
@@ -122,6 +132,11 @@ jobs:
           dotnet build tests/dotnet/Performance -c Release -p:Platform=AnyCPU -p:PlatformTarget=x86
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           & artifacts/dotnet-x86/dotnet.exe tests/dotnet/Performance/bin/Release/net10.0/Performance.dll
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          dotnet build tests/dotnet/Stress -c Release -p:Platform=AnyCPU -p:PlatformTarget=x86
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:PATH="$PWD/install/bin;$env:PATH"
+          & artifacts/dotnet-x86/dotnet.exe tests/dotnet/Stress/bin/Release/net10.0/Stress.dll --regressions-only
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           & artifacts/dotnet-x86/dotnet.exe examples/dotnet/PackageConsumer/bin/Release/net10.0/PackageConsumer.dll
           if ($LASTEXITCODE) { exit $LASTEXITCODE }

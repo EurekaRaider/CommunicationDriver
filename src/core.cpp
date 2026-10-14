@@ -399,10 +399,12 @@ void Connection::submit(std::shared_ptr<Request> request) {
    self->force_close();++self->closing_count;
    self->runtime->after_files([self,request]{--self->closing_count;self->finish_close(request);self->next();});return;
   }
-  self->queue.push_back(request);self->next();
+  request->queue_position=self->queue.insert(self->queue.end(),request);request->queued=true;
+  if(request->operation->cancelled)self->abort(request,CD_CANCELLED,"Operation cancelled");
+  self->next();
  });
 }
-void Connection::next() {if(active||closing_count||queue.empty()) return;active=queue.front();queue.pop_front();try{start();}catch(const Fault& error){finish(error.code,error.message,error.native);}catch(const std::exception& error){finish(CD_INTERNAL_ERROR,error.what());}}
+void Connection::next() {if(active||closing_count||queue.empty()) return;active=queue.front();active->queued=false;queue.pop_front();try{start();}catch(const Fault& error){finish(error.code,error.message,error.native);}catch(const std::exception& error){finish(CD_INTERNAL_ERROR,error.what());}}
 void Connection::ensure_persistent(Completion callback) {
  if(persistent&&!(config.backend>=4&&persistent->command_channels())) {persistent->ensure_stdio(std::move(callback));return;}
  if(persistent){persistent->close();persistent.reset();}
@@ -412,6 +414,7 @@ void Connection::ensure_persistent(Completion callback) {
 void Connection::start() {
  auto r=active;auto self=shared_from_this();r->result->backend=config.name();if(r->action==Action::Read)r->result->partial_stream=r->options.read_stream;
  if(r->operation->cancelled) {finish(CD_CANCELLED,"Operation cancelled");return;}
+ if(Clock::now()>=r->deadline->expiry()) {finish(CD_TIMEOUT,"Operation timed out before execution");return;}
  if(runtime->closed&&r->action!=Action::Close) {finish(CD_CLOSED,"Driver is closed");return;}
  if(r->action==Action::Open) {
   if(state==CD_STATE_OPEN) {finish();return;}
@@ -592,7 +595,7 @@ void Connection::abort(const std::shared_ptr<Request>& r,cd_status_t status,std:
   if(r->action==Action::Upload||r->action==Action::Download) {if(r->sent&&persistent)r->result->partial_file=persistent->transfer_partial_file;state=CD_STATE_NEEDS_RECOVERY;++generation;if(persistent)persistent->close();}
   if(r->action==Action::Open) {state=CD_STATE_FAULTED;++generation;if(persistent) persistent->close();persistent.reset();}
   finish(status,std::move(message));
- }else {auto it=std::find(queue.begin(),queue.end(),r);if(it==queue.end()) return;queue.erase(it);r->deadline->cancel();r->result->status=status;r->result->message=std::move(message);r->result->elapsed_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now()-r->started).count();r->operation->complete(r->result);}
+ }else {if(!r->queued)return;queue.erase(r->queue_position);r->queued=false;r->deadline->cancel();r->result->status=status;r->result->message=std::move(message);r->result->elapsed_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now()-r->started).count();r->operation->complete(r->result);}
 }
 void Connection::finish_close(const std::shared_ptr<Request>& r,cd_status_t status,std::string message) {
  if(r->operation->completed())return;
@@ -605,7 +608,7 @@ void Connection::force_close() {
  state=CD_STATE_CLOSING;++generation;if(persistent) persistent->close();if(one_shot&&one_shot!=persistent) one_shot->close();persistent.reset();one_shot.reset();
  auto queued=std::exchange(queue,{});
  if(active) {active->result->raw[0]+=std::exchange(pending[0],{});active->result->raw[1]+=std::exchange(pending[1],{});finish(CD_CLOSED,"Connection closed",0,false);}
- for(auto& r:queued) {r->deadline->cancel();r->result->status=CD_CLOSED;r->result->message="Connection closed";r->operation->complete(r->result);}
+ for(auto& r:queued) {r->queued=false;r->deadline->cancel();r->result->status=CD_CLOSED;r->result->message="Connection closed";r->operation->complete(r->result);}
  pending[0].clear();pending[1].clear();messages[0].clear();messages[1].clear();
  stdio_pending[0].clear();stdio_pending[1].clear();isolating=false;
  state=CD_STATE_CLOSED;

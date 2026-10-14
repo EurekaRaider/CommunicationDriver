@@ -110,4 +110,57 @@ static void pending_subscriptions(int count,bool shared,bool cancel=false){
  std::cout<<"pending shared="<<shared<<" count="<<count<<" us="<<us<<"\n";
 }
 static void registry(int count){auto d=driver();std::vector<Connection> connections;connections.reserve(count);auto begin=Clock::now();for(int i=0;i<count;++i)connections.push_back(cli(d));auto us=std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-begin).count();cd_result_t* raw=nullptr;expect(cd_driver_close(d.get(),&raw)==CD_OK,"driver close");Result result(raw,cd_result_release);for(auto& c:connections)expect(cd_connection_get_state(c.get())==CD_STATE_CLOSED,"driver closes every registered connection");std::cout<<"registry count="<<count<<" us="<<us<<"\n";}
-int main(int argc,char** argv){try{if(argc==2&&std::string(argv[1])=="--performance"){for(int count:{2000,4000,8000,16000}){pending_subscriptions(count,false);pending_subscriptions(count,true);registry(count);}}else if(argc==3&&std::string(argv[1])=="--retained")retained_operations(std::stoi(argv[2]));else{pending_subscriptions(512,true,true);registry(512);simultaneous_close();cancellation_storm();duration_limits();retained_operations(1000);lifecycle_churn(argc==2?std::stoi(argv[1]):100);}std::cout<<"PASS native stress\n";return 0;}catch(const std::exception& e){std::cerr<<"FAIL: "<<e.what()<<"\n";return 1;}}
+static void precancelled_queued(){
+ auto d=driver();auto c=cli(d,false);auto barrier=cli(d);open(c);
+ cd_call_options_t options;cd_call_options_init(&options);options.timeout_ms=60000;
+ cd_operation_t* raw=nullptr;expect(cd_read_bytes_async(c.get(),&options,nullptr,nullptr,&raw)==CD_OK,"blocked read accepted");Operation head(raw,cd_operation_release);open(barrier);
+ cd_cancel_source_t* token=nullptr;expect(cd_cancel_source_create(&token)==CD_OK,"pre-cancel source");Handle<cd_cancel_source_t,cd_cancel_source_release> source(token,cd_cancel_source_release);cd_cancel_source_request(token);options.cancellation=token;
+ expect(cd_read_bytes_async(c.get(),&options,nullptr,nullptr,&raw)==CD_OK,"pre-cancelled queued read accepted");Operation cancelled(raw,cd_operation_release);open(barrier);
+ bool prompt=cd_operation_is_completed(cancelled.get());bool head_pending=!cd_operation_is_completed(head.get());close(c);
+ expect(prompt&&head_pending,"pre-cancelled queued request completes without waiting for active read");auto result=wait(cancelled.get());expect(cd_result_get_status(result.get())==CD_CANCELLED,"pre-cancelled queued status");
+ std::cout<<"PASS precancelled_queued\n";
+}
+static void expired_before_admission(){
+ struct Gate {std::mutex mutex;std::condition_variable cv;bool entered=false,released=false;} gate;
+ auto d=driver();auto barrier=cli(d);auto c=cli(d);
+ auto block=[](cd_operation_t*,cd_result_t*,void* user){auto& g=*static_cast<Gate*>(user);std::unique_lock lock(g.mutex);g.entered=true;g.cv.notify_all();g.cv.wait(lock,[&]{return g.released;});};
+ cd_operation_t* raw=nullptr;expect(cd_open_async(barrier.get(),nullptr,block,&gate,&raw)==CD_OK,"deadline gate");Operation first(raw,cd_operation_release);
+ struct Release {Gate& g;~Release(){{std::lock_guard lock(g.mutex);g.released=true;}g.cv.notify_all();}} release{gate};
+ {std::unique_lock lock(gate.mutex);gate.cv.wait(lock,[&]{return gate.entered;});}
+ cd_call_options_t options;cd_call_options_init(&options);options.timeout_ms=1;
+ expect(cd_open_async(c.get(),&options,nullptr,nullptr,&raw)==CD_OK,"short deadline accepted");Operation opening(raw,cd_operation_release);
+ // Keep the worker blocked until the request's deadline has definitely passed.
+ std::this_thread::sleep_until(Clock::now()+std::chrono::milliseconds(5));
+ {std::lock_guard lock(gate.mutex);gate.released=true;}gate.cv.notify_all();
+ auto result=wait(opening.get());expect(cd_result_get_status(result.get())==CD_TIMEOUT,"expired request must not start after event-loop admission delay");expect(cd_connection_get_state(c.get())==CD_STATE_CREATED,"expired open performs no backend work");
+ std::cout<<"PASS expired_before_admission\n";
+}
+static void cancelled_batch_snapshot(){
+ struct Gate {std::mutex mutex;std::condition_variable cv;bool entered=false,released=false;} gate;
+ auto d=driver();auto c=cli(d);
+ auto block=[](cd_operation_t*,cd_result_t*,void* user){auto& g=*static_cast<Gate*>(user);std::unique_lock lock(g.mutex);g.entered=true;g.cv.notify_all();g.cv.wait(lock,[&]{return g.released;});};
+ cd_operation_t* raw=nullptr;expect(cd_open_async(c.get(),nullptr,block,&gate,&raw)==CD_OK,"snapshot gate");Operation first(raw,cd_operation_release);
+ struct Release {Gate& g;~Release(){{std::lock_guard lock(g.mutex);g.released=true;}g.cv.notify_all();}} release{gate};
+ {std::unique_lock lock(gate.mutex);gate.cv.wait(lock,[&]{return gate.entered;});}
+ cd_cancel_source_t* token=nullptr;expect(cd_cancel_source_create(&token)==CD_OK,"batch token");Handle<cd_cancel_source_t,cd_cancel_source_release> source(token,cd_cancel_source_release);cd_cancel_source_request(token);
+ struct Snapshot {uint64_t elapsed=0;int callbacks=0;} snapshot;
+ auto complete=[](cd_operation_t*,cd_result_t* result,void* user){auto& s=*static_cast<Snapshot*>(user);cd_batch_info_t info{};info.struct_size=sizeof(info);cd_result_get_batch_info(result,&info);s.elapsed=info.elapsed_ns;++s.callbacks;};
+ cd_batch_options_t options;cd_batch_options_init(&options);options.cancellation=token;
+ expect(cd_batch_run_async(d.get(),nullptr,0,&options,complete,&snapshot,&raw)==CD_OK,"pre-cancelled empty batch");Operation batch(raw,cd_operation_release);
+ {std::lock_guard lock(gate.mutex);gate.released=true;}gate.cv.notify_all();open(c);
+ auto result=wait(batch.get());cd_batch_info_t info{};info.struct_size=sizeof(info);expect(cd_result_get_batch_info(result.get(),&info)==CD_OK,"batch snapshot available");
+ expect(snapshot.callbacks==1&&info.was_cancelled&&info.elapsed_ns==snapshot.elapsed,"completed batch result must remain immutable after queued reschedule");
+ std::cout<<"PASS cancelled_batch_snapshot\n";
+}
+static void reverse_cancel(int count){
+ auto d=driver();auto c=cli(d,false);auto barrier=cli(d);open(c);
+ cd_call_options_t options;cd_call_options_init(&options);options.timeout_ms=60000;
+ std::vector<Operation> operations;operations.reserve(count+1);
+ for(int i=0;i<=count;++i){cd_operation_t* raw=nullptr;expect(cd_read_bytes_async(c.get(),&options,nullptr,nullptr,&raw)==CD_OK,"queued read");operations.emplace_back(raw,cd_operation_release);}open(barrier);
+ auto begin=Clock::now();for(int i=count;i>0;--i)cd_operation_cancel(operations[i].get());open(barrier);
+ auto us=std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-begin).count();
+ expect(!cd_operation_is_completed(operations[0].get()),"cancelled queue leaves active request intact");
+ for(int i=1;i<=count;++i){auto result=wait(operations[i].get());expect(cd_result_get_status(result.get())==CD_CANCELLED,"reverse cancellation status");}close(c);
+ std::cout<<"METRIC reverse_cancel count="<<count<<" elapsed_us="<<us<<"\n";
+}
+int main(int argc,char** argv){try{if(argc==2&&std::string(argv[1])=="--expired")expired_before_admission();else if(argc==2&&std::string(argv[1])=="--precancelled")precancelled_queued();else if(argc==2&&std::string(argv[1])=="--batch-snapshot")cancelled_batch_snapshot();else if(argc==3&&std::string(argv[1])=="--reverse-cancel")reverse_cancel(std::stoi(argv[2]));else if(argc==2&&std::string(argv[1])=="--performance"){for(int count:{2000,4000,8000,16000}){pending_subscriptions(count,false);pending_subscriptions(count,true);registry(count);}}else if(argc==3&&std::string(argv[1])=="--retained")retained_operations(std::stoi(argv[2]));else{expired_before_admission();precancelled_queued();cancelled_batch_snapshot();reverse_cancel(512);pending_subscriptions(512,true,true);registry(512);simultaneous_close();cancellation_storm();duration_limits();retained_operations(1000);lifecycle_churn(argc==2?std::stoi(argv[1]):100);}std::cout<<"PASS native stress\n";return 0;}catch(const std::exception& e){std::cerr<<"FAIL: "<<e.what()<<"\n";return 1;}}
