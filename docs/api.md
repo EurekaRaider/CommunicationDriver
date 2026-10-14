@@ -26,4 +26,6 @@ C 结构先调用 *_options_init；输出结构设置 struct_size。字符串和
 
 C++ Operation 是可移动 RAII 句柄；get 只能一次，wait_for 只观察，丢弃不取消，stop_token 可请求原生取消。CommunicationError 携带 ErrorInfo。C# 使用 SafeHandle 和异步 native 回调，Task continuation 异步调度；CommException/CommOperationCanceledException 携带部分结果。
 
+C# Driver/Connection 的 Dispose 可重复或并发调用，Connection 也可在所属 Driver 已 Dispose 后释放。释放竞态产生的 ObjectDisposedException 仅在相关句柄确已关闭时忽略，其他关闭错误仍传播；已释放对象上的普通 IO 调用仍会失败。
+
 NuGet PackageReference 支持 net48/net10，传统 packages.config 自动导入 build targets。Windows 默认按 PlatformTarget 选择 win-x86/win-x64；Unix 可设置 RuntimeIdentifier 或 CommunicationDriverRid。使用不匹配位数的 native 库会由平台加载器拒绝，不能通过改变命令模式规避。

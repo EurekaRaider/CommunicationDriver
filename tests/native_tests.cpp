@@ -207,7 +207,7 @@ static void incremental_text(){
   expect(status==(malformed?CD_ENCODING_ERROR:CD_TIMEOUT)&&r.text()=="A"&&r.bytes()==std::string("A")+char(malformed?0xff:0xe4),"incremental failure preserves full raw reply and valid prefix");
  }
 }
-static void batch_cancel_many(int count){
+static void batch_cancel_many(int count,bool close_race=false){
  Driver driver;Peers peers;auto c=peers.tcp(driver);auto control=cli(driver,true);
  struct Gate {std::mutex mutex;std::condition_variable cv;bool entered=false,released=false;
   void wait(){std::unique_lock lock(mutex);if(!cv.wait_for(lock,std::chrono::seconds(10),[&]{return entered;}))throw std::runtime_error("batch gate watchdog");}
@@ -221,10 +221,14 @@ static void batch_cancel_many(int count){
  cd_batch_options_t options;cd_batch_options_init(&options);options.max_concurrency=count;cd_operation_t* batch=nullptr;
  expect(cd_batch_run_async(driver.handle,items.data(),items.size(),&options,nullptr,nullptr,&batch)==CD_OK,"large batch accepted");
  cd_operation_t* gate2=nullptr;expect(cd_open_async(control.handle,nullptr,callback,&second,&gate2)==CD_OK,"second gate accepted");first.release();second.wait();
- auto begin=Clock::now();cd_operation_cancel(batch);second.release();Result r;wait(batch,r);
+ auto begin=Clock::now();std::vector<cd_operation_t*> closing(close_race?32:0);std::vector<std::thread> threads;std::atomic<int> rejected{0};
+ if(close_race){for(size_t i=0;i<closing.size();++i)threads.emplace_back([&,i]{cd_operation_cancel(batch);auto status=i%2?cd_close_async(c.handle,nullptr,nullptr,nullptr,&closing[i]):cd_driver_close_async(driver.handle,nullptr,nullptr,&closing[i]);if(status!=CD_OK)++rejected;});for(auto& thread:threads)thread.join();}
+ else cd_operation_cancel(batch);
+ second.release();Result r;wait(batch,r);
  auto us=std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-begin).count();cd_batch_info_t info{};info.struct_size=sizeof(info);cd_result_get_batch_info(r.handle,&info);expect(info.was_cancelled&&info.item_count==items.size(),"batch cancellation keeps complete report");
- for(int i=0;i<count+3;++i){cd_batch_item_result_t item{};item.struct_size=sizeof(item);cd_result_get_batch_item(r.handle,i,&item);expect(item.state==(i<count?CD_BATCH_CANCELLED:CD_BATCH_NOT_STARTED),"admitted cancellation and unstarted items preserved");}
- Result a,b;wait(gate1,a);wait(gate2,b);std::cout<<"METRIC batch_cancel count="<<count<<" elapsed_us="<<us<<"\n";
+ for(int i=0;i<count+3;++i){cd_batch_item_result_t item{};item.struct_size=sizeof(item);cd_result_get_batch_item(r.handle,i,&item);expect(item.state==(i<count?CD_BATCH_CANCELLED:CD_BATCH_NOT_STARTED)||(close_race&&i<count&&item.state==CD_BATCH_FAILED&&cd_result_get_status(item.result)==CD_CLOSED),"admitted cancellation and unstarted items preserved");}
+ for(auto operation:closing){Result closed;wait(operation,closed);expect(closed.status()==CD_OK,"concurrent batch close succeeds");}expect(!rejected,"all batch closes accepted");
+ Result a,b;wait(gate1,a);wait(gate2,b);std::cout<<"METRIC batch_cancel count="<<count<<" close_race="<<close_race<<" elapsed_us="<<us<<"\n";
 }
 static void delimiter_fragments(){
  Driver driver;Peers peers;
@@ -271,4 +275,4 @@ static void callback_release_race(){
  expect(cd_execute_string_async(shell.handle,input,nullptr,nullptr,callback,&context,&operation)==CD_OK,"accept operation before concurrent handle release");if(i%2==0)cd_operation_cancel(operation);cd_operation_release(operation);}}
  std::unique_lock lock(context.mutex);expect(context.cv.wait_for(lock,std::chrono::seconds(10),[&]{return context.completed==100;}),"accepted callbacks complete despite driver, connection and operation release");expect(context.noninline&&context.retained.size()==100,"callbacks are non-inline and exactly once");for(auto result:context.retained){expect(cd_result_get_status(result)!=CD_INTERNAL_ERROR,"retained callback result remains valid");cd_result_release(result);}
 }
-int main(int argc,char** argv){try {if(argc==3&&std::string(argv[1])=="--soak-seconds")mixed_batch(std::stoi(argv[2]));else if(argc==3&&std::string(argv[1])=="--delimiter-mebibytes")delimiter_bulk(std::stoull(argv[2]));else if(argc==3&&std::string(argv[1])=="--batch-cancel-count")batch_cancel_many(std::stoi(argv[2]));else if(argc==2&&std::string(argv[1])=="--text-performance"){for(size_t size:{1,2,4,8})for(int mode=0;mode<4;++mode)text_work(size,mode);}else {incremental_text();batch_cancel_many(128);delimiter_fragments();delimiter_bulk(1);core_tests();batch_semantics();mixed_batch(1);callback_release_race();}std::cout<<"PASS checks="<<checks<<"\n";return 0;}catch(const std::exception& e){std::cerr<<"FAIL: "<<e.what()<<"\n";return 1;}}
+int main(int argc,char** argv){try {if(argc==3&&std::string(argv[1])=="--soak-seconds")mixed_batch(std::stoi(argv[2]));else if(argc==3&&std::string(argv[1])=="--batch-close-rounds"){for(int i=0;i<std::stoi(argv[2]);++i)batch_cancel_many(1024,true);}else if(argc==3&&std::string(argv[1])=="--delimiter-mebibytes")delimiter_bulk(std::stoull(argv[2]));else if(argc==3&&std::string(argv[1])=="--batch-cancel-count")batch_cancel_many(std::stoi(argv[2]));else if(argc==2&&std::string(argv[1])=="--text-performance"){for(size_t size:{1,2,4,8})for(int mode=0;mode<4;++mode)text_work(size,mode);}else {incremental_text();batch_cancel_many(128);batch_cancel_many(128,true);delimiter_fragments();delimiter_bulk(1);core_tests();batch_semantics();mixed_batch(1);callback_release_race();}std::cout<<"PASS checks="<<checks<<"\n";return 0;}catch(const std::exception& e){std::cerr<<"FAIL: "<<e.what()<<"\n";return 1;}}

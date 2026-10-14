@@ -1,5 +1,6 @@
 #include <communicationdriver/communicationdriver.h>
 #include <atomic>
+#include <barrier>
 #include <chrono>
 #include <condition_variable>
 #include <iostream>
@@ -8,6 +9,12 @@
 #include <stdexcept>
 #include <thread>
 #include <vector>
+#ifdef __APPLE__
+#if !__has_feature(address_sanitizer) && !__has_feature(thread_sanitizer)
+#define CD_MALLOC_STATISTICS
+#include <malloc/malloc.h>
+#endif
+#endif
 
 using Clock=std::chrono::steady_clock;
 static void expect(bool value,const char* message){if(!value)throw std::runtime_error(message);}
@@ -163,4 +170,43 @@ static void reverse_cancel(int count){
  for(int i=1;i<=count;++i){auto result=wait(operations[i].get());expect(cd_result_get_status(result.get())==CD_CANCELLED,"reverse cancellation status");}close(c);
  std::cout<<"METRIC reverse_cancel count="<<count<<" elapsed_us="<<us<<"\n";
 }
-int main(int argc,char** argv){try{if(argc==2&&std::string(argv[1])=="--expired")expired_before_admission();else if(argc==2&&std::string(argv[1])=="--precancelled")precancelled_queued();else if(argc==2&&std::string(argv[1])=="--batch-snapshot")cancelled_batch_snapshot();else if(argc==3&&std::string(argv[1])=="--reverse-cancel")reverse_cancel(std::stoi(argv[2]));else if(argc==2&&std::string(argv[1])=="--performance"){for(int count:{2000,4000,8000,16000}){pending_subscriptions(count,false);pending_subscriptions(count,true);registry(count);}}else if(argc==3&&std::string(argv[1])=="--retained")retained_operations(std::stoi(argv[2]));else{expired_before_admission();precancelled_queued();cancelled_batch_snapshot();reverse_cancel(512);pending_subscriptions(512,true,true);registry(512);simultaneous_close();cancellation_storm();duration_limits();retained_operations(1000);lifecycle_churn(argc==2?std::stoi(argv[1]):100);}std::cout<<"PASS native stress\n";return 0;}catch(const std::exception& e){std::cerr<<"FAIL: "<<e.what()<<"\n";return 1;}}
+static void resource_sample(uint64_t waves,uint64_t operations,Clock::time_point begin){
+ std::cout<<"SOAK waves="<<waves<<" operations="<<operations<<" elapsed_ms="<<std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now()-begin).count();
+#ifdef CD_MALLOC_STATISTICS
+ malloc_statistics_t stats{};malloc_zone_statistics(nullptr,&stats);
+ std::cout<<" malloc_in_use="<<stats.size_in_use<<" malloc_blocks="<<stats.blocks_in_use;
+#endif
+ std::cout<<std::endl;
+}
+// Keep one runtime and one uncancelled token alive across waves to expose retained
+// registrations. Each accepted operation owns a separate exactly-once counter.
+static void cancel_close_soak(int seconds){
+ expect(seconds>0,"positive soak duration");auto begin=Clock::now();auto report=begin;
+ auto d=driver();std::vector<Connection> connections;
+ for(int i=0;i<8;++i){cd_udp_options_t o;cd_udp_options_init(&o);o.remote_host=CD_SV("127.0.0.1");o.remote_port=9;cd_connection_t* c=nullptr;cd_result_t* error=nullptr;auto status=cd_create_udp(d.get(),&o,&c,&error);cd_result_release(error);expect(status==CD_OK,"create soak UDP");connections.emplace_back(c,cd_connection_release);}
+ cd_cancel_source_t* raw=nullptr;expect(cd_cancel_source_create(&raw)==CD_OK,"long-lived token");Handle<cd_cancel_source_t,cd_cancel_source_release> retained(raw,cd_cancel_source_release);
+ uint64_t waves=0,operations=0;
+ do {
+  for(auto& c:connections)open(c);
+  expect(cd_cancel_source_create(&raw)==CD_OK,"wave token");Handle<cd_cancel_source_t,cd_cancel_source_release> cancel(raw,cd_cancel_source_release);
+  struct Slot {std::atomic<int> calls{0};std::atomic<bool> bad{false};};
+  constexpr int producers=32,per_producer=128;auto slots=std::make_unique<Slot[]>(producers*per_producer);
+  auto callback=[](cd_operation_t*,cd_result_t* r,void* user){auto& s=*static_cast<Slot*>(user);auto status=cd_result_get_status(r);if(status!=CD_OK&&status!=CD_CANCELLED&&status!=CD_CLOSED&&status!=CD_NOT_OPEN&&status!=CD_TIMEOUT)s.bad=true;++s.calls;};
+  std::atomic<int> rejected{0};std::barrier start(producers);std::vector<std::thread> threads;
+  for(int t=0;t<producers;++t)threads.emplace_back([&,t]{start.arrive_and_wait();for(int i=0;i<per_producer;++i){
+   cd_call_options_t o;cd_call_options_init(&o);o.timeout_ms=i%7==0?1:60000;o.cancellation=i%2?cancel.get():retained.get();
+   auto* c=connections[t%connections.size()].get();cd_operation_t* op=nullptr;
+   auto status=i%17==16?cd_close_async(c,&o,callback,&slots[t*per_producer+i],&op):cd_read_bytes_async(c,&o,callback,&slots[t*per_producer+i],&op);
+   if(status!=CD_OK){++rejected;continue;}if(i%3==0)cd_operation_cancel(op);cd_operation_release(op);
+   if(i==64)cd_cancel_source_request(cancel.get());
+  }});
+  for(auto& t:threads)t.join();for(auto& c:connections)close(c);
+  expect(rejected==0,"soak accepts every request");
+  for(int i=0;i<producers*per_producer;++i)expect(slots[i].calls==1&&!slots[i].bad,"soak exactly-once callback and allowed status");
+  ++waves;operations+=producers*per_producer;
+  if(Clock::now()>=report){resource_sample(waves,operations,begin);report=Clock::now()+std::chrono::seconds(10);}
+ }while(Clock::now()-begin<std::chrono::seconds(seconds));
+ cd_cancel_source_request(retained.get());connections.clear();retained.reset();d.reset();resource_sample(waves,operations,begin);
+ std::cout<<"PASS cancel_close_soak producers=32 connections=8 operations="<<operations<<std::endl;
+}
+int main(int argc,char** argv){try{if(argc==3&&std::string(argv[1])=="--soak-seconds")cancel_close_soak(std::stoi(argv[2]));else if(argc==2&&std::string(argv[1])=="--expired")expired_before_admission();else if(argc==2&&std::string(argv[1])=="--precancelled")precancelled_queued();else if(argc==2&&std::string(argv[1])=="--batch-snapshot")cancelled_batch_snapshot();else if(argc==3&&std::string(argv[1])=="--reverse-cancel")reverse_cancel(std::stoi(argv[2]));else if(argc==2&&std::string(argv[1])=="--performance"){for(int count:{2000,4000,8000,16000}){pending_subscriptions(count,false);pending_subscriptions(count,true);registry(count);}}else if(argc==3&&std::string(argv[1])=="--retained")retained_operations(std::stoi(argv[2]));else{expired_before_admission();precancelled_queued();cancelled_batch_snapshot();reverse_cancel(512);pending_subscriptions(512,true,true);registry(512);simultaneous_close();cancellation_storm();duration_limits();retained_operations(1000);lifecycle_churn(argc==2?std::stoi(argv[1]):100);}std::cout<<"PASS native stress\n";return 0;}catch(const std::exception& e){std::cerr<<"FAIL: "<<e.what()<<"\n";return 1;}}

@@ -185,6 +185,48 @@ build-locked/cd_stress_tests --reverse-cancel 32000
 DYLD_LIBRARY_PATH="$PWD/build-locked" dotnet run --project tests/dotnet/Stress -c Release -- --regressions-only
 ```
 
+## 第四轮：持续高并发、内存与释放竞态（2026-10-14）
+
+本轮以 `0b8f7bd` 为基线，在 macOS ARM64 上增加持续负载及内存采样。原生压力复用同一 Driver、8 个 UDP 连接和长寿命取消源，每轮 32 个生产线程提交 4,096 次请求，交错执行单操作取消、共享取消、短截止时间和连接关闭，并验证每个已接受操作恰好一次回调。每轮重新打开、排空和关闭连接，10 秒记录一次存活分配；外部 watchdog 每 5 秒采样 RSS、线程与文件描述符。混合负载复用 32 路 TCP/UDP/CLI/虚拟串口连接，执行完整批次并检查回复。
+
+三项主要持续负载均跑满 600 秒并成功退出，未触发 watchdog；另一次修复前的托管基线完成 49,111,040 次请求。汇总、资源窗口及二进制 SHA256 见 [soak-round4-macos-arm64.json](evidence/soak-round4-macos-arm64.json)。
+
+| 负载 | 规模 | 结果 |
+| --- | --- | --- |
+| 原生取消/关闭 | 84,105 轮，344,494,080 次请求 | 每请求恰好一次回调，重开及终态验证通过 |
+| 32 路混合通信 | 1,110,424 个批次，35,533,568 次操作 | 所有批次与回复验证通过；线程 14、文件描述符 109 保持稳定 |
+| 修复后 C# 取消/关闭 | 16,990 轮，69,591,040 次请求 | 全部完成；另有 60 轮并发释放、122,880 次伴随读取，118 个已检查包装对象均可回收 |
+
+原生每轮排空后的 malloc 存活分配为 677,504–721,664 字节，释放句柄后为 96,656 字节；RSS 则从约 18 MiB 阶梯升至约 29 MiB。测试累计创建/回收 2,691,360 个生产线程，线程/FD 数保持有界；结合存活分配和 leaks 结果，没有确认库的持续存活内存增长，不能仅把 RSS 高水位直接认定为泄漏或宣称 RSS 完全不增长。修复后 C# 在 30 秒预热后的 GC 存活量为 662,392–702,408 字节，末次 GC 为 669,968 字节，未见持续上升。上述有限时长不能证明所有负载下都没有泄漏。
+
+补查释放边界时确认并修复两处 C# 问题，均有旧实现失败记录：
+
+- Driver 已 Dispose 后再 Dispose Connection，后者在租用父句柄时抛出 ObjectDisposedException。连接释放现在允许父驱动已关闭。
+- 多个线程同时 Dispose Driver，初始 IsClosed 检查与后续句柄租用之间存在竞态，较晚调用同样会抛出 ObjectDisposedException。驱动及连接释放现在只在相关句柄确已关闭时忽略该异常，仍在 finally 释放自己的 SafeHandle；其他关闭错误继续传播，普通 IO 的已释放检查保持不变。
+
+确定性的父先释放回归及 1,000 轮、每轮 32 路 Driver.Dispose 在修复前失败、修复后通过。持续托管负载复用 8 个连接、32 个生产者及长寿命 CancellationToken，每轮 4,096 次请求；每 10 秒额外让 32 路读取与 16 路连接/驱动 Dispose 竞争，并在后续轮次 GC 后检查 WeakReference。不能在刚完成的 async 调用栈仍存活时断言其局部对象已回收，因此回收检查延后一轮；最后一个尚未经过后续轮次的对象组不计入已回收数量。
+
+批次竞态使用事件循环屏障，确保 1,024 个批次项已准入、另外 3 项尚未准入，再启动 32 路取消/连接关闭/驱动关闭。1,000 轮全部通过，已准入项只允许 Cancelled 或 Closed，未准入项保持 NotStarted，所有关闭操作完成，报告完整。该测试的短版加入 native_behavior；持续取消/关闭的 2 秒版本加入 CTest；C# --regressions-only 包含新的释放及短时负载回归，沿用既有六平台 CI 入口。
+
+Release 五项 CTest 通过；ASan/UBSan 和 TSan 五项各三轮通过，最终压力指标调整后的短测也通过；net48/net10 包装层构建零警告/错误；既有托管互操作、44,000 次 CLI 操作与 1,408 次并发关闭、20 个对象回收通过；本机真实 OpenSSH/SFTP 回归 20 轮通过。ASan/UBSan 和 TSan 专项各持续 180 秒，分别完成 11,444,224 和 6,905,856 次操作，无 sanitizer 诊断。macOS leaks 另跑 20 秒原生压力并在退出时扫描，报告 0 leaks / 0 leaked bytes。macOS LeakSanitizer 不可用，不将 leaks 等同于 LeakSanitizer。
+
+ASan/TSan 替换分配器后，malloc_zone_statistics 的计数不适合作为存活分配量；最初 sanitizer 长测日志保留其原始输出，但结论不使用这些值，最终测试已在 sanitizer 构建禁用该输出。常规构建的存活分配、实际 RSS 和托管 GC 存活量分别记录，不混为同一指标。
+
+本轮属于本机无硬件压力证据；真实 Android/实体串口、其他操作系统的新回归及小时级/隔夜负载未由本轮验证。多个压力进程曾同时运行，操作量是正确性负载规模，不作为吞吐性能对比。
+
+复跑（从仓库根目录，先完成相应构建）：
+
+```sh
+python3 scripts/run_stress.py --output artifacts/soak/native.json --timeout 660 --interval 5 -- build-locked/cd_stress_tests --soak-seconds 600
+python3 scripts/run_stress.py --output artifacts/soak/mixed.json --timeout 660 --interval 5 -- build-locked/cd_tests --soak-seconds 600
+python3 scripts/run_stress.py --output artifacts/soak/managed.json --library-dir build-locked --timeout 660 --interval 5 -- dotnet tests/dotnet/Stress/bin/Release/net10.0/Stress.dll --soak-seconds 600
+build-locked/cd_tests --batch-close-rounds 1000
+DYLD_LIBRARY_PATH="$PWD/build-locked" dotnet tests/dotnet/Stress/bin/Release/net10.0/Stress.dll --parent-disposed
+DYLD_LIBRARY_PATH="$PWD/build-locked" dotnet tests/dotnet/Stress/bin/Release/net10.0/Stress.dll --driver-dispose-race
+```
+
+`--library-dir` 在 Python 启动子进程时设置动态库目录，避免 macOS 系统 Python 启动时清除 DYLD_LIBRARY_PATH；采样同时记录测试程序集和原生库 SHA256。完整运行日志和 5 秒采样保留在忽略目录 `artifacts/soak-round4/`。
+
 ## 既有平台与制品验收
 
 [最终软件提交 `3da0d8c`](https://github.com/EurekaRaider/CommunicationDriver/commit/3da0d8cab143ae1ea1d2c3e2f0a6e4e7b2150177) 的 [Platform CI #38397256682](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/38397256682) 六平台任务与合并 NuGet 任务均已终态成功。本机仅 macOS ARM64；其他平台结论来自对应真实 CI runner 上的实际程序执行。

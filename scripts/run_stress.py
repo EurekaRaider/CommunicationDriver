@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--output', type=Path, required=True)
 parser.add_argument('--timeout', type=float, default=360)
 parser.add_argument('--interval', type=float, default=5)
+parser.add_argument('--library-dir', type=Path, help='native library directory (also works with macOS system Python)')
 parser.add_argument('command', nargs=argparse.REMAINDER)
 args = parser.parse_args()
 command = args.command[1:] if args.command[:1] == ['--'] else args.command
@@ -26,12 +27,21 @@ started = time.monotonic()
 timed_out = False
 binary = Path(shutil.which(command[0]) or command[0]).resolve()
 hashes = {str(binary): hashlib.sha256(binary.read_bytes()).hexdigest()}
+environment = os.environ.copy()
+library_dir = args.library_dir.resolve() if args.library_dir else binary.parent
+if args.library_dir:
+    variable = 'PATH' if os.name == 'nt' else 'DYLD_LIBRARY_PATH' if platform.system() == 'Darwin' else 'LD_LIBRARY_PATH'
+    environment[variable] = os.pathsep.join(value for value in (str(library_dir), environment.get(variable)) if value)
+for argument in command[1:]:
+    if argument.endswith('.dll') and Path(argument).is_file():
+        assembly = Path(argument).resolve()
+        hashes[str(assembly)] = hashlib.sha256(assembly.read_bytes()).hexdigest()
 for name in ('libcommunicationdriver_native.dylib', 'libcommunicationdriver_native.so', 'communicationdriver_native.dll'):
-    library = binary.parent / name
+    library = library_dir / name
     if library.exists():
         hashes[str(library)] = hashlib.sha256(library.read_bytes()).hexdigest()
 with log.open('w') as output:
-    process = subprocess.Popen(command, stdout=output, stderr=subprocess.STDOUT,
+    process = subprocess.Popen(command, stdout=output, stderr=subprocess.STDOUT, env=environment,
                                start_new_session=os.name != 'nt')
     try:
         while process.poll() is None:

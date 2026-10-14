@@ -15,7 +15,7 @@ public sealed class Driver:IDisposable {
  public Connection CreateCli(CliOptions options){if(options==null)throw new ArgumentNullException(nameof(options));using(var l=new HandleLease(Handle))using(var a=new Arena()){NCliOptions o;Native.cd_cli_options_init(out o);o.defaults=a.Defaults(options);o.shell=(int)options.Shell;o.execution_mode=(int)options.ExecutionMode;o.executable_path=a.Text(options.ExecutablePath);o.working_directory=a.Text(options.WorkingDirectory);var args=new List<NStringView>();foreach(var arg in options.Arguments)args.Add(a.Text(arg));o.arguments=a.Array(args);o.argument_count=(ulong)args.Count;var env=new List<NEnvironmentEntry>();foreach(var pair in options.Environment)env.Add(new NEnvironmentEntry {key=a.Text(pair.Key),value=a.Text(pair.Value)});o.environment=a.Array(env);o.environment_count=(ulong)env.Count;IntPtr c,e;return Created(Native.cd_create_cli(l.Pointer,ref o,out c,out e),c,e);}}
  public Task CloseAsync(){return Interop.Start(new[]{Handle},CancellationToken.None,(Arena a,IntPtr h,IntPtr cancel,Native.Completion cb,IntPtr user,out IntPtr op)=>Native.cd_driver_close_async(h,cb,user,out op),r=>{Interop.Checked(Native.cd_result_get_status(r),r);return true;});}
  public void Close(){CloseAsync().GetAwaiter().GetResult();}
- public void Dispose(){if(Handle.IsClosed)return;try{Close();}finally{Handle.Dispose();}}
+ public void Dispose(){if(Handle.IsClosed)return;try{Close();}catch(ObjectDisposedException)when(Handle.IsClosed){}finally{Handle.Dispose();}}
 }
 public sealed class Connection:IDisposable {
  internal readonly NativeHandle Handle;internal readonly Driver Driver;
@@ -61,7 +61,7 @@ public sealed class Connection:IDisposable {
  public TransferResult Upload(string source, string destination, TransferOptions options = null, CancellationToken cancellationToken = default(CancellationToken)){return UploadAsync(source, destination, options,cancellationToken).GetAwaiter().GetResult();}
  public Task<TransferResult> DownloadAsync(string source, string destination, TransferOptions options = null, CancellationToken cancellationToken = default(CancellationToken)){return Start(cancellationToken,(Arena a,IntPtr h,IntPtr cancel,Native.Completion cb,IntPtr user,out IntPtr op)=>{var o=a.Transfer(options,cancel);return Native.cd_download_async(h,a.Text(source),a.Text(destination),o,cb,user,out op);},r=>Interop.Transfer(r));}
  public TransferResult Download(string source, string destination, TransferOptions options = null, CancellationToken cancellationToken = default(CancellationToken)){return DownloadAsync(source, destination, options,cancellationToken).GetAwaiter().GetResult();}
- public void Dispose(){if(Handle.IsClosed)return;try{Close();}finally{Handle.Dispose();}}
+ public void Dispose(){if(Handle.IsClosed)return;try{Close();}catch(ObjectDisposedException)when(Handle.IsClosed||Driver.Handle.IsClosed){}finally{Handle.Dispose();}}
 }
 public static class ResponseChecker {
  public static bool IsMatch(string response,Check check){if(response==null||check==null)throw new ArgumentNullException();using(var a=new Arena()){var c=a.Check(check);IntPtr r;var status=Native.cd_response_checker_is_match_string(a.Text(response),ref c,out r);using(var h=new NativeHandle(r,3)){Interop.Checked(status,r);return Interop.CheckResult(r).Passed;}}}

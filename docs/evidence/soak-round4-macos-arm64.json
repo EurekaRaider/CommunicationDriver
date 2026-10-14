@@ -1,0 +1,618 @@
+{
+  "date": "2026-10-14",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "base_commit": "0b8f7bdb42e7e73d3cac7836d92b7e1f45662eb6",
+  "scope": "Local macOS ARM64; overlapping workloads are correctness stress, not a throughput comparison. No real Android or physical serial hardware.",
+  "workloads": {
+    "mixed": {
+      "command": [
+        "build-locked/cd_tests",
+        "--soak-seconds",
+        "600"
+      ],
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 600.06,
+      "artifact_sha256": {
+        "build-locked/cd_tests": "4af56a94047c8570b87af410fe500b18258dec0c7881e90fcb3126f61aecb334",
+        "build-locked/libcommunicationdriver_native.dylib": "01a27c0e68bc391aefab304ede8e653ee79872709d4a47be1bcbe1f8a54acb91"
+      },
+      "log": "artifacts/soak-round4/mixed.log",
+      "final_output": [
+        "SOAK batches=1110000 elapsed_s=599",
+        "METRIC mixed_connections=32 batches=1110424 operations=35533568 elapsed_ms=600000",
+        "PASS checks=2220913"
+      ],
+      "rss_60s_windows": [
+        {
+          "start_s": 0,
+          "sample_count": 12,
+          "min_kib": 304,
+          "median_kib": 10168.0,
+          "max_kib": 10176
+        },
+        {
+          "start_s": 60,
+          "sample_count": 12,
+          "min_kib": 10176,
+          "median_kib": 10416.0,
+          "max_kib": 10480
+        },
+        {
+          "start_s": 120,
+          "sample_count": 12,
+          "min_kib": 10480,
+          "median_kib": 10496.0,
+          "max_kib": 10496
+        },
+        {
+          "start_s": 180,
+          "sample_count": 12,
+          "min_kib": 10496,
+          "median_kib": 10496.0,
+          "max_kib": 10496
+        },
+        {
+          "start_s": 240,
+          "sample_count": 12,
+          "min_kib": 10496,
+          "median_kib": 10496.0,
+          "max_kib": 10496
+        },
+        {
+          "start_s": 300,
+          "sample_count": 12,
+          "min_kib": 10496,
+          "median_kib": 10496.0,
+          "max_kib": 10496
+        },
+        {
+          "start_s": 360,
+          "sample_count": 11,
+          "min_kib": 10496,
+          "median_kib": 10496,
+          "max_kib": 10496
+        },
+        {
+          "start_s": 420,
+          "sample_count": 12,
+          "min_kib": 10496,
+          "median_kib": 10496.0,
+          "max_kib": 10496
+        },
+        {
+          "start_s": 480,
+          "sample_count": 12,
+          "min_kib": 10496,
+          "median_kib": 10496.0,
+          "max_kib": 10528
+        },
+        {
+          "start_s": 540,
+          "sample_count": 12,
+          "min_kib": 10528,
+          "median_kib": 10528.0,
+          "max_kib": 10528
+        }
+      ],
+      "threads_range": [
+        1,
+        14
+      ],
+      "fds_range": [
+        109,
+        109
+      ]
+    },
+    "native": {
+      "command": [
+        "build-locked/cd_stress_tests",
+        "--soak-seconds",
+        "600"
+      ],
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 600.384,
+      "artifact_sha256": {
+        "build-locked/cd_stress_tests": "ccdc1fbad1082400b1a31630ecd82ee1d6421ef05599dd431a8be1223137b6fa",
+        "build-locked/libcommunicationdriver_native.dylib": "01a27c0e68bc391aefab304ede8e653ee79872709d4a47be1bcbe1f8a54acb91"
+      },
+      "log": "artifacts/soak-round4/native.log",
+      "final_output": [
+        "SOAK waves=84105 operations=344494080 elapsed_ms=600004 malloc_in_use=96656 malloc_blocks=856",
+        "PASS cancel_close_soak producers=32 connections=8 operations=344494080",
+        "PASS native stress"
+      ],
+      "rss_60s_windows": [
+        {
+          "start_s": 0,
+          "sample_count": 12,
+          "min_kib": 32,
+          "median_kib": 18176.0,
+          "max_kib": 22624
+        },
+        {
+          "start_s": 60,
+          "sample_count": 12,
+          "min_kib": 22992,
+          "median_kib": 23328.0,
+          "max_kib": 23600
+        },
+        {
+          "start_s": 120,
+          "sample_count": 12,
+          "min_kib": 23168,
+          "median_kib": 23776.0,
+          "max_kib": 24288
+        },
+        {
+          "start_s": 180,
+          "sample_count": 12,
+          "min_kib": 23776,
+          "median_kib": 23776.0,
+          "max_kib": 24288
+        },
+        {
+          "start_s": 240,
+          "sample_count": 12,
+          "min_kib": 24288,
+          "median_kib": 27200.0,
+          "max_kib": 27712
+        },
+        {
+          "start_s": 300,
+          "sample_count": 12,
+          "min_kib": 27200,
+          "median_kib": 27456.0,
+          "max_kib": 27712
+        },
+        {
+          "start_s": 360,
+          "sample_count": 11,
+          "min_kib": 27200,
+          "median_kib": 27248,
+          "max_kib": 27760
+        },
+        {
+          "start_s": 420,
+          "sample_count": 12,
+          "min_kib": 27248,
+          "median_kib": 27680.0,
+          "max_kib": 27760
+        },
+        {
+          "start_s": 480,
+          "sample_count": 12,
+          "min_kib": 27248,
+          "median_kib": 27248.0,
+          "max_kib": 27760
+        },
+        {
+          "start_s": 540,
+          "sample_count": 12,
+          "min_kib": 29376,
+          "median_kib": 29872.0,
+          "max_kib": 29888
+        }
+      ],
+      "threads_range": [
+        1,
+        37
+      ],
+      "fds_range": [
+        3,
+        14
+      ],
+      "drained_malloc_bytes_range": [
+        677504,
+        721664
+      ],
+      "after_handle_release_malloc_bytes": 96656
+    },
+    "managed": {
+      "command": [
+        "dotnet",
+        "tests/dotnet/Stress/bin/Release/net10.0/Stress.dll",
+        "--soak-seconds",
+        "600"
+      ],
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 600.116,
+      "artifact_sha256": {
+        "/usr/local/share/dotnet/dotnet": "2ff302a3c5cecc4a371fd6482d2f5547c57d93eff9fe19919ef729a54f69ce04",
+        "tests/dotnet/Stress/bin/Release/net10.0/Stress.dll": "e28a09bdf3d5814f19580f5576dcff9b50764bd7d597623a78f6dba63bddc60f",
+        "build-locked/libcommunicationdriver_native.dylib": "01a27c0e68bc391aefab304ede8e653ee79872709d4a47be1bcbe1f8a54acb91"
+      },
+      "log": "artifacts/soak-round4/managed.log",
+      "final_output": [
+        "SOAK waves=11480 operations=47022080 dispose_race_operations=118784 collected_wrappers=116 gc_bytes=744544 rss_bytes=81739776 elapsed_ms=582945",
+        "SOAK waves=11780 operations=48250880 dispose_race_operations=120832 collected_wrappers=118 gc_bytes=743224 rss_bytes=81788928 elapsed_ms=592976",
+        "PASS managed_soak producers=32 connections=8 waves=11990 operations=49111040 collected_wrappers=118"
+      ],
+      "rss_60s_windows": [
+        {
+          "start_s": 0,
+          "sample_count": 12,
+          "min_kib": 2784,
+          "median_kib": 76656.0,
+          "max_kib": 85760
+        },
+        {
+          "start_s": 60,
+          "sample_count": 12,
+          "min_kib": 77584,
+          "median_kib": 79080.0,
+          "max_kib": 83376
+        },
+        {
+          "start_s": 120,
+          "sample_count": 12,
+          "min_kib": 77888,
+          "median_kib": 80824.0,
+          "max_kib": 89904
+        },
+        {
+          "start_s": 180,
+          "sample_count": 12,
+          "min_kib": 79936,
+          "median_kib": 82800.0,
+          "max_kib": 85488
+        },
+        {
+          "start_s": 240,
+          "sample_count": 12,
+          "min_kib": 80288,
+          "median_kib": 83656.0,
+          "max_kib": 89792
+        },
+        {
+          "start_s": 300,
+          "sample_count": 12,
+          "min_kib": 80224,
+          "median_kib": 83088.0,
+          "max_kib": 86944
+        },
+        {
+          "start_s": 360,
+          "sample_count": 11,
+          "min_kib": 80336,
+          "median_kib": 83824,
+          "max_kib": 89520
+        },
+        {
+          "start_s": 420,
+          "sample_count": 12,
+          "min_kib": 80352,
+          "median_kib": 81760.0,
+          "max_kib": 84320
+        },
+        {
+          "start_s": 480,
+          "sample_count": 12,
+          "min_kib": 80160,
+          "median_kib": 83712.0,
+          "max_kib": 89424
+        },
+        {
+          "start_s": 540,
+          "sample_count": 12,
+          "min_kib": 80032,
+          "median_kib": 82432.0,
+          "max_kib": 88096
+        }
+      ],
+      "threads_range": [
+        1,
+        44
+      ],
+      "fds_range": [
+        56,
+        67
+      ],
+      "note": "Before fix, lighter disposal load (one connection disposer plus one driver disposer); the two deterministic failures were reproduced separately. The old dispose_race_operations log counts previously verified epochs and excludes the newly run epoch.",
+      "gc_bytes_range": [
+        553648,
+        759048
+      ]
+    },
+    "asan": {
+      "command": [
+        "build-sanitize/cd_stress_tests",
+        "--soak-seconds",
+        "180"
+      ],
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 180.506,
+      "artifact_sha256": {
+        "build-sanitize/cd_stress_tests": "a2604cb254eede18ec154b1db1fd68eb2008321ad26fe1adc8ca454064efb994",
+        "build-sanitize/libcommunicationdriver_native.dylib": "b23a85de828e0980e3d13f65ed64c2f7af6366e95a406e1c86081a88b1b05122"
+      },
+      "log": "artifacts/soak-round4/asan.log",
+      "final_output": [
+        "PASS cancel_close_soak producers=32 connections=8 operations=11444224",
+        "PASS native stress"
+      ],
+      "rss_60s_windows": [
+        {
+          "start_s": 0,
+          "sample_count": 12,
+          "min_kib": 32,
+          "median_kib": 450104.0,
+          "max_kib": 454224
+        },
+        {
+          "start_s": 60,
+          "sample_count": 12,
+          "min_kib": 454672,
+          "median_kib": 457760.0,
+          "max_kib": 460928
+        },
+        {
+          "start_s": 120,
+          "sample_count": 12,
+          "min_kib": 460208,
+          "median_kib": 467520.0,
+          "max_kib": 470560
+        }
+      ],
+      "threads_range": [
+        1,
+        37
+      ],
+      "fds_range": [
+        3,
+        14
+      ],
+      "note": "malloc_zone_statistics in this initial instrumented run is not a live-allocation measurement. These counters were subsequently disabled for sanitizer builds; use the actual RSS samples and sanitizer diagnostics."
+    },
+    "tsan": {
+      "command": [
+        "build-tsan/cd_stress_tests",
+        "--soak-seconds",
+        "180"
+      ],
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 181.451,
+      "artifact_sha256": {
+        "build-tsan/cd_stress_tests": "d7456fdf39b568352c13518f4184c64c44b27a86e08e2357aeeaa3e4ebbf8b36",
+        "build-tsan/libcommunicationdriver_native.dylib": "7ce0fe71c3c65be1a83d140b48bb209a0c56caae70fbf50f99521bd33b2c6147"
+      },
+      "log": "artifacts/soak-round4/tsan.log",
+      "final_output": [
+        "PASS cancel_close_soak producers=32 connections=8 operations=6905856",
+        "PASS native stress"
+      ],
+      "rss_60s_windows": [
+        {
+          "start_s": 0,
+          "sample_count": 12,
+          "min_kib": 32,
+          "median_kib": 136608.0,
+          "max_kib": 139008
+        },
+        {
+          "start_s": 60,
+          "sample_count": 12,
+          "min_kib": 139536,
+          "median_kib": 142648.0,
+          "max_kib": 145136
+        },
+        {
+          "start_s": 120,
+          "sample_count": 12,
+          "min_kib": 145184,
+          "median_kib": 147328.0,
+          "max_kib": 150928
+        }
+      ],
+      "threads_range": [
+        1,
+        38
+      ],
+      "fds_range": [
+        3,
+        14
+      ],
+      "note": "malloc_zone_statistics in this initial instrumented run is not a live-allocation measurement. These counters were subsequently disabled for sanitizer builds; use the actual RSS samples and sanitizer diagnostics."
+    },
+    "batch-close": {
+      "command": [
+        "build-locked/cd_tests",
+        "--batch-close-rounds",
+        "1000"
+      ],
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 3.736,
+      "artifact_sha256": {
+        "build-locked/cd_tests": "866513400d088557708b6660085fc2475a87dfefa8a9a2caf34230d34f00a716",
+        "build-locked/libcommunicationdriver_native.dylib": "01a27c0e68bc391aefab304ede8e653ee79872709d4a47be1bcbe1f8a54acb91"
+      },
+      "log": "artifacts/soak-round4/batch-close.log",
+      "final_output": [
+        "METRIC batch_cancel count=1024 close_race=1 elapsed_us=1438",
+        "METRIC batch_cancel count=1024 close_race=1 elapsed_us=1147",
+        "PASS checks=1104000"
+      ],
+      "rss_60s_windows": [
+        {
+          "start_s": 0,
+          "sample_count": 1,
+          "min_kib": 32,
+          "median_kib": 32,
+          "max_kib": 32
+        }
+      ],
+      "threads_range": [
+        1,
+        1
+      ],
+      "fds_range": [
+        3,
+        3
+      ]
+    },
+    "managed-fixed": {
+      "command": [
+        "dotnet",
+        "artifacts/soak-round4/managed-final/Stress.dll",
+        "--soak-seconds",
+        "600"
+      ],
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_s": 600.136,
+      "artifact_sha256": {
+        "/usr/local/share/dotnet/dotnet": "2ff302a3c5cecc4a371fd6482d2f5547c57d93eff9fe19919ef729a54f69ce04",
+        "artifacts/soak-round4/managed-final/Stress.dll": "6b3bb2dfd5ef553a31d684cd184ef70c405dc853f74faf479660422cc199e899",
+        "build-locked/libcommunicationdriver_native.dylib": "01a27c0e68bc391aefab304ede8e653ee79872709d4a47be1bcbe1f8a54acb91"
+      },
+      "log": "artifacts/soak-round4/managed-fixed.log",
+      "final_output": [
+        "SOAK waves=16465 operations=67440640 dispose_race_operations=120832 collected_wrappers=116 gc_bytes=690312 rss_bytes=83574784 elapsed_ms=582131",
+        "SOAK waves=16759 operations=68644864 dispose_race_operations=122880 collected_wrappers=118 gc_bytes=669968 rss_bytes=82411520 elapsed_ms=592177",
+        "PASS managed_soak producers=32 connections=8 waves=16990 operations=69591040 collected_wrappers=118"
+      ],
+      "rss_60s_windows": [
+        {
+          "start_s": 0,
+          "sample_count": 12,
+          "min_kib": 2944,
+          "median_kib": 78080.0,
+          "max_kib": 82752
+        },
+        {
+          "start_s": 60,
+          "sample_count": 12,
+          "min_kib": 76944,
+          "median_kib": 81040.0,
+          "max_kib": 86480
+        },
+        {
+          "start_s": 120,
+          "sample_count": 12,
+          "min_kib": 76736,
+          "median_kib": 78784.0,
+          "max_kib": 86816
+        },
+        {
+          "start_s": 180,
+          "sample_count": 12,
+          "min_kib": 77456,
+          "median_kib": 82272.0,
+          "max_kib": 84400
+        },
+        {
+          "start_s": 240,
+          "sample_count": 12,
+          "min_kib": 78704,
+          "median_kib": 81328.0,
+          "max_kib": 84384
+        },
+        {
+          "start_s": 300,
+          "sample_count": 12,
+          "min_kib": 79392,
+          "median_kib": 81040.0,
+          "max_kib": 86224
+        },
+        {
+          "start_s": 360,
+          "sample_count": 12,
+          "min_kib": 79968,
+          "median_kib": 83624.0,
+          "max_kib": 90336
+        },
+        {
+          "start_s": 420,
+          "sample_count": 11,
+          "min_kib": 79712,
+          "median_kib": 84688,
+          "max_kib": 90176
+        },
+        {
+          "start_s": 480,
+          "sample_count": 12,
+          "min_kib": 81024,
+          "median_kib": 82960.0,
+          "max_kib": 91328
+        },
+        {
+          "start_s": 540,
+          "sample_count": 12,
+          "min_kib": 80816,
+          "median_kib": 82616.0,
+          "max_kib": 90816
+        }
+      ],
+      "threads_range": [
+        3,
+        42
+      ],
+      "fds_range": [
+        57,
+        66
+      ],
+      "gc_bytes_after_30s_range": [
+        662392,
+        702408
+      ],
+      "gc_bytes_last": 669968,
+      "collected_wrappers": 118,
+      "dispose_race_read_operations": 122880,
+      "dispose_race_rounds": 60,
+      "concurrent_disposers_per_round": 16,
+      "binding_sha256": "ba336685192b4062985e76c36e8775d0e9c8ef920791ce421b459fd912565aac"
+    }
+  },
+  "confirmed_fixes": [
+    {
+      "case": "Connection.Dispose after Driver.Dispose",
+      "before": "System.ObjectDisposedException at Connection.Dispose",
+      "after": "PASS disposing connection after driver"
+    },
+    {
+      "case": "32 concurrent Driver.Dispose calls",
+      "before": "System.ObjectDisposedException at Driver.Dispose",
+      "after": "PASS concurrent driver disposal rounds=1000"
+    }
+  ],
+  "leaks": {
+    "duration_s": 20,
+    "tool": "macOS leaks --atExit",
+    "summary": "0 leaks for 0 total leaked bytes",
+    "log": "artifacts/soak-round4/leaks.log"
+  },
+  "regression": {
+    "release_ctest": "5/5 passed",
+    "asan_ubsan_ctest": "5/5, each repeated 3 times",
+    "tsan_ctest": "5/5, each repeated 3 times",
+    "final_sanitizer_smoke": "native_cancel_close passed on ASan/UBSan and TSan",
+    "dotnet_targets": [
+      "net48 build",
+      "net10.0 build and run"
+    ],
+    "dotnet_build_warnings": 0,
+    "dotnet_build_errors": 0,
+    "managed_cli_operations": 44000,
+    "managed_cli_concurrent_closes": 1408,
+    "managed_cli_collected_wrappers": 20,
+    "managed_interop": "passed",
+    "ssh_sftp_rounds": 20
+  },
+  "interpretation": {
+    "native": "Drained live malloc bytes remain 677504..721664, then 96656 after handle release. RSS rises in steps to 29888 KiB; RSS alone is not treated as a leak. The harness creates and joins 32 producer threads per wave (2691360 producer thread lifetimes).",
+    "managed": "Post-fix 600s soak completed 69591040 main workload requests plus 122880 reads during 60 disposal races; 118 wrappers from the preceding 59 races verified collectible. The final unexamined pair is excluded.",
+    "limits": "No proof of absence of all leaks or races; no overnight/hour-scale or new cross-platform runtime acceptance in this round. Separate loads overlap and differ, so their throughput is not compared."
+  }
+}
