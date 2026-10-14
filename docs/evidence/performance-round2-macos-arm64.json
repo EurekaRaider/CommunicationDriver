@@ -1,0 +1,772 @@
+{
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "repeat": 3,
+  "baseline": "d8955a9 plus the preceding delimiter optimization, snapshotted before the second audit fixes",
+  "native_build": "Release with SHA256-locked dependencies; identical benchmark executable and native library path override for before/after",
+  "managed_build": "net10 Release; identical benchmark program compiled against before/after wrapper sources",
+  "method": "Three serial alternating runs per workload. TCP server writes 4 KiB blocks with TCP_NODELAY; OS may coalesce blocks. Explicit 60 s timeout and increased response limit for large inputs. Reported values are medians, with all raw samples retained.",
+  "text_modes": {
+    "0": "ordinary delimiter receive control",
+    "1": "ExecuteUntil with text Contains (absent match)",
+    "2": "ExecuteUntil with byte Contains (absent match)",
+    "3": "ReadExactlyString"
+  },
+  "results": {
+    "pending shared=0 count=2000": {
+      "before": {
+        "median_us": 389,
+        "us": [
+          389,
+          393,
+          373
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 350,
+        "us": [
+          350,
+          421,
+          349
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 10.025706940874034
+    },
+    "pending shared=1 count=2000": {
+      "before": {
+        "median_us": 9550,
+        "us": [
+          10636,
+          9550,
+          9478
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 239,
+        "us": [
+          270,
+          235,
+          239
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 97.49738219895288
+    },
+    "registry count=2000": {
+      "before": {
+        "median_us": 2073,
+        "us": [
+          2219,
+          2073,
+          2038
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 292,
+        "us": [
+          295,
+          292,
+          276
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 85.9141341051616
+    },
+    "pending shared=0 count=4000": {
+      "before": {
+        "median_us": 601,
+        "us": [
+          638,
+          601,
+          559
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 570,
+        "us": [
+          605,
+          570,
+          544
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 5.15806988352745
+    },
+    "pending shared=1 count=4000": {
+      "before": {
+        "median_us": 39257,
+        "us": [
+          39779,
+          39257,
+          39166
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 498,
+        "us": [
+          498,
+          547,
+          494
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 98.73143643171919
+    },
+    "registry count=4000": {
+      "before": {
+        "median_us": 8912,
+        "us": [
+          8912,
+          8912,
+          8842
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 543,
+        "us": [
+          628,
+          543,
+          501
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 93.90709156193896
+    },
+    "pending shared=0 count=8000": {
+      "before": {
+        "median_us": 1150,
+        "us": [
+          1159,
+          1150,
+          1120
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 1170,
+        "us": [
+          1308,
+          1170,
+          1156
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": -1.7391304347825987
+    },
+    "pending shared=1 count=8000": {
+      "before": {
+        "median_us": 162457,
+        "us": [
+          161618,
+          162457,
+          163044
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 1293,
+        "us": [
+          1452,
+          1293,
+          1192
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 99.2040970841515
+    },
+    "registry count=8000": {
+      "before": {
+        "median_us": 37024,
+        "us": [
+          37024,
+          36982,
+          37024
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 1170,
+        "us": [
+          1170,
+          1225,
+          1139
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 96.83988764044943
+    },
+    "pending shared=0 count=16000": {
+      "before": {
+        "median_us": 2318,
+        "us": [
+          2318,
+          2368,
+          2243
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 2334,
+        "us": [
+          2449,
+          2334,
+          2312
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": -0.690250215703192
+    },
+    "pending shared=1 count=16000": {
+      "before": {
+        "median_us": 661968,
+        "us": [
+          656202,
+          661968,
+          662237
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 2696,
+        "us": [
+          2801,
+          2696,
+          2673
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 99.59272955792426
+    },
+    "registry count=16000": {
+      "before": {
+        "median_us": 152969,
+        "us": [
+          156003,
+          152773,
+          152969
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 2338,
+        "us": [
+          2444,
+          2338,
+          2215
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 98.47158574613158
+    },
+    "text mebibytes=1 mode=0": {
+      "before": {
+        "median_us": 7037,
+        "us": [
+          7120,
+          5743,
+          7037
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 6980,
+        "us": [
+          7249,
+          5645,
+          6980
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 0.8100042631803306
+    },
+    "text mebibytes=1 mode=1": {
+      "before": {
+        "median_us": 15038,
+        "us": [
+          15192,
+          15038,
+          13599
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 6840,
+        "us": [
+          6840,
+          6409,
+          6840
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 54.515228088841596
+    },
+    "text mebibytes=1 mode=2": {
+      "before": {
+        "median_us": 7169,
+        "us": [
+          8084,
+          7035,
+          7169
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 7156,
+        "us": [
+          7156,
+          5829,
+          7598
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 0.1813363091086595
+    },
+    "text mebibytes=1 mode=3": {
+      "before": {
+        "median_us": 18777,
+        "us": [
+          16593,
+          18777,
+          19229
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 7508,
+        "us": [
+          7364,
+          7508,
+          7753
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 60.01491186025456
+    },
+    "text mebibytes=2 mode=0": {
+      "before": {
+        "median_us": 12702,
+        "us": [
+          12856,
+          9843,
+          12702
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 12289,
+        "us": [
+          12289,
+          9887,
+          13035
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 3.2514564635490517
+    },
+    "text mebibytes=2 mode=1": {
+      "before": {
+        "median_us": 52201,
+        "us": [
+          52201,
+          47334,
+          53528
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 15047,
+        "us": [
+          15250,
+          13367,
+          15047
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 71.174881707247
+    },
+    "text mebibytes=2 mode=2": {
+      "before": {
+        "median_us": 13834,
+        "us": [
+          14436,
+          12879,
+          13834
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 13158,
+        "us": [
+          13158,
+          11586,
+          13835
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 4.886511493422008
+    },
+    "text mebibytes=2 mode=3": {
+      "before": {
+        "median_us": 57539,
+        "us": [
+          60914,
+          57539,
+          50719
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 13129,
+        "us": [
+          15531,
+          13052,
+          13129
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 77.18243278471992
+    },
+    "text mebibytes=4 mode=0": {
+      "before": {
+        "median_us": 24348,
+        "us": [
+          24348,
+          19853,
+          25265
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 21159,
+        "us": [
+          21916,
+          21159,
+          19863
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 13.09758501724988
+    },
+    "text mebibytes=4 mode=1": {
+      "before": {
+        "median_us": 144716,
+        "us": [
+          182564,
+          139603,
+          144716
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 25839,
+        "us": [
+          25839,
+          26504,
+          24658
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 82.14502888415932
+    },
+    "text mebibytes=4 mode=2": {
+      "before": {
+        "median_us": 29552,
+        "us": [
+          29552,
+          30477,
+          27249
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 23421,
+        "us": [
+          25317,
+          23179,
+          23421
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 20.746480779642663
+    },
+    "text mebibytes=4 mode=3": {
+      "before": {
+        "median_us": 192023,
+        "us": [
+          192023,
+          162344,
+          194780
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 27619,
+        "us": [
+          26386,
+          27619,
+          27682
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 85.6168271509142
+    },
+    "text mebibytes=8 mode=0": {
+      "before": {
+        "median_us": 47284,
+        "us": [
+          49749,
+          47284,
+          46069
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 39880,
+        "us": [
+          41609,
+          39663,
+          39880
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 15.658573724727177
+    },
+    "text mebibytes=8 mode=1": {
+      "before": {
+        "median_us": 546228,
+        "us": [
+          658282,
+          546228,
+          544431
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 49133,
+        "us": [
+          49133,
+          48863,
+          49308
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 91.00503818918108
+    },
+    "text mebibytes=8 mode=2": {
+      "before": {
+        "median_us": 52888,
+        "us": [
+          55040,
+          52888,
+          52736
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 46477,
+        "us": [
+          46019,
+          47645,
+          46477
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 12.121842383905612
+    },
+    "text mebibytes=8 mode=3": {
+      "before": {
+        "median_us": 691636,
+        "us": [
+          766413,
+          644437,
+          691636
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 54092,
+        "us": [
+          54473,
+          53347,
+          54092
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 92.17912312256736
+    },
+    "batch_cancel count=2000": {
+      "before": {
+        "median_us": 17068,
+        "us": [
+          17068,
+          17283,
+          16867
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 654,
+        "us": [
+          654,
+          640,
+          704
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 96.16826810405436
+    },
+    "batch_cancel count=4000": {
+      "before": {
+        "median_us": 70857,
+        "us": [
+          72118,
+          68482,
+          70857
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 1239,
+        "us": [
+          1268,
+          1208,
+          1239
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 98.25140776493501
+    },
+    "batch_cancel count=8000": {
+      "before": {
+        "median_us": 279956,
+        "us": [
+          291493,
+          272596,
+          279956
+        ],
+        "allocated_bytes": []
+      },
+      "after": {
+        "median_us": 2447,
+        "us": [
+          2580,
+          2446,
+          2447
+        ],
+        "allocated_bytes": []
+      },
+      "time_reduction_percent": 99.12593407535469
+    },
+    "sized count=1000000": {
+      "before": {
+        "median_us": 26617,
+        "us": [
+          27221,
+          26617,
+          26553
+        ],
+        "allocated_bytes": [
+          64005288,
+          64005288,
+          64005288
+        ]
+      },
+      "after": {
+        "median_us": 2579,
+        "us": [
+          2579,
+          2642,
+          2566
+        ],
+        "allocated_bytes": [
+          40,
+          40,
+          40
+        ]
+      },
+      "time_reduction_percent": 90.31070368561446
+    },
+    "encode count=128": {
+      "before": {
+        "median_us": 5115,
+        "us": [
+          4443,
+          5115,
+          5345
+        ],
+        "allocated_bytes": [
+          33625936,
+          33626984,
+          33623528
+        ]
+      },
+      "after": {
+        "median_us": 1307,
+        "us": [
+          1307,
+          1302,
+          1341
+        ],
+        "allocated_bytes": [
+          14376,
+          14376,
+          14376
+        ]
+      },
+      "time_reduction_percent": 74.44770283479961
+    },
+    "decode count=128": {
+      "before": {
+        "median_us": 7176,
+        "us": [
+          6740,
+          8144,
+          7176
+        ],
+        "allocated_bytes": [
+          100758560,
+          100776376,
+          100767936
+        ]
+      },
+      "after": {
+        "median_us": 4448,
+        "us": [
+          4446,
+          4448,
+          5007
+        ],
+        "allocated_bytes": [
+          67111976,
+          67111976,
+          67111976
+        ]
+      },
+      "time_reduction_percent": 38.01560758082497
+    }
+  },
+  "binary_sha256": {
+    "libcommunicationdriver_native.1.dylib": "e60065fb19ad7b1653bef243e335c552a283dce0387b89d8a867e1ea87dffcbe",
+    "Performance.dll": "67d93d41593c80fed66046d713c1113930bddd8ff7c83577d8271f992facc04c",
+    "after-native": "b19f027511ebc469be2ea932317c2519771b041728412eeea40a612651cdf87f",
+    "after-managed": "3a0d726067d395e36f8d5c41dcb3d2badae1f24332ff979a5788db7f9d036a38"
+  },
+  "before_source_sha256": {
+    "src/core.cpp": "3e7fe10cd1473bab97f658a4461423a70db3523941d0ee2d8a977e663582394a",
+    "src/core.hpp": "388eadf687cb8b7ac860abfb7b0961a8fd2d3e63f306a7756244e41d71a6aa6a",
+    "src/c_api.cpp": "b2f40895ec20fd8dc4e70791f2b7a2ef9df598d1612bd2e7b944dbda3afb2579",
+    "bindings/dotnet/CommunicationDriver/Interop.cs": "1a151c61ec1736c85d6829efad2040f75f95993be3e809caa27c2eeb1277666d"
+  },
+  "after_source_sha256": {
+    "src/core.cpp": "8c14e31a5a22f8077fcb78d9d7a7877bb5a84e21e99d1bb89bb5325340e15589",
+    "src/core.hpp": "6956de4031d551d80ae3eb98a6f6c4573c8151750979eb2ed52b504ebe3297a2",
+    "src/c_api.cpp": "4fcd94e0cc2532cf2e6335d2177a8ec69aa1784a8f17b1b7496a1828b5ad16b5",
+    "bindings/dotnet/CommunicationDriver/Interop.cs": "85e494441f5cf50aab8eec43a0a2c036f5182e00fab90c69a5f21ae0e8d9d056"
+  }
+}

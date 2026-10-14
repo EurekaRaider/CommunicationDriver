@@ -1,0 +1,66 @@
+{
+  "baseline_commit": "d8955a9",
+  "platform": "macOS ARM64",
+  "build_type": "Release",
+  "dependencies": "CD_FETCH_DEPENDENCIES=OFF for both comparison builds",
+  "workload": "TCP loopback Execute(string), 4 KiB server writes, TCP_NODELAY enabled, CRLF delimiter, three alternating runs; OS may coalesce writes",
+  "results": [
+    {
+      "mebibytes": 8,
+      "samples_us": {
+        "baseline": [
+          51667,
+          44507,
+          44496
+        ],
+        "optimized": [
+          52775,
+          47568,
+          46441
+        ]
+      },
+      "median_us": {
+        "baseline": 44507,
+        "optimized": 47568
+      }
+    },
+    {
+      "mebibytes": 32,
+      "samples_us": {
+        "baseline": [
+          217138,
+          219736,
+          221800
+        ],
+        "optimized": [
+          174992,
+          176568,
+          179757
+        ]
+      },
+      "median_us": {
+        "baseline": 219736,
+        "optimized": 176568
+      }
+    },
+    {
+      "mebibytes": 128,
+      "samples_us": {
+        "baseline": [
+          2423644,
+          2400527,
+          2394258
+        ],
+        "optimized": [
+          698200,
+          683567,
+          724422
+        ]
+      },
+      "median_us": {
+        "baseline": 2400527,
+        "optimized": 698200
+      }
+    }
+  ]
+}

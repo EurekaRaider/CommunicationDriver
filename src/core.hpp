@@ -12,6 +12,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 #include <filesystem>
@@ -55,7 +56,7 @@ struct Defaults {
 struct Operation;
 struct Cancellation {
  std::atomic<bool> requested{false}; std::mutex mutex;
- std::vector<std::weak_ptr<Operation>> listeners;
+ std::vector<std::weak_ptr<Operation>> listeners; size_t cleanup_at=64;
  void request(); void subscribe(std::weak_ptr<Operation>);
 };
 struct Options {
@@ -87,6 +88,7 @@ struct Result {
  std::vector<BatchEntry> items; bool was_cancelled=false;
  bool succeeded() const { return status==CD_OK&&(!check_present||passed); }
  void evaluate(const Check&,int stream,cd_encoding_t,bool final);
+ void evaluate_data(const Check&,std::string_view,size_t start=0);
 };
 struct IoState { asio::io_context io;asio::thread_pool files{2};size_t file_jobs=0;std::vector<std::function<void()>> file_waiters; };
 extern thread_local IoState* current_io;
@@ -95,7 +97,7 @@ struct Runtime {
  std::shared_ptr<IoState> state=std::make_shared<IoState>();
  asio::executor_work_guard<asio::io_context::executor_type> guard=asio::make_work_guard(state->io);
  std::thread worker; std::mutex registry_mutex;
- std::vector<std::weak_ptr<Connection>> connections; std::atomic<bool> closed{false};
+ std::vector<std::weak_ptr<Connection>> connections; size_t cleanup_at=64; std::atomic<bool> closed{false};
  Runtime(); ~Runtime(); void register_connection(const std::shared_ptr<Connection>&);
  void close(std::function<void()>);
  void file_job(std::function<void()> work,std::function<void(std::exception_ptr)> done);
@@ -109,11 +111,18 @@ struct Operation : std::enable_shared_from_this<Operation> {
  void complete(std::shared_ptr<Result>); void cancel(); bool completed();
 };
 enum class Action { Open,Close,CloseInput,Read,Write,Execute,ExecuteUntil,Upload,Download };
+// A request owns its decoder state; only complete scalars advance the wire offset.
+struct DecodedText {
+ size_t consumed=0; uint64_t characters=0; std::string text;
+ void append(std::string_view,cd_encoding_t);
+};
 struct Request {
  Action action; bool text=false; std::string input,source,destination; Check check; Options options;
  bool overwrite=true; std::shared_ptr<Operation> operation; Clock::time_point started=Clock::now();
  std::shared_ptr<Result> result=std::make_shared<Result>();
  std::shared_ptr<asio::steady_timer> deadline,idle; bool sent=false,writing=false,early=false;
+ std::string delimiter; size_t delimiter_scanned=0;
+ DecodedText boundary_text,check_text; size_t check_scanned=0;
  std::string marker; int marker_mask=0; std::optional<int> marker_exit;
  Request(Action a,bool t,Options o):action(a),text(t),options(std::move(o)){}
 };
@@ -157,7 +166,7 @@ struct Connection : std::enable_shared_from_this<Connection> {
  void abort(const std::shared_ptr<Request>&,cd_status_t,std::string);
  void force_close(); void ensure_persistent(Completion);
  void finish_close(const std::shared_ptr<Request>&,cd_status_t=CD_OK,std::string={});
- bool boundary(std::string&,const Rule&,const Options&,size_t&,size_t&);
+ bool boundary(std::string&,Request&,size_t&,size_t&);
  void consume_pending(int stream,size_t count);
  std::string framed_command(const std::string&,const std::string&);
 };

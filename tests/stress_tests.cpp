@@ -92,4 +92,22 @@ static void retained_operations(int count){
  std::cout<<"METRIC retained_operations="<<count<<" elapsed_ms="<<std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now()-begin).count()<<"\n";
  cd_cancel_source_request(source.get());for(auto& op:operations)expect(cd_operation_is_completed(op.get()),"retained results survive token cancellation");
 }
-int main(int argc,char** argv){try{if(argc==3&&std::string(argv[1])=="--retained")retained_operations(std::stoi(argv[2]));else{simultaneous_close();cancellation_storm();duration_limits();retained_operations(1000);lifecycle_churn(argc==2?std::stoi(argv[1]):100);}std::cout<<"PASS native stress\n";return 0;}catch(const std::exception& e){std::cerr<<"FAIL: "<<e.what()<<"\n";return 1;}}
+static void pending_subscriptions(int count,bool shared,bool cancel=false){
+ struct Gate {std::mutex mutex;std::condition_variable cv;bool entered=false,released=false;} gate;
+ auto d=driver();auto gate_connection=cli(d);auto c=cli(d);
+ auto callback=[](cd_operation_t*,cd_result_t*,void* user){auto& g=*static_cast<Gate*>(user);std::unique_lock lock(g.mutex);g.entered=true;g.cv.notify_all();g.cv.wait(lock,[&]{return g.released;});};
+ cd_operation_t* first=nullptr;expect(cd_open_async(gate_connection.get(),nullptr,callback,&gate,&first)==CD_OK,"gate accepted");Operation opening(first,cd_operation_release);
+ {std::unique_lock lock(gate.mutex);gate.cv.wait(lock,[&]{return gate.entered;});}
+ cd_cancel_source_t* raw=nullptr;expect(cd_cancel_source_create(&raw)==CD_OK,"source");Handle<cd_cancel_source_t,cd_cancel_source_release> source(raw,cd_cancel_source_release);
+ cd_call_options_t options;cd_call_options_init(&options);options.timeout_ms=60000;if(shared)options.cancellation=source.get();
+ struct ReleaseGate {Gate& gate;~ReleaseGate(){{std::lock_guard lock(gate.mutex);gate.released=true;}gate.cv.notify_all();}} release{gate};
+ std::vector<Operation> operations;operations.reserve(count);auto begin=Clock::now();
+ for(int i=0;i<count;++i){cd_operation_t* op=nullptr;expect(cd_read_bytes_async(c.get(),&options,nullptr,nullptr,&op)==CD_OK,"submit");operations.emplace_back(op,cd_operation_release);}
+ if(cancel)cd_cancel_source_request(source.get());
+ auto us=std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-begin).count();
+ {std::lock_guard lock(gate.mutex);gate.released=true;}gate.cv.notify_all();
+ for(auto& op:operations){auto result=wait(op.get());expect(cd_result_get_status(result.get())==(cancel?CD_CANCELLED:CD_NOT_OPEN),"drained");}
+ std::cout<<"pending shared="<<shared<<" count="<<count<<" us="<<us<<"\n";
+}
+static void registry(int count){auto d=driver();std::vector<Connection> connections;connections.reserve(count);auto begin=Clock::now();for(int i=0;i<count;++i)connections.push_back(cli(d));auto us=std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-begin).count();cd_result_t* raw=nullptr;expect(cd_driver_close(d.get(),&raw)==CD_OK,"driver close");Result result(raw,cd_result_release);for(auto& c:connections)expect(cd_connection_get_state(c.get())==CD_STATE_CLOSED,"driver closes every registered connection");std::cout<<"registry count="<<count<<" us="<<us<<"\n";}
+int main(int argc,char** argv){try{if(argc==2&&std::string(argv[1])=="--performance"){for(int count:{2000,4000,8000,16000}){pending_subscriptions(count,false);pending_subscriptions(count,true);registry(count);}}else if(argc==3&&std::string(argv[1])=="--retained")retained_operations(std::stoi(argv[2]));else{pending_subscriptions(512,true,true);registry(512);simultaneous_close();cancellation_storm();duration_limits();retained_operations(1000);lifecycle_churn(argc==2?std::stoi(argv[1]):100);}std::cout<<"PASS native stress\n";return 0;}catch(const std::exception& e){std::cerr<<"FAIL: "<<e.what()<<"\n";return 1;}}

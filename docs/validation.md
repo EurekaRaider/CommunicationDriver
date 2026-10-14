@@ -69,6 +69,84 @@ cmake --build build-tsan --parallel 4
 TSAN_OPTIONS=halt_on_error=1 ctest --test-dir build-tsan --output-on-failure --repeat until-fail:3
 ```
 
+## 分隔符接收性能复查（2026-10-14）
+
+确认并修复 `ReadUntil` / `ReadLine` / 使用分隔符的 `Execute`、`ExecuteUntil` 的重复扫描：原实现每次收到数据都从头搜索累积回复，并重复编码文本分隔符。大回复分片越多，累计扫描越多。现在每个请求缓存线上的分隔符字节，并从上次扫描末尾减去 `delimiter.size()-1` 的位置继续搜索，保留跨块匹配需要的重叠范围。新请求重新初始化搜索状态，公开 API / ABI、超时和字节上限不变。
+
+对比基线为 `d8955a9`，使用同一新增基准程序；两侧均为本机 AppleClang Release、`CD_FETCH_DEPENDENCIES=OFF` 的相同系统依赖。TCP 回环服务端每次写入 4 KiB，并关闭 Nagle；内核仍可能合并数据块。指标包含接收、字符串解码和结果构造，是该负载的端到端时间，不是纯扫描耗时或真实网络吞吐保证。每组交替运行三次，列中位数，原始样本见 [delimiter-performance-macos-arm64.json](evidence/delimiter-performance-macos-arm64.json)。
+
+| 回复大小 | 修复前 | 修复后 | 耗时变化 |
+| --- | --- | --- | --- |
+| 8 MiB | 44.51 ms | 47.57 ms | 增加约 6.9% |
+| 32 MiB | 219.74 ms | 176.57 ms | 减少约 19.6% |
+| 128 MiB | 2400.53 ms | 698.20 ms | 减少约 70.9% |
+
+收益集中在大回复，不能声称所有负载都更快。小负载仍有约 3 ms 的退化；关闭服务端 Nagle 后仍存在，因此未将其归因于 Nagle 或直接排除为噪声。基准显式提高 `MaxResponseBytes`，生产默认 1 MiB 上限未改变。
+
+新增回归覆盖：重复前缀分隔符跨多个 UDP 包、包含/剥离分隔符、提前匹配后的清理和下一帧、GB18030 文本分隔符、含 NUL 的字节分隔符、1 MiB TCP 分片回复及剩余帧。Release（锁定依赖）和 ASan/UBSan 的四项 CTest 均通过，`git diff --check` 通过。该轮未重新运行跨平台 CI、真实 SSH/SFTP、Android 或串口硬件；不能据此断言整个库在所有负载下均无性能瓶颈。
+
+复跑大回复基准：
+
+```sh
+cmake --build build-locked --parallel 4
+ctest --test-dir build-locked --output-on-failure
+build-locked/cd_tests --delimiter-mebibytes 8
+build-locked/cd_tests --delimiter-mebibytes 32
+build-locked/cd_tests --delimiter-mebibytes 128
+```
+
+## 第二轮：文本、调度与 C# 包装性能（2026-10-14）
+
+修复前快照包含上一节的分隔符优化（`d8955a9` 加当时未提交的修改），不是直接拿旧提交替代本轮基线。Native 前后使用同一 Release 基准可执行文件和锁定依赖，只切换动态库；C# 前后使用同一 net10 基准源码分别编译旧、新包装层。每个负载串行交替运行三次，表内为中位数。全部原始样本和源码/二进制摘要见 [performance-round2-macos-arm64.json](evidence/performance-round2-macos-arm64.json)。
+
+| 路径与负载 | 修复前 | 修复后 | 耗时减少 |
+| --- | --- | --- | --- |
+| 8 MiB `ExecuteUntil` 文本 Contains，直到协议结束仍不匹配 | 546.23 ms | 49.13 ms | 91.0% |
+| 8 MiB `ReadExactlyString` | 691.64 ms | 54.09 ms | 92.2% |
+| 同一取消源，提交并保留 16,000 个未完成操作 | 661.97 ms | 2.70 ms | 99.6% |
+| 同一 Driver 创建并保留 16,000 个连接 | 152.97 ms | 2.34 ms | 98.5% |
+| 取消已调度的 8,000 个批次项，另有 3 项未调度 | 279.96 ms | 2.45 ms | 99.1% |
+| C# 结构体初始化 1,000,000 次 | 26.62 ms | 2.58 ms | 90.3% |
+| C# UTF-8 编码：256 KiB ASCII × 128 | 5.12 ms | 1.31 ms | 74.4% |
+| C# UTF-8 解码：256 KiB ASCII × 128 | 7.18 ms | 4.45 ms | 38.0% |
+
+取消订阅的 4k/8k/16k 修复后分别为 0.50/1.29/2.70 ms；连接注册分别为 0.54/1.17/2.34 ms；批次取消的 2k/4k/8k 分别为 0.65/1.24/2.45 ms。对照项也保留在 JSON：不使用取消源的 16k 提交为 2.32→2.33 ms，普通 1 MiB 分隔符接收为 7.04→6.98 ms。没有对未改变的路径声称普遍加速，也不使用跨机器固定耗时作为测试通过条件。
+
+C# 当前线程分配量：结构体初始化 64,005,288→40 字节（后者为计时器）；编码 33,625,936→14,376 字节；解码 100,767,936→67,111,976 字节。解码仍需创建最终 .NET string，消除的是中间 byte[]。这些是热路径微基准，不代表完整 C# 网络请求延迟，也不能外推为 net48 的实测收益。
+
+实现与边界：
+
+- 文本解码按请求缓存已消费的原始字节、解码文本和 Unicode scalar 数，只处理新字节及不足一个字符的尾部；Contains 保留跨块匹配所需的重叠范围。检查采用只读视图，避免为字节检查或隐藏协议分隔符复制完整回复。
+- Regex/Pattern 复用增量解码，但每次正则匹配仍使用完整文本，保留锚点、不定长匹配与捕获组语义；未宣称任意正则模式都变成线性增量匹配。
+- 取消订阅和连接注册只在增长阈值到达时清理弱引用，清理后按存活数设置下次阈值，避免每次插入全表扫描；并未取消已完成/过期项的清理。大并发峰值之后允许暂存弱引用元数据，其量受此前峰值约束。
+- 批次取消只遍历并通知一次，后续完成回调只收集结果。已调度项仍返回 Cancelled，未调度项仍为 NotStarted，结果顺序和恰好一次完成不变。
+- C# 缓存每个原生结构体的零值模板（含 `struct_size`），每次返回值副本。UTF-8 使用有长度的指针重载，保留严格非法编码检查、嵌入 NUL、空值和原生结果生命周期；[Encoding.GetString](https://learn.microsoft.com/en-us/dotnet/api/system.text.encoding.getstring) 与 [Encoding.GetBytes](https://learn.microsoft.com/en-us/dotnet/api/system.text.encoding.getbytes) API 已核对，net48/net10 实际编译通过。
+
+验证：
+
+- Release 四项 CTest 通过；ASan/UBSan、ThreadSanitizer 四项各三轮通过，并对最后补充的回归再次检查。
+- 新增 UTF-8（含补充平面字符）/GB18030（含 U+0080 四字节序列）跨块 scalar、Contains/Regex、Pattern 边界、stderr、后续帧，以及非法/不完整编码的部分结果回归；包含前一轮分隔符测试。
+- 新增 512 个待完成操作的共享源取消、512 个注册连接随 Driver 关闭、受控大批次取消回归；既有并发取消、保留已完成操作、生命周期测试继续运行。
+- C# net48/net10 编译：0 warning / 0 error；net10 包装层测试验证零值结构体、并发转换、非法 UTF-16/UTF-8、截断 UTF-8、超长结果拒绝、空字符串和嵌入 NUL。
+- C# 压力：44,000 次操作、1,408 次并发关闭，20 个已释放包装对象全部可回收。真实回环 OpenSSH/SFTP 连续三轮通过，包含 host key 校验、持久/单次、提前匹配清理与文件一致性。
+- 托管互操作回归已加入 CI 配置；上述测量与验证来自本机，跨平台结果以对应提交的 Platform CI 为准。net48 本机仅编译；真实 Android、实体串口未验证。
+
+复跑：
+
+```sh
+cmake --build build-locked --parallel 4
+ctest --test-dir build-locked --output-on-failure
+build-locked/cd_tests --text-performance
+build-locked/cd_stress_tests --performance
+build-locked/cd_tests --batch-cancel-count 8000
+dotnet run --project tests/dotnet/Performance -c Release
+dotnet build tests/dotnet/Stress -c Release
+DYLD_LIBRARY_PATH="$PWD/build-locked" dotnet tests/dotnet/Stress/bin/Release/net10.0/Stress.dll 10
+python3 scripts/test_ssh_local.py --build build-locked --user-server --repeat 3
+```
+
+保留修复前的动态库及两份 C# 基准输出后，可用 `scripts/compare_performance.py --build <基准构建目录> --before-native <旧库目录> --after-native <新库目录> --before-managed <旧包装层Performance.dll> --after-managed <新包装层Performance.dll> --output <结果.json>` 交替复测。C# 基准项目支持 `-p:DriverSourceRoot=<包装层源码目录>`，用于让两侧复用相同测试程序。TCP 大回复显式调高响应上限，默认 1 MiB 未改变；这些结果来自本机回环与受控排队负载。
+
 ## 既有平台与制品验收
 
 [最终软件提交 `3da0d8c`](https://github.com/EurekaRaider/CommunicationDriver/commit/3da0d8cab143ae1ea1d2c3e2f0a6e4e7b2150177) 的 [Platform CI #38397256682](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/38397256682) 六平台任务与合并 NuGet 任务均已终态成功。本机仅 macOS ARM64；其他平台结论来自对应真实 CI runner 上的实际程序执行。

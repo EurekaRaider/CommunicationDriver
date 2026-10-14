@@ -129,20 +129,49 @@ Options::Options(const Defaults& d,const cd_call_options_t* o,uint64_t fallback)
  cancellation=cd::cancellation(o->cancellation);
 }
 void Cancellation::request() {if(requested.exchange(true))return;std::vector<std::weak_ptr<Operation>> targets;{std::lock_guard lock(mutex);targets.swap(listeners);}for(auto& weak:targets)if(auto op=weak.lock())op->cancel();}
-void Cancellation::subscribe(std::weak_ptr<Operation> weak) {{std::lock_guard lock(mutex);if(!requested){std::erase_if(listeners,[](auto& entry){auto op=entry.lock();return !op||op->completed();});listeners.push_back(std::move(weak));return;}}if(auto op=weak.lock())op->cancel();}
+// Amortize cleanup across insertions while retaining only weak ownership.
+void Cancellation::subscribe(std::weak_ptr<Operation> weak) {
+ {std::lock_guard lock(mutex);if(!requested){
+  if(listeners.size()>=cleanup_at){
+   std::erase_if(listeners,[](auto& entry){auto op=entry.lock();return !op||op->completed();});
+   cleanup_at=std::max<size_t>(64,listeners.size()*2);
+  }
+  listeners.push_back(std::move(weak));return;
+ }}
+ if(auto op=weak.lock())op->cancel();
+}
 std::string Config::name() const { static const char* names[]={"tcp","udp","serial","ssh","adb","cli"}; return names[backend]; }
+void DecodedText::append(std::string_view raw,cd_encoding_t encoding) {
+ if(raw.size()<consumed){consumed=0;characters=0;text.clear();}
+ if(raw.size()==consumed)return;
+ auto tail=std::string(raw.substr(consumed));auto next=decode(tail,encoding,false);
+ consumed+=encoding==CD_ENCODING_GB18030?gb18030_prefix(tail,false):next.size();
+ characters+=scalar_count(next);text+=next;
+}
 void Result::evaluate(const Check& c,int stream,cd_encoding_t encoding,bool final) {
- if(c.kind==CD_CHECK_NONE) return;
+ if(c.kind==CD_CHECK_NONE)return;
+ if(c.text){auto decoded=decode(raw[stream],encoding,final);evaluate_data(c,decoded);}
+ else evaluate_data(c,raw[stream]);
+}
+void Result::evaluate_data(const Check& c,std::string_view data,size_t start) {
+ if(c.kind==CD_CHECK_NONE)return;
  check_present=true;matched_is_text=c.text; matched.clear();groups.clear();failure.clear();
- const std::string data=c.text?decode(raw[stream],encoding,final):raw[stream]; size_t pos=std::string::npos;
- if(c.kind==CD_CHECK_CONTAINS) {pos=data.find(c.value);passed=pos!=std::string::npos;if(passed) matched=c.value;}
+ size_t pos=std::string::npos;
+ if(c.kind==CD_CHECK_CONTAINS) {pos=data.find(c.value,start);passed=pos!=std::string::npos;if(passed) matched=c.value;}
  else if(c.kind==CD_CHECK_EQUALS) {passed=data==c.value;if(passed) matched=data;}
- else {std::vector<absl::string_view> captures(static_cast<size_t>(c.regex->NumberOfCapturingGroups())+1); passed=c.regex->Match(data,0,data.size(),RE2::UNANCHORED,captures.data(),static_cast<int>(captures.size())); if(passed) {matched=std::string(captures[0]);for(size_t i=1;i<captures.size();++i) groups.emplace_back(captures[i]);}}
+ else {std::vector<absl::string_view> captures(static_cast<size_t>(c.regex->NumberOfCapturingGroups())+1); passed=c.regex->Match({data.data(),data.size()},0,data.size(),RE2::UNANCHORED,captures.data(),static_cast<int>(captures.size())); if(passed) {matched=std::string(captures[0]);for(size_t i=1;i<captures.size();++i) groups.emplace_back(captures[i]);}}
  if(!passed) failure="Response did not match";
 }
 Runtime::Runtime() { auto s=state; worker=std::thread([s]{current_io=s.get();s->io.run();current_io=nullptr;}); }
 Runtime::~Runtime() { guard.reset(); if(worker.joinable()) {if(worker.get_id()==std::this_thread::get_id()) worker.detach();else worker.join();} }
-void Runtime::register_connection(const std::shared_ptr<Connection>& c) { std::lock_guard lock(registry_mutex);if(closed) throw Fault(CD_CLOSED,"Driver is closed");std::erase_if(connections,[](const auto& connection){return connection.expired();});connections.push_back(c); }
+void Runtime::register_connection(const std::shared_ptr<Connection>& c) {
+ std::lock_guard lock(registry_mutex);if(closed)throw Fault(CD_CLOSED,"Driver is closed");
+ if(connections.size()>=cleanup_at){
+  std::erase_if(connections,[](const auto& connection){return connection.expired();});
+  cleanup_at=std::max<size_t>(64,connections.size()*2);
+ }
+ connections.push_back(c);
+}
 void Runtime::close(std::function<void()> callback) {
  closed=true; std::vector<std::shared_ptr<Connection>> list;
  {std::lock_guard lock(registry_mutex);for(auto& w:connections) if(auto c=w.lock()) list.push_back(std::move(c));}
@@ -451,13 +480,22 @@ void Connection::receive(int stream,std::string data,bool end,bool isolated) {
  if(total>wire_limit||messages[0].size()+messages[1].size()>std::max<uint64_t>(1024,limit/sizeof(size_t))) {state=CD_STATE_NEEDS_RECOVERY;if(r) {r->result->raw[stream]+=pending[stream];pending[stream].clear();finish(CD_LIMIT_EXCEEDED,"Response buffer limit exceeded");}if(persistent) persistent->close();if(one_shot) one_shot->close();return;}
  process_data();
 }
-bool Connection::boundary(std::string& data,const Rule& rule,const Options& options,size_t& consume,size_t& keep) {
+bool Connection::boundary(std::string& data,Request& request,size_t& consume,size_t& keep) {
+ const auto& options=request.options;const auto& rule=options.rule;
  consume=keep=0;
  switch(rule.kind) {
  case CD_RECEIVE_BYTES: if(data.size()>=rule.count) {consume=keep=static_cast<size_t>(rule.count);return true;}return false;
- case CD_RECEIVE_CHARACTERS: {auto text=decode(data,options.encoding,false);auto pos=scalar_prefix(text,rule.count);if(pos==std::string::npos) return false;consume=keep=encode(text.substr(0,pos),options.encoding).size();return true;}
- case CD_RECEIVE_DELIMITER: {auto delimiter=rule.text?encode(rule.value,options.encoding):rule.value;auto pos=data.find(delimiter);if(pos==std::string::npos) return false;consume=pos+delimiter.size();keep=rule.include?consume:pos;return true;}
- case CD_RECEIVE_PATTERN: {auto text=decode(data,options.encoding,false);absl::string_view match;if(!rule.regex->Match(text,0,text.size(),RE2::UNANCHORED,&match,1)) return false;size_t end=static_cast<size_t>(match.data()-text.data())+match.size();consume=keep=encode(text.substr(0,end),options.encoding).size();return true;}
+ case CD_RECEIVE_CHARACTERS: {auto& decoded=request.boundary_text;decoded.append(data,options.encoding);if(decoded.characters<rule.count)return false;auto pos=scalar_prefix(decoded.text,rule.count);consume=keep=encode(decoded.text.substr(0,pos),options.encoding).size();return true;}
+ case CD_RECEIVE_DELIMITER: {
+  if(request.delimiter.empty())request.delimiter=rule.text?encode(rule.value,options.encoding):rule.value;
+  const auto& delimiter=request.delimiter;
+  // Only the previous suffix can start a delimiter spanning the new block.
+  size_t overlap=delimiter.size()-1;
+  size_t start=request.delimiter_scanned>overlap?request.delimiter_scanned-overlap:0;
+  auto pos=data.find(delimiter,start);request.delimiter_scanned=data.size();
+  if(pos==std::string::npos)return false;consume=pos+delimiter.size();keep=rule.include?consume:pos;return true;
+ }
+ case CD_RECEIVE_PATTERN: {request.boundary_text.append(data,options.encoding);const auto& text=request.boundary_text.text;absl::string_view match;if(!rule.regex->Match(text,0,text.size(),RE2::UNANCHORED,&match,1)) return false;size_t end=static_cast<size_t>(match.data()-text.data())+match.size();consume=keep=encode(text.substr(0,end),options.encoding).size();return true;}
  case CD_RECEIVE_AVAILABLE: if(!data.empty()) {consume=keep=data.size();return true;}return false;
  case CD_RECEIVE_MESSAGE: {auto& sizes=messages[options.read_stream];if(sizes.empty()) return false;consume=keep=sizes.front();return true;}
  default: return false;
@@ -472,7 +510,7 @@ void Connection::process_data() {
  try {
   if(r->action==Action::Read) {
    int stream=r->options.read_stream;size_t consume=0,keep=0;
-   if(boundary(pending[stream],r->options.rule,r->options,consume,keep)) {
+   if(boundary(pending[stream],*r,consume,keep)) {
     if(r->text&&r->options.rule.kind==CD_RECEIVE_AVAILABLE) {auto text=decode(pending[stream],r->options.encoding,false);if(text.empty()&&!pending[stream].empty()) {if(eof[stream]) throw Fault(CD_ENCODING_ERROR,"Incomplete terminal scalar");return;}consume=keep=encode(text,r->options.encoding).size();}
     r->result->raw[stream]=pending[stream].substr(0,keep);consume_pending(stream,consume);finish();return;
    }
@@ -501,14 +539,18 @@ void Connection::process_data() {
   bool raw_done=false;size_t raw_consume=0,raw_keep=0;
   if(raw_until) {
    r->result->raw[0]+=std::exchange(pending[0],{});r->result->raw[1]+=std::exchange(pending[1],{});
-   if(r->options.rule.kind!=CD_RECEIVE_NONE&&r->options.rule.kind!=CD_RECEIVE_AVAILABLE&&r->options.rule.kind!=CD_RECEIVE_IDLE) raw_done=boundary(r->result->raw[0],r->options.rule,r->options,raw_consume,raw_keep);
+   if(r->options.rule.kind!=CD_RECEIVE_NONE&&r->options.rule.kind!=CD_RECEIVE_AVAILABLE&&r->options.rule.kind!=CD_RECEIVE_IDLE) raw_done=boundary(r->result->raw[0],*r,raw_consume,raw_keep);
   }
   if(r->action==Action::ExecuteUntil&&!r->early) {
-   std::optional<std::string> accumulated;size_t visible_size=r->result->raw[0].size();
-   if(raw_until){size_t visible=r->result->raw[0].size();if(raw_done)visible=raw_keep;else if(r->options.rule.kind==CD_RECEIVE_DELIMITER&&!r->options.rule.include){auto delimiter=r->options.rule.text?encode(r->options.rule.value,r->options.encoding):r->options.rule.value;for(size_t n=1;n<delimiter.size()&&n<=r->result->raw[0].size();++n)if(r->result->raw[0].compare(r->result->raw[0].size()-n,n,delimiter,0,n)==0)visible=r->result->raw[0].size()-n;}if(visible<r->result->raw[0].size()){accumulated=std::move(r->result->raw[0]);r->result->raw[0]=accumulated->substr(0,visible);}}
-   visible_size=r->result->raw[0].size();
-   try{r->result->evaluate(r->check,r->options.check_stream,r->options.encoding,false);}catch(...){if(accumulated)r->result->raw[0]=std::move(*accumulated);throw;}
-   if(accumulated)r->result->raw[0]=std::move(*accumulated);
+   size_t visible_size=r->result->raw[0].size();
+   if(raw_until){if(raw_done)visible_size=raw_keep;else if(r->options.rule.kind==CD_RECEIVE_DELIMITER&&!r->options.rule.include){const auto& delimiter=r->delimiter;for(size_t n=1;n<delimiter.size()&&n<=r->result->raw[0].size();++n)if(r->result->raw[0].compare(r->result->raw[0].size()-n,n,delimiter,0,n)==0)visible_size=r->result->raw[0].size()-n;}}
+   std::string_view checked=r->result->raw[r->options.check_stream];
+   if(r->options.check_stream==0)checked=checked.substr(0,visible_size);
+   if(r->check.text){r->check_text.append(checked,r->options.encoding);checked=r->check_text.text;}
+   // Contains only needs the new data and a possible cross-block prefix.
+   size_t overlap=r->check.value.empty()?0:r->check.value.size()-1;
+   size_t start=r->check.kind==CD_CHECK_CONTAINS&&r->check_scanned<=checked.size()&&r->check_scanned>overlap?r->check_scanned-overlap:0;
+   r->result->evaluate_data(r->check,checked,start);r->check_scanned=checked.size();
    if(r->result->passed) {
     r->result->completion=CD_COMPLETION_MATCH;
     bool cleanup=!r->marker.empty()||(config.backend>=3&&config.mode==CD_ONE_SHOT)||(raw_until&&r->options.rule.kind!=CD_RECEIVE_NONE&&r->options.rule.kind!=CD_RECEIVE_AVAILABLE&&r->options.rule.kind!=CD_RECEIVE_IDLE);
@@ -524,7 +566,7 @@ void Connection::process_data() {
   if(command_done) {if(!r->early&&r->action==Action::ExecuteUntil&&!r->result->passed) {finish(CD_END_OF_STREAM,"Command completed without matching");return;}if(!r->early&&r->result->completion!=CD_COMPLETION_MATCH) r->result->completion=CD_COMPLETION_COMMAND;finish();return;}
   if(r->marker.empty()&&!(config.backend>=3&&config.mode==CD_ONE_SHOT)&&r->action==Action::Execute) {
    size_t consume=0,keep=0;int stream=0;
-   if(boundary(pending[stream],r->options.rule,r->options,consume,keep)) {r->result->raw[stream]=pending[stream].substr(0,keep);consume_pending(stream,consume);r->result->completion=CD_COMPLETION_PROTOCOL;finish();return;}
+   if(boundary(pending[stream],*r,consume,keep)) {r->result->raw[stream]=pending[stream].substr(0,keep);consume_pending(stream,consume);r->result->completion=CD_COMPLETION_PROTOCOL;finish();return;}
    if(r->options.rule.kind==CD_RECEIVE_IDLE&&!pending[0].empty()) {r->result->raw[0]+=pending[0];consume_pending(0,pending[0].size());if(!r->idle) r->idle=std::make_shared<asio::steady_timer>(runtime->state->io);r->idle->expires_after(std::chrono::milliseconds(r->options.rule.idle_ms));auto self=shared_from_this();r->idle->async_wait([self,r](ErrorCode e){if(!e&&self->active==r) {r->result->completion=CD_COMPLETION_IDLE;self->state=CD_STATE_NEEDS_RECOVERY;self->finish();}});}
   }
   bool input_ended=eof[0]&&(!(capabilities&CD_CAP_STDERR)||eof[1]);

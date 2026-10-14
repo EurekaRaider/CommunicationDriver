@@ -1,5 +1,6 @@
 #include <communicationdriver/communicationdriver.h>
 #include <boost/asio.hpp>
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -46,11 +47,13 @@ struct Peers {
  struct Session:std::enable_shared_from_this<Session> {Peers& owner;asio::ip::tcp::socket socket;std::array<char,1024> buffer;Session(Peers& p,asio::ip::tcp::socket s):owner(p),socket(std::move(s)){}
   void read(){auto self=shared_from_this();socket.async_read_some(asio::buffer(buffer),[self](auto e,size_t n){if(e)return;std::string command(self->buffer.data(),n);++self->owner.requests;
    if(command=="UTF")self->send_chunks({"A\xf0\x9f","\x98\x84"});
+   else if(command.rfind("BULK:",0)==0){self->socket.set_option(asio::ip::tcp::no_delay(true));self->send_bulk(std::stoull(command.substr(5)));}
    else if(command=="BAD")self->send_chunks({std::string("A\xff",2)});
    else if(command=="EOF"){auto bytes=std::make_shared<std::string>("PART");asio::async_write(self->socket,asio::buffer(*bytes),[self,bytes](auto error,size_t){if(!error){boost::system::error_code ignored;self->socket.shutdown(asio::ip::tcp::socket::shutdown_send,ignored);}});}
    else if(command=="LATE")self->send_chunks({"BUSY","READY"},150);
    else if(command=="FRAME")self->send_chunks({"NOT","\n"});
    else self->send_chunks({command});self->read();});}
+  void send_bulk(size_t remaining){auto self=shared_from_this();auto bytes=std::make_shared<std::string>(remaining?std::min<size_t>(remaining,4096):0,'x');if(!remaining)*bytes="\r\nTAIL\r\n";asio::async_write(socket,asio::buffer(*bytes),[self,bytes,remaining](auto e,size_t){if(!e&&remaining)self->send_bulk(remaining-bytes->size());});}
   void send_chunks(std::vector<std::string> data,int delay=5){auto self=shared_from_this();for(size_t i=0;i<data.size();++i){auto timer=std::make_shared<asio::steady_timer>(owner.io,std::chrono::milliseconds(i*delay));auto bytes=std::make_shared<std::string>(data[i]);timer->async_wait([self,timer,bytes](auto e){if(!e)asio::async_write(self->socket,asio::buffer(*bytes),[self,bytes](auto,size_t){});});}}
  };
  std::array<char,65536> udp_buffer;asio::ip::udp::endpoint sender;
@@ -59,6 +62,13 @@ struct Peers {
  void accept(){listener.async_accept([this](auto e,auto socket){if(!e)std::make_shared<Session>(*this,std::move(socket))->read();accept();});}
  void receive(){udp.async_receive_from(asio::buffer(udp_buffer),sender,[this](auto e,size_t n){if(e)return;std::string command(udp_buffer.data(),n);auto destination=sender;++requests;
   std::vector<std::string> chunks=command=="UDP"?std::vector<std::string>{"REA","DY"}:command=="UTF"?std::vector<std::string>{"\xe4","\xbd","\xa0\xf0\x9f","\x98\x84"}:command=="GB"?std::vector<std::string>{"\xc4","\xe3","\xba","\xc3"}:std::vector<std::string>{command};
+  if(command=="UTFMATCH")chunks={"A\xe4","\xbd\xa0\xf0\x9f","\x98\x84READY","\r","\nTAIL"};
+  if(command=="GBSCALAR")chunks={"A\xc4","\xe3\x81","\x30\x81","\x30" "B"};
+  if(command=="TEXTBAD")chunks={"A",std::string(1,char(0xff))};
+  if(command=="TEXTPART")chunks={"A",std::string(1,char(0xe4))};
+  if(command=="DELIM")chunks={"payloadab","ab","a","cTAILab","abac"};
+  if(command=="GBDELIM")chunks={"payload\xc4","\xe3","TAIL\xc4","\xe3"};
+  if(command=="BINARYDELIM")chunks={std::string("payload\0",8),"!TAIL",std::string("\0!",2)};
   for(size_t i=0;i<chunks.size();++i){auto timer=std::make_shared<asio::steady_timer>(io,std::chrono::milliseconds(i*5));auto bytes=std::make_shared<std::string>(chunks[i]);timer->async_wait([this,timer,bytes,destination](auto error){if(!error)udp.async_send_to(asio::buffer(*bytes),destination,[bytes](auto,size_t){});});}receive();});}
  Connection tcp(Driver& d,bool framed=true){Connection c;cd_tcp_options_t o;cd_tcp_options_init(&o);o.host=CD_SV("127.0.0.1");o.port=listener.local_endpoint().port();if(framed)o.defaults.receive_until=cd_receive_until_delimiter_string(CD_SV("\n"),0);Result e;ok(cd_create_tcp(d.handle,&o,&c.handle,&e.handle),e,"create tcp");c.open();return c;}
  Connection datagram(Driver& d){Connection c;cd_udp_options_t o;cd_udp_options_init(&o);o.remote_host=CD_SV("127.0.0.1");o.remote_port=udp.local_endpoint().port();o.defaults.receive_until=cd_receive_until_bytes(5);Result e;ok(cd_create_udp(d.handle,&o,&c.handle,&e.handle),e,"create udp");c.open();return c;}
@@ -175,6 +185,80 @@ static void mixed_batch(int seconds){
  auto begin=Clock::now();uint64_t batches=0;do {Result result;ok(cd_batch_run(driver.handle,items.data(),items.size(),nullptr,&result.handle),result,"mixed batch");cd_batch_info_t info{};info.struct_size=sizeof(info);cd_result_get_batch_info(result.handle,&info);if(!info.all_succeeded){for(int i=0;i<32;++i){cd_batch_item_result_t r{};r.struct_size=sizeof(r);cd_result_get_batch_item(result.handle,i,&r);if(!r.succeeded){std::cerr<<keys[i]<<" status="<<cd_status_name(cd_result_get_status(r.result));for(int stream=0;stream<2;++stream){cd_bytes_view_t partial{};cd_result_get_bytes(r.result,stream,&partial);std::cerr<<" stream"<<stream<<"[";for(size_t j=0;j<partial.size&&j<1024;++j){auto c=partial.data[j];if(c=='\r')std::cerr<<"\\r";else if(c=='\n')std::cerr<<"\\n";else std::cerr<<char(c);}std::cerr<<"]";}std::cerr<<"\n";}}}expect(info.all_succeeded&&info.item_count==32,"32 mixed connections all pass");++batches;if(batches%1000==0)std::cout<<"SOAK batches="<<batches<<" elapsed_s="<<std::chrono::duration_cast<std::chrono::seconds>(Clock::now()-begin).count()<<std::endl;}while(Clock::now()-begin<std::chrono::seconds(seconds));
  std::cout<<"METRIC mixed_connections=32 batches="<<batches<<" operations="<<batches*32<<" elapsed_ms="<<std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now()-begin).count()<<"\n";
 }
+static void incremental_text(){
+ Driver driver;Peers peers;
+ for(bool regex:{false,true}){
+  auto c=peers.datagram(driver);cd_call_options_t o;cd_call_options_init(&o);o.receive_until=cd_receive_until_delimiter_string(CD_SV("\r\n"),0);
+  auto check=regex?cd_check_regex(CD_SV("(\xe4\xbd\xa0)(\xf0\x9f\x98\x84)READY")):cd_check_contains_string(CD_SV("\xe4\xbd\xa0\xf0\x9f\x98\x84READY"));Result r;
+  ok(cd_execute_until_string(c.handle,CD_SV("UTFMATCH"),&check,&o,&r.handle),r,"incremental Unicode match");expect(r.text()=="A\xe4\xbd\xa0\xf0\x9f\x98\x84READY"&&r.passed(),"match crosses UTF8 blocks and keeps prefix");
+  if(regex){cd_check_result_t matched{};matched.struct_size=sizeof(matched);cd_result_get_check(r.handle,&matched);expect(matched.group_count==2,"incremental regex captures preserved");}
+  Result tail;ok(cd_read_exactly_string(c.handle,4,nullptr,&tail.handle),tail,"tail after match cleanup");expect(tail.text()=="TAIL","decoder does not leak into next request");
+ }
+ {auto c=peers.datagram(driver);cd_call_options_t o;cd_call_options_init(&o);o.encoding=CD_ENCODING_GB18030;Result w;ok(cd_write_string(c.handle,CD_SV("GBSCALAR"),nullptr,&w.handle),w,"GB scalar request");Result r;ok(cd_read_exactly_string(c.handle,3,&o,&r.handle),r,"incremental GB scalars");expect(r.text()=="A\xe4\xbd\xa0\xc2\x80","GB two and four byte scalars cross blocks");Result tail;ok(cd_read_exactly_string(c.handle,1,&o,&tail.handle),tail,"GB scalar tail");expect(tail.text()=="B","exact scalar wire offset preserves tail");}
+ {auto c=peers.datagram(driver);cd_call_options_t o;cd_call_options_init(&o);o.encoding=CD_ENCODING_GB18030;o.receive_until=cd_receive_until_delimiter_string(CD_SV("B"),0);auto check=cd_check_contains_string(CD_SV("\xe4\xbd\xa0\xc2\x80"));Result r;ok(cd_execute_until_string(c.handle,CD_SV("GBSCALAR"),&check,&o,&r.handle),r,"GB incremental check");expect(r.text()=="A\xe4\xbd\xa0\xc2\x80"&&r.passed(),"GB check and delimiter preserve wire offset");}
+ {auto c=peers.datagram(driver);Result w;ok(cd_write_string(c.handle,CD_SV("UTFMATCH"),nullptr,&w.handle),w,"pattern request");auto rule=cd_receive_until_pattern(CD_SV("\xe4\xbd\xa0.*READY"));Result r;ok(cd_read_until_string(c.handle,&rule,nullptr,&r.handle),r,"incremental pattern boundary");expect(r.text()=="A\xe4\xbd\xa0\xf0\x9f\x98\x84READY","pattern keeps prefix and full regex context");Result tail;ok(cd_read_exactly_string(c.handle,6,nullptr,&tail.handle),tail,"pattern remaining bytes");expect(tail.text()=="\r\nTAIL","pattern boundary preserves remaining frame");}
+#ifndef _WIN32
+ {auto c=cli(driver,true);cd_call_options_t o;cd_call_options_init(&o);o.check_stream=CD_STREAM_STDERR;auto check=cd_check_contains_string(CD_SV("READY"));Result r;ok(cd_execute_until_string(c.handle,CD_SV("printf OUT; printf AREADY >&2"),&check,&o,&r.handle),r,"stderr incremental match");expect(r.passed()&&r.text(1)=="AREADY","check decoder uses selected stderr stream");}
+#endif
+ for(bool until:{false,true})for(bool malformed:{false,true}){
+  auto c=peers.datagram(driver);cd_call_options_t o;cd_call_options_init(&o);o.timeout_ms=100;auto check=cd_check_contains_string(CD_SV("never"));Result r;
+  cd_status_t status;if(until)status=cd_execute_until_string(c.handle,malformed?CD_SV("TEXTBAD"):CD_SV("TEXTPART"),&check,&o,&r.handle);
+  else {Result w;ok(cd_write_string(c.handle,malformed?CD_SV("TEXTBAD"):CD_SV("TEXTPART"),nullptr,&w.handle),w,"partial text request");status=cd_read_exactly_string(c.handle,2,&o,&r.handle);}
+  expect(status==(malformed?CD_ENCODING_ERROR:CD_TIMEOUT)&&r.text()=="A"&&r.bytes()==std::string("A")+char(malformed?0xff:0xe4),"incremental failure preserves full raw reply and valid prefix");
+ }
+}
+static void batch_cancel_many(int count){
+ Driver driver;Peers peers;auto c=peers.tcp(driver);auto control=cli(driver,true);
+ struct Gate {std::mutex mutex;std::condition_variable cv;bool entered=false,released=false;
+  void wait(){std::unique_lock lock(mutex);if(!cv.wait_for(lock,std::chrono::seconds(10),[&]{return entered;}))throw std::runtime_error("batch gate watchdog");}
+  void release(){{std::lock_guard lock(mutex);released=true;}cv.notify_all();}
+ } first,second;
+ auto callback=[](cd_operation_t*,cd_result_t*,void* user){auto& g=*static_cast<Gate*>(user);std::unique_lock lock(g.mutex);g.entered=true;g.cv.notify_all();g.cv.wait(lock,[&]{return g.released;});};
+ struct Release {Gate& a;Gate& b;~Release(){a.release();b.release();}} release{first,second};
+ cd_operation_t* gate1=nullptr;expect(cd_open_async(control.handle,nullptr,callback,&first,&gate1)==CD_OK,"first gate accepted");first.wait();
+ std::vector<cd_batch_item_t> items(count+3);std::vector<std::string> keys;keys.reserve(items.size());for(size_t i=0;i<items.size();++i)keys.push_back(std::to_string(i));
+ for(size_t i=0;i<items.size();++i){auto& item=items[i];item.struct_size=sizeof(item);item.kind=CD_BATCH_EXECUTE_STRING;item.connection=c.handle;item.key=sv(keys[i]);item.command=CD_SV("WAIT");}
+ cd_batch_options_t options;cd_batch_options_init(&options);options.max_concurrency=count;cd_operation_t* batch=nullptr;
+ expect(cd_batch_run_async(driver.handle,items.data(),items.size(),&options,nullptr,nullptr,&batch)==CD_OK,"large batch accepted");
+ cd_operation_t* gate2=nullptr;expect(cd_open_async(control.handle,nullptr,callback,&second,&gate2)==CD_OK,"second gate accepted");first.release();second.wait();
+ auto begin=Clock::now();cd_operation_cancel(batch);second.release();Result r;wait(batch,r);
+ auto us=std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-begin).count();cd_batch_info_t info{};info.struct_size=sizeof(info);cd_result_get_batch_info(r.handle,&info);expect(info.was_cancelled&&info.item_count==items.size(),"batch cancellation keeps complete report");
+ for(int i=0;i<count+3;++i){cd_batch_item_result_t item{};item.struct_size=sizeof(item);cd_result_get_batch_item(r.handle,i,&item);expect(item.state==(i<count?CD_BATCH_CANCELLED:CD_BATCH_NOT_STARTED),"admitted cancellation and unstarted items preserved");}
+ Result a,b;wait(gate1,a);wait(gate2,b);std::cout<<"METRIC batch_cancel count="<<count<<" elapsed_us="<<us<<"\n";
+}
+static void delimiter_fragments(){
+ Driver driver;Peers peers;
+ for(int mode=0;mode<3;++mode)for(bool include:{false,true}){
+  auto connection=peers.datagram(driver);cd_call_options_t options;cd_call_options_init(&options);options.receive_until=cd_receive_until_delimiter_string(CD_SV("ababac"),include);
+  Result result;
+  if(mode==0){Result written;ok(cd_write_string(connection.handle,CD_SV("DELIM"),nullptr,&written.handle),written,"write fragmented delimiter request");ok(cd_read_until_string(connection.handle,&options.receive_until,&options,&result.handle),result,"read fragmented delimiter");}
+  else if(mode==1)execute(connection,"DELIM",result,nullptr,&options);
+  else {auto check=cd_check_contains_string(CD_SV("payload"));ok(cd_execute_until_string(connection.handle,CD_SV("DELIM"),&check,&options,&result.handle),result,"early match before split delimiter");expect(result.passed(),"early match passes");}
+  expect(result.text()==(include?(mode==2?"payloadab":"payloadababac"):"payload"),"overlapping delimiter spans multiple datagrams");
+  Result tail;ok(cd_read_until_string(connection.handle,&options.receive_until,&options,&tail.handle),tail,"read frame after split delimiter");expect(tail.text()==(include?"TAILababac":"TAIL"),"next request resets search and early cleanup preserves tail");
+ }
+ {auto connection=peers.datagram(driver);cd_call_options_t options;cd_call_options_init(&options);options.encoding=CD_ENCODING_GB18030;options.receive_until=cd_receive_until_delimiter_string(CD_SV("\xe4\xbd\xa0"),0);
+  Result result;execute(connection,"GBDELIM",result,nullptr,&options);expect(result.text()=="payload","text delimiter uses selected wire encoding");Result tail;ok(cd_read_until_string(connection.handle,&options.receive_until,&options,&tail.handle),tail,"encoded delimiter next frame");expect(tail.text()=="TAIL","encoded delimiter spans datagrams");}
+ {auto connection=peers.datagram(driver);uint8_t delimiter[]={0,'!'};auto rule=cd_receive_until_delimiter_bytes({delimiter,2},0);Result written;ok(cd_write_string(connection.handle,CD_SV("BINARYDELIM"),nullptr,&written.handle),written,"binary delimiter request");Result result;ok(cd_read_until_bytes(connection.handle,&rule,nullptr,&result.handle),result,"binary delimiter read");expect(result.bytes()=="payload","NUL delimiter matches across datagrams");Result tail;ok(cd_read_until_bytes(connection.handle,&rule,nullptr,&tail.handle),tail,"binary next frame");expect(tail.bytes()=="TAIL","binary next frame intact");}
+}
+static void delimiter_bulk(size_t mebibytes){
+ Driver driver;Peers peers;auto connection=peers.tcp(driver,false);size_t size=mebibytes*1024*1024;
+ cd_call_options_t options;cd_call_options_init(&options);options.max_response_bytes=size+64;options.timeout_ms=30000;options.receive_until=cd_receive_until_delimiter_string(CD_SV("\r\n"),0);
+ auto begin=Clock::now();Result result;execute(connection,"BULK:"+std::to_string(size),result,nullptr,&options);
+ auto elapsed=std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-begin).count();
+ expect(result.text()==std::string(size,'x'),"fragmented large delimiter response is intact");
+ Result tail;ok(cd_read_until_string(connection.handle,&options.receive_until,&options,&tail.handle),tail,"read next buffered delimiter frame");expect(tail.text()=="TAIL","delimiter search state resets for next request");
+ std::cout<<"METRIC delimiter_mebibytes="<<mebibytes<<" elapsed_us="<<elapsed<<"\n";
+}
+static void text_work(size_t mebibytes,int mode){
+ Driver driver;Peers peers;auto connection=peers.tcp(driver,false);size_t size=mebibytes*1024*1024;
+ cd_call_options_t options;cd_call_options_init(&options);options.max_response_bytes=size+64;options.timeout_ms=60000;options.receive_until=cd_receive_until_delimiter_string(CD_SV("\r\n"),0);
+ std::string command="BULK:"+std::to_string(size);Result result;auto begin=Clock::now();
+ if(mode==0)execute(connection,command,result,nullptr,&options);
+ else if(mode==3){Result written;ok(cd_write_string(connection.handle,sv(command),&options,&written.handle),written,"write");ok(cd_read_exactly_string(connection.handle,size,&options,&result.handle),result,"scalar read");}
+ else {uint8_t absent[]={'z'};auto check=mode==1?cd_check_contains_string(CD_SV("z")):cd_check_contains_bytes({absent,1});expect(cd_execute_until_string(connection.handle,sv(command),&check,&options,&result.handle)==CD_END_OF_STREAM,"nonmatching response boundary");}
+ auto us=std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-begin).count();expect(result.text()==std::string(size,'x'),"intact reply");std::cout<<"text mebibytes="<<mebibytes<<" mode="<<mode<<" us="<<us<<std::endl;
+}
 static void callback_release_race(){
  struct Context {std::mutex mutex;std::condition_variable cv;int completed=0;bool noninline=true;std::thread::id caller=std::this_thread::get_id();std::vector<cd_result_t*> retained;} context;
  auto callback=[](cd_operation_t*,cd_result_t* result,void* user){auto& c=*static_cast<Context*>(user);cd_result_retain(result);{std::lock_guard lock(c.mutex);c.retained.push_back(result);++c.completed;c.noninline=c.noninline&&std::this_thread::get_id()!=c.caller;}c.cv.notify_one();};
@@ -187,4 +271,4 @@ static void callback_release_race(){
  expect(cd_execute_string_async(shell.handle,input,nullptr,nullptr,callback,&context,&operation)==CD_OK,"accept operation before concurrent handle release");if(i%2==0)cd_operation_cancel(operation);cd_operation_release(operation);}}
  std::unique_lock lock(context.mutex);expect(context.cv.wait_for(lock,std::chrono::seconds(10),[&]{return context.completed==100;}),"accepted callbacks complete despite driver, connection and operation release");expect(context.noninline&&context.retained.size()==100,"callbacks are non-inline and exactly once");for(auto result:context.retained){expect(cd_result_get_status(result)!=CD_INTERNAL_ERROR,"retained callback result remains valid");cd_result_release(result);}
 }
-int main(int argc,char** argv){try {if(argc==3&&std::string(argv[1])=="--soak-seconds")mixed_batch(std::stoi(argv[2]));else {core_tests();batch_semantics();mixed_batch(1);callback_release_race();}std::cout<<"PASS checks="<<checks<<"\n";return 0;}catch(const std::exception& e){std::cerr<<"FAIL: "<<e.what()<<"\n";return 1;}}
+int main(int argc,char** argv){try {if(argc==3&&std::string(argv[1])=="--soak-seconds")mixed_batch(std::stoi(argv[2]));else if(argc==3&&std::string(argv[1])=="--delimiter-mebibytes")delimiter_bulk(std::stoull(argv[2]));else if(argc==3&&std::string(argv[1])=="--batch-cancel-count")batch_cancel_many(std::stoi(argv[2]));else if(argc==2&&std::string(argv[1])=="--text-performance"){for(size_t size:{1,2,4,8})for(int mode=0;mode<4;++mode)text_work(size,mode);}else {incremental_text();batch_cancel_many(128);delimiter_fragments();delimiter_bulk(1);core_tests();batch_semantics();mixed_batch(1);callback_release_race();}std::cout<<"PASS checks="<<checks<<"\n";return 0;}catch(const std::exception& e){std::cerr<<"FAIL: "<<e.what()<<"\n";return 1;}}

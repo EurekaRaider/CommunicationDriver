@@ -48,7 +48,7 @@ struct Batch : std::enable_shared_from_this<Batch> {
  std::vector<Item> items;size_t next_index=0,running=0,done=0,max=32;Clock::time_point start=Clock::now();
  std::vector<std::shared_ptr<Operation>> admitted;
  void schedule() {
-  if(operation->cancelled) {
+  if(operation->cancelled&&!result->was_cancelled) {
    result->was_cancelled=true;
    while(next_index<items.size()) {result->items[next_index].state=CD_BATCH_NOT_STARTED;++next_index;++done;}
    for(auto& op:admitted) if(op&&!op->completed()) op->cancel();

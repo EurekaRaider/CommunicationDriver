@@ -56,6 +56,8 @@ jobs:
         env:
           CD_TEST_VERBOSE: 1
         run: ctest --test-dir build --output-on-failure
+      - name: Managed interop regression
+        run: dotnet run --project tests/dotnet/Performance -c Release
       - name: Real loopback OpenSSH and SFTP integration
         if: runner.os != 'Windows'
         run: python scripts/test_ssh_local.py --build build
