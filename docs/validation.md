@@ -265,6 +265,67 @@ caffeinate -i -s python3 scripts/run_stress.py --output artifacts/soak-hour-repe
 
 本轮原始日志、5 秒采样、映射、泄漏扫描和诊断对照保留在忽略目录 `artifacts/soak-hour/`。多个负载同时运行，操作量不作为吞吐性能对比。结论限于本机 macOS ARM64 的上述有限负载；没有新增其他平台的小时级测试，也不代表隔夜运行、真实 Android 或实体串口已通过。
 
+## 第六轮：Windows / Linux 小时级并发与资源压力（2026-10-15）
+
+在真实 GitHub Actions Windows Server 2025 x64、Ubuntu 24.04 x64 runner 上完成小时级测试。库实现基线为 `f71568c32c0e69182aaa1a7dac78eee5413518fb`；本轮只增强测试、资源采样和工作流，`src/`、`include/`、`bindings/` 未变。各运行的准确提交、二进制和原始日志 SHA256、资源窗口及终态见 [soak-hour-windows-linux.json](evidence/soak-hour-windows-linux.json)。
+
+Release 每个平台同时运行三项各 3,600 秒的独立负载：原生 32 生产线程/8 连接的取消与关闭竞态、32 连接混合通信、C# 32 生产者取消与关闭及周期性并发 Dispose。Linux 混合负载包含 TCP/UDP/持久 CLI/虚拟 PTY；Windows 用 oneshot CLI 替代 PTY，会持续创建短寿命子进程。多负载并行且平台场景不同，以下操作量不用于跨平台吞吐比较。
+
+| 平台 / 负载 | 采样时长（秒） | 完成操作数 |
+| --- | ---: | ---: |
+| Windows Release / 原生取消/关闭 | 3,600.359 | 136,028,160 |
+| Windows Release / 32 路混合通信 | 3,600.390 | 1,041,888 |
+| Windows Release / C# 取消/关闭/Dispose | 3,600.406 | 153,354,240 |
+| Linux Release 首轮 / 原生取消/关闭 | 3,600.055 | 978,894,848 |
+| Linux Release 首轮 / 32 路混合通信 | 3,600.106 | 99,507,232 |
+| Linux Release 首轮 / C# 取消/关闭/Dispose | 3,600.230 | 293,588,992 |
+| Linux Release 复测 / 原生取消/关闭 | 3,600.109 | 710,164,480 |
+| Linux Release 复测 / 32 路混合通信 | 3,600.094 | 66,690,144 |
+| Linux Release 复测 / C# 取消/关闭/Dispose | 3,600.244 | 240,152,576 |
+| Linux ASan/UBSan / 原生取消/关闭 | 3,600.325 | 195,072,000 |
+| Linux ASan/UBSan / 32 路混合通信 | 3,600.322 | 48,681,696 |
+
+远程结果：[Windows / Linux 首轮](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/38658828442)、[Linux 独立复测](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/38660886292)、[Linux ASan/UBSan](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/38659679725)、[无库线程对照](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/38663302440)。
+
+各负载要求每项已接受请求恰好一次完成、合法终态、完整批次结果及正确回复；托管负载另检查上一轮包装对象在后续 GC 后可回收，最后尚未检查的对象对不计入回收数量。采样器每 5 秒记录进程和子进程资源，120 秒无日志进展或总时长超过 3,900 秒即失败。结束后再等待已观测子进程退出；若仍存活，记录并清理，同时判定失败，不能因父进程退出码 0 而放行。
+
+各项均正常完成、退出码 0，无 watchdog 超时、崩溃、死锁症状或已观测子进程残留；ASan/UBSan/LeakSanitizer 未报告错误。没有确认新的库内泄漏或并发缺陷，因此未修改库实现。RSS 并非全部恒定，需结合以下活跃堆和资源数量判断。
+
+| Release 负载 | 首 / 末 5 分钟 RSS 中位数（MiB） | 活跃堆或私有内存证据 |
+| --- | ---: | --- |
+| Windows Release / 原生取消/关闭 | 18.22 / 14.96 | 私有内存窗口中位数 12.98 → 14.22 MiB |
+| Windows Release / 32 路混合通信 | 12.87 / 13.00 | 私有内存窗口中位数 5.41 → 5.50 MiB |
+| Windows Release / C# 取消/关闭/Dispose | 62.73 / 45.32 | 5 分钟后 GC 存活量 546,080–563,160 字节 |
+| Linux Release 首轮 / 原生取消/关闭 | 40.14 / 51.92 | 排空后 glibc 存活分配 453,952–827,744 字节；释放句柄后 205,408 字节 |
+| Linux Release 首轮 / 32 路混合通信 | 9.25 / 9.25 | 线程 14、FD 115、持久 CLI 子进程 8 的窗口中位数稳定 |
+| Linux Release 首轮 / C# 取消/关闭/Dispose | 173.37 / 179.27 | 5 分钟后 GC 存活量 317,312–343,136 字节 |
+| Linux Release 复测 / 原生取消/关闭 | 39.17 / 50.13 | 排空后 glibc 存活分配 376,144–827,472 字节；释放句柄后 217,216 字节 |
+| Linux Release 复测 / 32 路混合通信 | 9.07 / 9.08 | 线程 14、FD 115、持久 CLI 子进程 8 的窗口中位数稳定 |
+| Linux Release 复测 / C# 取消/关闭/Dispose | 115.40 / 119.22 | 5 分钟后 GC 存活量 306,072–332,056 字节 |
+
+Windows 原生句柄窗口中位数为 133–134，混合通信为 262，C# 为 274–282，没有随时间累积。混合通信子进程数随短命 CLI/命令管道启动退出波动，子进程 RSS 独立采样；结束后没有已观测残留。Linux 原生 RSS 有波动和增量，但排空后 glibc 活跃分配未持续累积；该计数不覆盖所有映射，不能单独证明无泄漏。
+
+11 项小时负载外部采样最大间隔 5.079 秒；完成进度日志最大间隔 11.000 秒。这是连续完成进度的证据，不是单请求延迟上界。
+
+Linux ASan/UBSan 使用 Clang 19，并启用 `detect_leaks=1:halt_on_error=1` 与 `halt_on_error=1:print_stacktrace=1`。插桩原生负载首/末 5 分钟 RSS 中位数为 482.59/753.46 MiB，混合负载为 546.38/558.23 MiB，确实存在增长。插桩进程 RSS 增长不能单独等同于库泄漏：独立的、不链接通信库的 300 秒线程创建/同步/回收对照，每组 3,000 轮、96,000 个线程生命周期，Release 每分钟 RSS 中位数均为 3.922 MiB；ASan/UBSan 为 75.084、151.658、174.326、180.688、207.475 MiB。该对照证明这种增长无需通信库也会发生，不意味着主负载插桩 RSS 的每个字节都已归因。glibc `mallinfo2` 在 ASan 替换分配器时不作为活跃堆指标。
+
+四组压力任务（Windows Release、两次 Linux Release、Linux ASan/UBSan）各追加 1,000 轮批次取消/连接关闭/驱动关闭交叉竞态，共 4,000 轮、4,416,000 项断言检查，全部通过。每轮有 1,024 项已准入、3 项未准入，32 路取消/关闭竞争，检查终态、NotStarted、关闭完成与完整批次报告。Windows 压测前后各 4 项 CTest，三个 Linux 任务前后各 5 项 CTest 全部通过；三个 Release 任务各 44,000 次托管回归操作、1,408 次并发关闭和 20 个包装对象回收通过；两次 Linux Release 的真实回环 OpenSSH/SFTP 回归通过。
+
+最新测试代码提交 `becf908705fbd27a22480ae0b1a6e7c8585de507` 的 [Platform CI #38663260893](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/38663260893) 六个平台及 NuGet 共 7 个 job 全部成功。本地 macOS 另通过 5 项 CTest、三负载短时冒烟，以及采样器非零退出传播、总超时、无进展超时和父进程成功退出但遗留子进程的负向检查。
+
+本轮修正了三处压力工作流构建配置：GCC 14 插桩构建触发 Abseil constexpr 函数指针比较错误，改用 Clang 19；补装 C++23 配置探测所需的 `clang-tools-19`；Clang C 驱动链接 C 示例时缺少 UBSan C++ vptr 运行时符号，因此该消毒器任务仅构建实际执行的五个 C++ 测试目标。所有 CTest 仍执行，独立 C/C++ 消费者由常规 Release CI 验证；不宣称已修复 C 示例的消毒器链接。早期失败日志保留，未通过放宽断言或延长操作超时消除失败。
+
+首轮 Linux 实时页面在第 240 秒后停止刷新，因而启动了独立复测；首轮最终产物中三项各有 720 个连续采样，最大间隔不超过 5.017 秒，运行时长均超过 3,600 秒、退出码均为 0，证明页面延迟没有造成负载停滞。原始 run `38658828442` 含失败的早期消毒器构建，因此整体结论仍为 failure；其中 Windows、Linux Release 两个 job 成功，消毒器修正后的独立结果另列，不能把旧 run 整体写成通过。
+
+复跑工作流：手动运行 `.github/workflows/soak.yml`，`suite=all` 执行 Windows Release、Linux Release、Linux ASan/UBSan；也可选择 `linux`、`windows`、`sanitizer` 或 `thread-control`。工作流仅手动触发，普通提交不会自动启动小时压力测试。已构建测试程序后，也可安装固定版本 `psutil==7.0.0`，执行：
+
+```sh
+python scripts/run_platform_soak.py --build build --output artifacts/soak/local --seconds 3600
+```
+
+本地原始证据保留在忽略目录 `artifacts/soak-crossplatform/`，远程产物链接和摘要保存在 JSON 中。结论限于上述有限场景：未做 Windows 消毒器、Linux TSan 小时测试；Windows x86、Linux ARM64、net48 本轮只有常规 CI 覆盖；真实 Android、实体串口及隔夜运行仍未验证。子进程清理结论限于采样观测到的进程身份，采样间隔内的短寿命子进程可能未被观测。
+
+
 ## 既有平台与制品验收
 
 [最终软件提交 `3da0d8c`](https://github.com/EurekaRaider/CommunicationDriver/commit/3da0d8cab143ae1ea1d2c3e2f0a6e4e7b2150177) 的 [Platform CI #38397256682](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/38397256682) 六平台任务与合并 NuGet 任务均已终态成功。本机仅 macOS ARM64；其他平台结论来自对应真实 CI runner 上的实际程序执行。
