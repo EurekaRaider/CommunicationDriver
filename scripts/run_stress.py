@@ -1,4 +1,4 @@
-"""Run a hardware-free workload with a watchdog and Unix resource samples."""
+"""Run a hardware-free workload with a watchdog and resource samples."""
 import argparse
 import hashlib
 import json
@@ -14,6 +14,8 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--output', type=Path, required=True)
 parser.add_argument('--timeout', type=float, default=360)
 parser.add_argument('--interval', type=float, default=5)
+parser.add_argument('--process-tree', action='store_true', help='sample cross-platform resources and check observed child cleanup (requires psutil)')
+parser.add_argument('--idle-timeout', type=float, default=0, help='fail if the workload log stops advancing for this many seconds')
 parser.add_argument('--library-dir', type=Path, help='native library directory (also works with macOS system Python)')
 parser.add_argument('command', nargs=argparse.REMAINDER)
 args = parser.parse_args()
@@ -25,6 +27,11 @@ log = args.output.with_suffix('.log')
 samples = []
 started = time.monotonic()
 timed_out = False
+idle_timed_out = False
+survivors = []
+observed = set()
+if args.process_tree:
+    import psutil
 binary = Path(shutil.which(command[0]) or command[0]).resolve()
 hashes = {str(binary): hashlib.sha256(binary.read_bytes()).hexdigest()}
 environment = os.environ.copy()
@@ -43,14 +50,41 @@ for name in ('libcommunicationdriver_native.dylib', 'libcommunicationdriver_nati
 with log.open('w') as output:
     process = subprocess.Popen(command, stdout=output, stderr=subprocess.STDOUT, env=environment,
                                start_new_session=os.name != 'nt')
+    root = psutil.Process(process.pid) if args.process_tree else None
+    last_progress = time.monotonic()
+    last_size = 0
+    next_report = 0
     try:
         while process.poll() is None:
             elapsed = time.monotonic() - started
             if elapsed >= args.timeout:
                 timed_out = True
                 break
+            size = log.stat().st_size
+            if size != last_size:
+                last_progress, last_size = time.monotonic(), size
+            if args.idle_timeout and time.monotonic() - last_progress >= args.idle_timeout:
+                idle_timed_out = True
+                break
             sample = {'elapsed_s': round(elapsed, 3)}
-            if os.name != 'nt':
+            if root is not None:
+                try:
+                    children = root.children(recursive=True)
+                    observed.update(children)
+                    observed = {child for child in observed if child.is_running()}
+                    sample.update(memory_bytes=root.memory_info()._asdict(), threads=root.num_threads(),
+                                  cpu_seconds=sum(root.cpu_times()[:2]), children=len(children))
+                    sample['handles' if os.name == 'nt' else 'fds'] = root.num_handles() if os.name == 'nt' else root.num_fds()
+                    child_rss = 0
+                    for child in children:
+                        try:
+                            child_rss += child.memory_info().rss
+                        except psutil.NoSuchProcess:
+                            pass
+                    sample['children_rss_bytes'] = child_rss
+                except psutil.NoSuchProcess:
+                    pass
+            elif os.name != 'nt':
                 info = subprocess.run(['ps', '-p', str(process.pid), '-o', 'rss=,%cpu='],
                                       capture_output=True, text=True, timeout=5).stdout.split()
                 if len(info) == 2:
@@ -69,21 +103,40 @@ with log.open('w') as output:
                     except FileNotFoundError:
                         pass
             samples.append(sample)
+            if root is not None and elapsed >= next_report:
+                print(json.dumps({'workload': args.output.stem, 'sample': sample}), flush=True)
+                args.output.with_suffix('.samples.json').write_text(json.dumps(samples) + '\n')
+                next_report = elapsed + 60
             try:
                 process.wait(timeout=min(args.interval, max(0.01, args.timeout - elapsed)))
             except subprocess.TimeoutExpired:
                 pass
     finally:
         if process.poll() is None:
+            if root is not None:
+                try:
+                    observed.update(root.children(recursive=True))
+                except psutil.NoSuchProcess:
+                    pass
             if os.name == 'nt':
                 process.kill()
             else:
                 os.killpg(process.pid, signal.SIGKILL)
         process.wait()
+        if root is not None:
+            _, alive = psutil.wait_procs(list(observed), timeout=5)
+            survivors = [{'pid': child.pid, 'created': child.create_time()} for child in alive]
+            for child in alive:
+                try:
+                    child.kill()
+                except psutil.NoSuchProcess:
+                    pass
+            psutil.wait_procs(alive, timeout=5)
 result = {'command': command, 'platform': platform.platform(), 'exit_code': process.returncode,
           'timed_out': timed_out, 'elapsed_s': round(time.monotonic() - started, 3),
+          'idle_timed_out': idle_timed_out, 'surviving_observed_children': survivors,
           'artifact_sha256': hashes,
           'samples': samples, 'log': str(log)}
 args.output.write_text(json.dumps(result, indent=2) + '\n')
 print(json.dumps({key: value for key, value in result.items() if key != 'samples'}))
-raise SystemExit(124 if timed_out else process.returncode)
+raise SystemExit(124 if timed_out or idle_timed_out else process.returncode or (1 if survivors else 0))

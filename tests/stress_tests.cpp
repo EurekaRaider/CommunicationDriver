@@ -9,6 +9,9 @@
 #include <stdexcept>
 #include <thread>
 #include <vector>
+#ifdef __GLIBC__
+#include <malloc.h>
+#endif
 #ifdef __APPLE__
 #if !__has_feature(address_sanitizer) && !__has_feature(thread_sanitizer)
 #define CD_MALLOC_STATISTICS
@@ -175,6 +178,9 @@ static void resource_sample(uint64_t waves,uint64_t operations,Clock::time_point
 #ifdef CD_MALLOC_STATISTICS
  malloc_statistics_t stats{};malloc_zone_statistics(nullptr,&stats);
  std::cout<<" malloc_in_use="<<stats.size_in_use<<" malloc_blocks="<<stats.blocks_in_use;
+#endif
+#ifdef __GLIBC__
+ auto heap=mallinfo2();std::cout<<" malloc_in_use="<<heap.uordblks<<" malloc_mapped="<<heap.hblkhd;
 #endif
  std::cout<<std::endl;
 }

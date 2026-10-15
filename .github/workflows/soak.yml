@@ -1,0 +1,70 @@
+name: Hour concurrency soak
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/hour-soak-windows-linux]
+permissions:
+  contents: read
+jobs:
+  soak:
+    timeout-minutes: 110
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-24.04, name: linux-x64, sanitize: false}
+          - {os: windows-2025, name: win-x64, sanitize: false}
+          - {os: ubuntu-24.04, name: linux-x64-asan-ubsan, sanitize: true}
+    runs-on: ${{ matrix.os }}
+    env:
+      CD_EXPECT_POINTER_BYTES: 8
+      ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: 10.0.x
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
+        if: runner.os == 'Windows'
+        with:
+          arch: x64
+      - name: Linux toolchain
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-14 ninja-build libssl-dev openssh-server
+          echo CC=gcc-14 >> "$GITHUB_ENV"
+          echo CXX=g++-14 >> "$GITHUB_ENV"
+      - name: Configure release
+        if: '!matrix.sanitize'
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Configure sanitizers
+        if: matrix.sanitize
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined"
+      - name: Build and prepare samplers
+        run: |
+          cmake --build build --parallel 4
+          python -m pip install psutil==7.0.0
+          dotnet build tests/dotnet/Stress -c Release -p:Platform=AnyCPU
+      - name: Regression before soak
+        run: ctest --test-dir build --output-on-failure --timeout 120
+      - name: One hour concurrent workloads
+        run: python scripts/run_platform_soak.py --output artifacts/soak/${{ matrix.name }} ${{ matrix.sanitize && '--native-only' || '' }}
+      - name: Batch cancellation, connection and driver close races
+        shell: bash
+        run: python scripts/run_stress.py --output artifacts/soak/${{ matrix.name }}/batch-close.json --library-dir build --process-tree --timeout 600 -- build/cd_tests${{ runner.os == 'Windows' && '.exe' || '' }} --batch-close-rounds 1000
+      - name: Regression after soak
+        run: ctest --test-dir build --output-on-failure --timeout 120
+      - name: Managed regression after soak
+        if: '!matrix.sanitize'
+        run: python scripts/run_stress.py --output artifacts/soak/${{ matrix.name }}/managed-regression.json --library-dir build --process-tree --timeout 300 -- dotnet tests/dotnet/Stress/bin/Release/net10.0/Stress.dll 10
+      - name: Linux SSH and SFTP regression
+        if: runner.os == 'Linux' && !matrix.sanitize
+        run: python scripts/test_ssh_local.py --build build
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: soak-${{ matrix.name }}
+          path: artifacts/soak/
+          if-no-files-found: warn
