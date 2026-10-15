@@ -5,15 +5,13 @@ on:
       suite:
         description: Workloads to run
         type: choice
-        options: [all, linux, windows, sanitizer]
+        options: [all, linux, windows, sanitizer, thread-control]
         default: all
-  push:
-    branches: [codex/hour-soak-windows-linux]
-    paths: ['src/**', 'include/**', 'tests/**', 'scripts/**']
 permissions:
   contents: read
 jobs:
   soak:
+    if: inputs.suite != 'thread-control'
     timeout-minutes: 110
     strategy:
       fail-fast: false
@@ -85,3 +83,40 @@ jobs:
           name: soak-${{ matrix.name }}
           path: artifacts/soak/
           if-no-files-found: warn
+  thread-control:
+    if: inputs.suite == 'thread-control'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Build standalone controls
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-19
+          python -m pip install psutil==7.0.0
+          mkdir -p artifacts/thread-control
+          clang++-19 -std=c++20 -O2 -pthread tests/thread_churn_control.cpp -o artifacts/thread-control/release
+          clang++-19 -std=c++20 -O2 -g -pthread -fsanitize=address,undefined tests/thread_churn_control.cpp -o artifacts/thread-control/asan
+          ldd artifacts/thread-control/release > artifacts/thread-control/release-dependencies.log
+          ldd artifacts/thread-control/asan > artifacts/thread-control/asan-dependencies.log
+      - name: Five minute no-library comparisons
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          python - <<'PY'
+          import concurrent.futures, subprocess, sys
+          def run(name):
+              return subprocess.run([sys.executable, 'scripts/run_stress.py', '--output', 'artifacts/thread-control/'+name+'.json', '--process-tree', '--interval', '5', '--timeout', '360', '--idle-timeout', '60', '--', 'artifacts/thread-control/'+name, '300']).returncode
+          with concurrent.futures.ThreadPoolExecutor(2) as pool:
+              results=list(pool.map(run, ['release','asan']))
+          raise SystemExit(1 if any(results) else 0)
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: thread-control-linux-x64
+          path: |
+            artifacts/thread-control/*.json
+            artifacts/thread-control/*.log
+            tests/thread_churn_control.cpp
