@@ -2,10 +2,11 @@ name: Hour concurrency soak
 on:
   workflow_dispatch:
     inputs:
-      sanitizer_only:
-        description: Run only the Linux sanitizer workloads
-        type: boolean
-        default: false
+      suite:
+        description: Workloads to run
+        type: choice
+        options: [all, linux, windows, sanitizer]
+        default: all
   push:
     branches: [codex/hour-soak-windows-linux]
     paths: ['src/**', 'include/**', 'tests/**', 'scripts/**']
@@ -17,7 +18,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(inputs.sanitizer_only && '[{"os":"ubuntu-24.04","name":"linux-x64-asan-ubsan","sanitize":true}]' || '[{"os":"ubuntu-24.04","name":"linux-x64","sanitize":false},{"os":"windows-2025","name":"win-x64","sanitize":false},{"os":"ubuntu-24.04","name":"linux-x64-asan-ubsan","sanitize":true}]') }}
+        include: >-
+          ${{ fromJSON(inputs.suite == 'sanitizer' && '[{"os":"ubuntu-24.04","name":"linux-x64-asan-ubsan","sanitize":true}]'
+          || inputs.suite == 'linux' && '[{"os":"ubuntu-24.04","name":"linux-x64","sanitize":false}]'
+          || inputs.suite == 'windows' && '[{"os":"windows-2025","name":"win-x64","sanitize":false}]'
+          || '[{"os":"ubuntu-24.04","name":"linux-x64","sanitize":false},{"os":"windows-2025","name":"win-x64","sanitize":false},{"os":"ubuntu-24.04","name":"linux-x64-asan-ubsan","sanitize":true}]') }}
     runs-on: ${{ matrix.os }}
     env:
       CD_EXPECT_POINTER_BYTES: 8
