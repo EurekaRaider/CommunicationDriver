@@ -1,8 +1,14 @@
 name: Hour concurrency soak
 on:
   workflow_dispatch:
+    inputs:
+      sanitizer_only:
+        description: Run only the Linux sanitizer workloads
+        type: boolean
+        default: false
   push:
     branches: [codex/hour-soak-windows-linux]
+    paths: ['src/**', 'include/**', 'tests/**', 'scripts/**']
 permissions:
   contents: read
 jobs:
@@ -11,10 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - {os: ubuntu-24.04, name: linux-x64, sanitize: false}
-          - {os: windows-2025, name: win-x64, sanitize: false}
-          - {os: ubuntu-24.04, name: linux-x64-asan-ubsan, sanitize: true}
+        include: ${{ fromJSON(inputs.sanitizer_only && '[{"os":"ubuntu-24.04","name":"linux-x64-asan-ubsan","sanitize":true}]' || '[{"os":"ubuntu-24.04","name":"linux-x64","sanitize":false},{"os":"windows-2025","name":"win-x64","sanitize":false},{"os":"ubuntu-24.04","name":"linux-x64-asan-ubsan","sanitize":true}]') }}
     runs-on: ${{ matrix.os }}
     env:
       CD_EXPECT_POINTER_BYTES: 8
@@ -50,7 +53,7 @@ jobs:
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined"
       - name: Build and prepare samplers
         run: |
-          cmake --build build --parallel ${{ matrix.sanitize && '2' || '4' }}
+          cmake --build build --parallel ${{ matrix.sanitize && '2' || '4' }} ${{ matrix.sanitize && '--target cd_tests cd_cpp_tests cd_stress_tests cd_integration_tests cd_fake_adb' || '' }}
           python -m pip install psutil==7.0.0
           dotnet build tests/dotnet/Stress -c Release -p:Platform=AnyCPU
       - name: Regression before soak
