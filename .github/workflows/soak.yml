@@ -36,6 +36,12 @@ jobs:
           sudo apt-get install -y g++-14 ninja-build libssl-dev openssh-server
           echo CC=gcc-14 >> "$GITHUB_ENV"
           echo CXX=g++-14 >> "$GITHUB_ENV"
+      - name: Linux sanitizer compiler
+        if: matrix.sanitize
+        run: |
+          sudo apt-get install -y clang-19
+          echo CC=clang-19 >> "$GITHUB_ENV"
+          echo CXX=clang++-19 >> "$GITHUB_ENV"
       - name: Configure release
         if: '!matrix.sanitize'
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
@@ -44,7 +50,7 @@ jobs:
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined"
       - name: Build and prepare samplers
         run: |
-          cmake --build build --parallel 4
+          cmake --build build --parallel ${{ matrix.sanitize && '2' || '4' }}
           python -m pip install psutil==7.0.0
           dotnet build tests/dotnet/Stress -c Release -p:Platform=AnyCPU
       - name: Regression before soak
