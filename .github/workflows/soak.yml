@@ -39,7 +39,7 @@ jobs:
       - name: Linux sanitizer compiler
         if: matrix.sanitize
         run: |
-          sudo apt-get install -y clang-19
+          sudo apt-get install -y clang-19 clang-tools-19
           echo CC=clang-19 >> "$GITHUB_ENV"
           echo CXX=clang++-19 >> "$GITHUB_ENV"
       - name: Configure release
@@ -68,6 +68,9 @@ jobs:
       - name: Linux SSH and SFTP regression
         if: runner.os == 'Linux' && !matrix.sanitize
         run: python scripts/test_ssh_local.py --build build
+      - name: Configure diagnostics
+        if: failure()
+        run: python -c "from pathlib import Path; p=Path('build/CMakeFiles/CMakeConfigureLog.yaml'); print(p.read_text()[-18000:] if p.exists() else 'No configure log')"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
