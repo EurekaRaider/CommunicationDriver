@@ -46,7 +46,9 @@ class Program
 
             var empty = await shell.ExecuteAsync(windows ? "rem empty" : "true", Check.Equals(""));
             Assert(
-                empty.Check.Passed && empty.Check.MatchedText == "" && empty.Check.MatchedBytes == null,
+                empty.Check.Passed
+                    && empty.Check.MatchedText == ""
+                    && empty.Check.MatchedBytes == null,
                 "empty match differs from absent match"
             );
 
@@ -119,6 +121,8 @@ class Program
             await shell.CloseAsync();
         }
 
-        Console.WriteLine("PASS managed native async, sync/byte overloads, 32 connections, GC, cancellation and cleanup");
+        Console.WriteLine(
+            "PASS managed native async, sync/byte overloads, 32 connections, GC, cancellation and cleanup"
+        );
     }
 }

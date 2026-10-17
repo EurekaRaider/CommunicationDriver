@@ -6,6 +6,17 @@ on:
 permissions:
   contents: read
 jobs:
+  formatting:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Check C# syntax formatting
+        run: |
+          dotnet tool restore
+          git ls-files -z -- 'bindings/**/*.cs' 'tests/**/*.cs' 'examples/**/*.cs' | xargs -0 dotnet tool run csharpier -- check
   skill:
     runs-on: ubuntu-24.04
     steps:
@@ -61,6 +72,7 @@ jobs:
           echo OPENSSL_ROOT_DIR=$(brew --prefix openssl@3) >> "$GITHUB_ENV"
       - name: Build native
         run: |
+          python scripts/generate_cpp_header.py --check
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install
           cmake --build build --parallel 4
           cmake --install build > install.log
@@ -172,7 +184,7 @@ jobs:
           name: native-${{ matrix.rid }}
           path: artifacts/package/
   nuget:
-    needs: [native, skill]
+    needs: [formatting, native, skill]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

@@ -7,6 +7,6 @@
         <DriverSourceRoot Condition="'$(DriverSourceRoot)' == ''">../../../bindings/dotnet/CommunicationDriver</DriverSourceRoot>
     </PropertyGroup>
     <ItemGroup>
-        <Compile Include="$(DriverSourceRoot)/*.cs" Link="Driver/%(Filename)%(Extension)"/>
+        <Compile Include="$(DriverSourceRoot)/**/*.cs" Exclude="$(DriverSourceRoot)/bin/**;$(DriverSourceRoot)/obj/**" Link="Driver/%(RecursiveDir)%(Filename)%(Extension)"/>
     </ItemGroup>
 </Project>

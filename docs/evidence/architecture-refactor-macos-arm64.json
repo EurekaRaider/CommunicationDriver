@@ -1,0 +1,1740 @@
+{
+  "version": "0.1.2",
+  "date": "2026-10-17",
+  "host": "macOS ARM64",
+  "scope": "Local software and two connected physical Android devices; other platforms require the current Platform CI run. Physical serial hardware and overnight loads were not tested.",
+  "native_sha256": "7b5349878d5cbf40b8ed3eaa876e5f53325af280ab37b1907eda366bedf92852",
+  "baseline_native_sha256": "16596b7af1d55e36f67e796838b83d5062b93c4780379ee09a9c56df68509807",
+  "native_source_sha256": {
+    "src/api/cpp/batch.hpp": "b189b7ee98d5de6f545ad2cf7d40d2cc2e3689b5c0ceaa6e35eaf8a753ec7474",
+    "src/api/cpp/check.hpp": "c75df3773050765768c2514f4aa1b43ed015c86f9ff5491c0eaa226655a36e45",
+    "src/api/cpp/connection.hpp": "68c7dbeca16e2c5e87cd773c9c584ff65eb7feb700302f2a6b9d297bcb18bf03",
+    "src/api/cpp/driver.hpp": "38c603d193e96f1ce32b94568546ddf7385381c55014675a011fa45154326453",
+    "src/api/cpp/operation.hpp": "226902535c4f8a5f432b6ef11e317467d75eab3afb3365be789d55f2b37554d3",
+    "src/api/cpp/options.hpp": "5c658c5c7038e687ab14a86e9cd64cffd045b6047452c6cc88e4a6a720f7d729",
+    "src/api/cpp/response_checker.hpp": "65b020462905915cb48eda2ee94708265ccb534325d89a275cb3f118bea7c90e",
+    "src/api/cpp/results.hpp": "b05aec195f52fa96e1edf8af75c07c219958a691d25f3829802e72cfbb22409c",
+    "src/api/cpp/types.hpp": "40583f66a0b7647615ba1e63ea96faed277015654280de5f328eb8c7e31aa3fa",
+    "src/backends/adb/adb_backend.cpp": "fabd58c36b7d1722f98aa0e21cf9c793e0c6eebad7af6f2027bf5546a96ab761",
+    "src/backends/adb/adb_backend.hpp": "b205ea62604d5eb38d08d8a59a2b51974dfe4d9f6a00fe84947b4ffe1948c2bf",
+    "src/backends/adb/adb_config.hpp": "58d1825bf222648a76c6ce6a54e1f83d402a3243e18903e5e25baa9ffd85f2c8",
+    "src/backends/backend_factory.cpp": "15b0189702b2ac8b58dd31e4797f02c2da453418b1bcc398684caed6321d5931",
+    "src/backends/backend_factory.hpp": "b47fcb70f9a52bdb6d5c874a808a12998983daa180c719d3841b23bf810813cf",
+    "src/backends/backend_options.hpp": "edeac8bd6e14e3683fda1506345d64c209e6d9842f2747b06351a6f7cca84700",
+    "src/backends/cli/cli_backend.cpp": "c63c9edfa7d62e59e6f1f99b77031fd5e90d5eb0d4cafe5065aaf8fac5b22ef4",
+    "src/backends/cli/cli_backend.hpp": "2d6010630dab9aeabc2ee76e92fc0c1c1d4b428d1295602181dcd875d49e8866",
+    "src/backends/cli/cli_config.hpp": "b8a4c3c5ce5dc7625cd8f22e8272d8b04f5d3e9a26a5cdea3f8c40b74fd27f2d",
+    "src/backends/serial/serial_backend.cpp": "c6fd44e8440c6799f3b10728e9eb60484ecf0f2513df9cf40949de058f9df25d",
+    "src/backends/serial/serial_backend.hpp": "a46fb516ee0521d26464a664e5df3f43e54fa8b7921c7d84f7a07057ebe2d7e2",
+    "src/backends/serial/serial_config.hpp": "79c6a2f82269b8f5220b6c8374b42db78841a1402a24dd0a02148f95d4017f9f",
+    "src/backends/shared/backend_config.hpp": "5cf5553a88990b91eefddaebe8222cbf0758c9028de866d4e080ea3cf0025ad7",
+    "src/backends/shared/process_channel.cpp": "0255330d7861b3e136fc0604d064da00704f9f0f8b9e600e036be67494282120",
+    "src/backends/shared/process_channel.hpp": "08117fcc339b01b4ddc88e4002755e3b79c0dbe687a1fe6f7a21c5951566a25f",
+    "src/backends/shared/process_config.hpp": "d6eb9d1b9d7dff7d0b4a93926d80553958a73027befccb3ca33ba9164f81bcce",
+    "src/backends/shared/shell_session.cpp": "471ffaca7a6550eeae80b9bcd16fa06c70e8147330eafd441bb4b6ce2f306e89",
+    "src/backends/shared/shell_session.hpp": "081767ac5677bc2ec19a5bb2cf6481c95f8a73b38a45f1334de7eadc4f16bc3d",
+    "src/backends/ssh/ssh_backend.cpp": "45b862f96e0158458a3cc609e4b7c0f73fb9aeeb3c6c38ac523b4900b1026d2c",
+    "src/backends/ssh/ssh_backend.hpp": "05b0fb41b493f2d794ac4f025563765c841143a4473a187b742bf37ef822e9f9",
+    "src/backends/ssh/ssh_config.hpp": "265a0fbf6eef10db062f780b5cced7aa78e05e2158d12375459dcbf137d93635",
+    "src/backends/tcp/tcp_backend.cpp": "da9835c9389cbf5729a8e1fbfbf5e2e19688efa7c3e5ee986c7412bc604393f2",
+    "src/backends/tcp/tcp_backend.hpp": "9749ec8247b3baf97770f0118a4fc385867f22f5259045449df2705eed3e0257",
+    "src/backends/tcp/tcp_config.hpp": "16624fdac78be7ac0e66db32829e175a9a807e53004acfd6eef92cfd56207dfd",
+    "src/backends/udp/udp_backend.cpp": "b267c1ef58d0e72ab326fb48642c938918f2c1cef21e92aa78db898681afac25",
+    "src/backends/udp/udp_backend.hpp": "7d3ba7fc03725c3e2636b39e64c0aa796638679ba32508f6bf01492e337f07af",
+    "src/backends/udp/udp_config.hpp": "3be1e6cd7f88227df71b413b3baf7ce3ab1b6493e8104cdc63ea9189a3977627",
+    "src/c_api/batch.cpp": "810ed4af541be41286b9a7e7ea767da26f6b9601197e5f82eaf3e3a45d7155e0",
+    "src/c_api/checker.cpp": "c031c09134b8f571b546f628a43df682745e326dfb233d6e513da823a6179960",
+    "src/c_api/common.cpp": "8c800783697bcb5cf49efafc83d64ae5543b78d837c75ce699560be2eb3fcee7",
+    "src/c_api/common.hpp": "b73a32ba486aa7f77c1b658d21928aed2e051725f6e1db69e6752058d52e42a8",
+    "src/c_api/connection.cpp": "ca851feb13964ff2201c753915eebe11451b632b817c70a5d08126b942814ab6",
+    "src/c_api/contracts.cpp": "af341f4a2f2299c16b4105f8470b2f846054d357e20e4dbc57b9d0d6e05028ce",
+    "src/c_api/driver.cpp": "4f05eeb1c0c22884bc49e78e7da4a6c43e6bd79a90de58e20560054e0e69ec23",
+    "src/c_api/handles.cpp": "a41cb3a44e147ea92ab70ae3ef931a4efd1698599175616aeb775f4d614ddbc1",
+    "src/c_api/handles.hpp": "44b2d0c8d7e8e90e8a48973cdff508e921549de9275800d218dde46d12a04238",
+    "src/c_api/operation.cpp": "c8be544139479f6ca049c93485e63d734c194d82dc12a2a31bceb3b25540ab02",
+    "src/c_api/result.cpp": "946c06d495167f9266f3e3c3a0b7c7b4ae2a0a396d64eeb5776c461d3dbb6309",
+    "src/core/backend.hpp": "9c95470d862dc5563909c4e95e67f613d9a9c04bd7e4f2c38aa8b759c49f13ad",
+    "src/core/batch.cpp": "4641b62f950d04137579b05bda10bec7be5d6d06f7547793f6c0c9391cff6b10",
+    "src/core/batch.hpp": "ad884881703e84febf4f726a39a01d4736c6c9a37b6679962f04bd9241d2aa3b",
+    "src/core/cancellation.cpp": "81d08d648bed40ea8dddace750859fd3c0f0c5c56c98edda1e7859d931c63c0d",
+    "src/core/cancellation.hpp": "18673a54bc83938d2381b6de363cc67e0388faa5abda1990f5f139f21f901a44",
+    "src/core/common.hpp": "8cd3bb55d0e392043031b7909504eb23ce3c3b4762cdfa94a9e49034b7522f68",
+    "src/core/config.hpp": "770ede2e05b010c10cb6ea6a6173467b768e617c1df2d221b97f003c8451baf8",
+    "src/core/connection.cpp": "22bd8bbd8a023030ffd6eaed12d4aebaae286f0ff298ed720a05046a69b5fdf0",
+    "src/core/connection.hpp": "a27467cabad8cd64cf9ad447fb6c18bfc9f34ccf4c094c44a9fb9514545539a0",
+    "src/core/operation.cpp": "6666f22a861444616eb545a2ab0c0dc67efe9a346ba4a36396347197f3ef38ee",
+    "src/core/operation.hpp": "0f752fa3f5514aec401529dc5e195aedda63fa59efceab9d2228e21ce7489c48",
+    "src/core/options.cpp": "45732d75eba9cb7acef9782ec7bafbadc7f0a8efbf20322a97fd7e241d9776c8",
+    "src/core/options.hpp": "73d7c80bd11aa4e2f92e729b4fe19f5f365b19f1e49088fccf0b6cbe41c38887",
+    "src/core/request.hpp": "37bac206683bbce3e9c29ad510218bb3dd23647decff3af9c48ef74c51b29d8d",
+    "src/core/result.hpp": "1c65d1308dd77e98d500626fa2dfd06d19d5cd1a17e8896b670ca22ca79b8e57",
+    "src/core/runtime.cpp": "2ca797eacb06df241cbb30dc9bf92b9bea45cb1bc19ac44db76732e4fd3e9ff1",
+    "src/core/runtime.hpp": "d2cef7656aa4483dc902dd541779e89fd007b719f80ff1de505fb770f7d4b1f1",
+    "src/execution/check.cpp": "538cc134908e8e08b78d7f02ff8c7c4dd6fc4ba2f903d8eb28066b5503526b35",
+    "src/execution/check.hpp": "bcdf5d0fa7994354339b073483ef3a368c48b0b2e7dd252dec7e18ab4fd22069",
+    "src/execution/receive_rule.cpp": "02f8bea7c9edbb2f9a3efc28091c295698ccb6a63c2c94558c7b69c039d1751b",
+    "src/execution/receive_rule.hpp": "659fd907f5377e7bf364d7f383533af1b56aae306d8c7a47eaab289e231b09c7",
+    "src/execution/text_codec.cpp": "8310ec0fd7e6e441abf001c157b9f16c704d43c087724071bf98a1d981a60221",
+    "src/execution/text_codec.hpp": "2452012ee505effddeab509fadd2057928ee76a91296a737fb29dfb80d492f4a",
+    "src/platform/macos/process_spawn.cpp": "396c8b3dc06a7f09448e983eb2f6224f9ae58b85145bae0222225b6a0ecd2061",
+    "src/platform/process.cpp": "eb4c61c5ed90fcd9c06cb563c4857ee9f6661045a6db035858c269becdb0e3f9",
+    "src/platform/process.hpp": "495869bca7289d35b6765271e8b936497f3f2f4c5419c8bee2ab2a879cbb04ef"
+  },
+  "compatibility": {
+    "c_abi_header_unchanged": true,
+    "c_export_names_unchanged": 105,
+    "public_header_files": [
+      "communicationdriver.h",
+      "communicationdriver.hpp"
+    ],
+    "single_header_c_and_cpp_consumers": "PASS",
+    "installed_cmake_c_and_cpp_consumers": "PASS",
+    "managed_type_bodies_identical_after_formatting": 66,
+    "net48_and_net10_build": "PASS",
+    "net10_nuget_consumer": "PASS"
+  },
+  "tests": {
+    "release_ctest": 6,
+    "asan_ubsan_ctest": 6,
+    "tsan_ctest": 6,
+    "strict_host_key_openssh_sftp_repetitions": 3,
+    "managed_regressions": "PASS",
+    "packaged_skill_validation": "PASS",
+    "cpp_header_sync": "PASS",
+    "csharp_format": "PASS"
+  },
+  "concurrent_120_second_soak": {
+    "native": {
+      "exit_code": 0,
+      "elapsed_s": 120.077,
+      "timed_out": false,
+      "idle_timed_out": false,
+      "surviving_observed_children": []
+    },
+    "mixed": {
+      "exit_code": 0,
+      "elapsed_s": 120.091,
+      "timed_out": false,
+      "idle_timed_out": false,
+      "surviving_observed_children": []
+    },
+    "managed": {
+      "exit_code": 0,
+      "elapsed_s": 120.186,
+      "timed_out": false,
+      "idle_timed_out": false,
+      "surviving_observed_children": []
+    }
+  },
+  "dual_adb": {
+    "devices": 2,
+    "mixed_load_seconds": 600,
+    "per_slot": {
+      "drivers": 4,
+      "command_workers": 32,
+      "transfer_workers": 4,
+      "cancel_workers": 4
+    },
+    "statistics": {
+      "assertions": 465639,
+      "commands": 271580,
+      "transfers": 5516,
+      "transfer_bytes": 23089938432,
+      "stream_reads": 31683,
+      "stream_bytes": 920585,
+      "recoveries": 15260,
+      "exit": 0
+    },
+    "native": "PASS",
+    "managed_assertions": 160,
+    "managed": "PASS",
+    "temporary_directory_cleanup": [
+      {
+        "device": 1,
+        "temporary_directory_removed": true
+      },
+      {
+        "device": 2,
+        "temporary_directory_removed": true
+      }
+    ]
+  },
+  "performance": {
+    "repetitions": 11,
+    "ordering": "alternating before/after order",
+    "results": {
+      "pending shared=0 count=2000": {
+        "before": {
+          "median_us": 364,
+          "us": [
+            878,
+            343,
+            371,
+            364,
+            359,
+            354,
+            385,
+            408,
+            375,
+            355,
+            332
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 365,
+          "us": [
+            850,
+            349,
+            350,
+            389,
+            326,
+            365,
+            347,
+            350,
+            366,
+            393,
+            376
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": -0.27472527472527375
+      },
+      "pending shared=1 count=2000": {
+        "before": {
+          "median_us": 262,
+          "us": [
+            484,
+            299,
+            247,
+            244,
+            249,
+            262,
+            279,
+            253,
+            263,
+            287,
+            237
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 252,
+          "us": [
+            409,
+            232,
+            262,
+            250,
+            254,
+            252,
+            249,
+            287,
+            258,
+            227,
+            228
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 3.8167938931297662
+      },
+      "registry count=2000": {
+        "before": {
+          "median_us": 294,
+          "us": [
+            605,
+            300,
+            294,
+            345,
+            298,
+            293,
+            294,
+            299,
+            281,
+            293,
+            273
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 271,
+          "us": [
+            477,
+            281,
+            276,
+            259,
+            271,
+            274,
+            271,
+            265,
+            284,
+            248,
+            268
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 7.823129251700678
+      },
+      "pending shared=0 count=4000": {
+        "before": {
+          "median_us": 592,
+          "us": [
+            1072,
+            592,
+            610,
+            554,
+            633,
+            586,
+            623,
+            602,
+            580,
+            538,
+            523
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 609,
+          "us": [
+            1002,
+            634,
+            609,
+            603,
+            628,
+            610,
+            602,
+            582,
+            651,
+            538,
+            552
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": -2.871621621621623
+      },
+      "pending shared=1 count=4000": {
+        "before": {
+          "median_us": 510,
+          "us": [
+            707,
+            486,
+            484,
+            561,
+            510,
+            511,
+            511,
+            519,
+            471,
+            434,
+            447
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 501,
+          "us": [
+            698,
+            446,
+            504,
+            522,
+            501,
+            521,
+            500,
+            488,
+            557,
+            465,
+            444
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 1.764705882352946
+      },
+      "registry count=4000": {
+        "before": {
+          "median_us": 476,
+          "us": [
+            786,
+            471,
+            477,
+            474,
+            475,
+            497,
+            476,
+            482,
+            465,
+            491,
+            470
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 456,
+          "us": [
+            603,
+            418,
+            456,
+            444,
+            436,
+            464,
+            452,
+            430,
+            471,
+            466,
+            473
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 4.201680672268903
+      },
+      "pending shared=0 count=8000": {
+        "before": {
+          "median_us": 1195,
+          "us": [
+            1642,
+            1148,
+            1212,
+            1101,
+            1209,
+            1169,
+            1195,
+            1326,
+            1240,
+            1084,
+            1100
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 1189,
+          "us": [
+            1559,
+            1214,
+            1166,
+            1174,
+            1189,
+            1228,
+            1163,
+            1195,
+            1308,
+            1115,
+            1098
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 0.5020920502092019
+      },
+      "pending shared=1 count=8000": {
+        "before": {
+          "median_us": 1277,
+          "us": [
+            1548,
+            1257,
+            1327,
+            1207,
+            1309,
+            1242,
+            1229,
+            1729,
+            1277,
+            1284,
+            1174
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 1250,
+          "us": [
+            2125,
+            1185,
+            1250,
+            1010,
+            1153,
+            1003,
+            1871,
+            1707,
+            1310,
+            1249,
+            1698
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 2.114330462020364
+      },
+      "registry count=8000": {
+        "before": {
+          "median_us": 1096,
+          "us": [
+            1294,
+            1096,
+            1090,
+            1109,
+            1061,
+            1110,
+            1074,
+            1132,
+            1059,
+            1160,
+            1090
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 1014,
+          "us": [
+            1177,
+            1005,
+            968,
+            1546,
+            1018,
+            2162,
+            992,
+            1014,
+            1029,
+            1013,
+            930
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 7.481751824817517
+      },
+      "pending shared=0 count=16000": {
+        "before": {
+          "median_us": 2339,
+          "us": [
+            2638,
+            2380,
+            2336,
+            2416,
+            2339,
+            2341,
+            2183,
+            2333,
+            2438,
+            2115,
+            2239
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 2341,
+          "us": [
+            2699,
+            2341,
+            2389,
+            2863,
+            2389,
+            2846,
+            2319,
+            2167,
+            2336,
+            2185,
+            2202
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": -0.08550662676356513
+      },
+      "pending shared=1 count=16000": {
+        "before": {
+          "median_us": 2633,
+          "us": [
+            2691,
+            2572,
+            2633,
+            2599,
+            2631,
+            2585,
+            2792,
+            2757,
+            2704,
+            2676,
+            2421
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 2670,
+          "us": [
+            2715,
+            2476,
+            4289,
+            3681,
+            2597,
+            3537,
+            2726,
+            2440,
+            2574,
+            2670,
+            2481
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": -1.4052411697683231
+      },
+      "registry count=16000": {
+        "before": {
+          "median_us": 2195,
+          "us": [
+            2288,
+            2198,
+            2171,
+            2170,
+            2239,
+            2189,
+            2122,
+            2269,
+            2294,
+            2195,
+            2168
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 2004,
+          "us": [
+            2025,
+            1921,
+            2106,
+            1974,
+            2004,
+            1959,
+            2075,
+            2054,
+            1892,
+            2004,
+            1892
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 8.70159453302961
+      },
+      "text mebibytes=1 mode=0": {
+        "before": {
+          "median_us": 5693,
+          "us": [
+            10139,
+            5612,
+            5801,
+            5514,
+            5693,
+            5742,
+            5386,
+            5835,
+            5542,
+            5273,
+            5705
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 5468,
+          "us": [
+            5478,
+            5469,
+            5415,
+            5468,
+            5251,
+            5290,
+            5479,
+            5527,
+            5539,
+            5261,
+            5137
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 3.952222027050767
+      },
+      "text mebibytes=1 mode=1": {
+        "before": {
+          "median_us": 6886,
+          "us": [
+            9936,
+            6221,
+            6886,
+            6233,
+            6383,
+            6159,
+            7026,
+            7581,
+            7046,
+            6305,
+            7554
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 6197,
+          "us": [
+            6109,
+            6188,
+            6627,
+            7060,
+            6197,
+            6266,
+            6658,
+            6623,
+            6129,
+            6164,
+            6154
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 10.005808887598022
+      },
+      "text mebibytes=1 mode=2": {
+        "before": {
+          "median_us": 6214,
+          "us": [
+            9347,
+            5756,
+            6718,
+            6175,
+            5766,
+            6202,
+            6359,
+            6238,
+            6214,
+            5778,
+            7118
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 5824,
+          "us": [
+            5752,
+            5884,
+            6295,
+            6677,
+            5813,
+            5824,
+            5823,
+            6439,
+            6702,
+            5759,
+            5804
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 6.2761506276150625
+      },
+      "text mebibytes=1 mode=3": {
+        "before": {
+          "median_us": 7364,
+          "us": [
+            9294,
+            8205,
+            7515,
+            6397,
+            6576,
+            6547,
+            7465,
+            7364,
+            7511,
+            6578,
+            6603
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 6665,
+          "us": [
+            6574,
+            6665,
+            7175,
+            7411,
+            6589,
+            6647,
+            6591,
+            7247,
+            6991,
+            6712,
+            6601
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 9.49212384573601
+      },
+      "text mebibytes=2 mode=0": {
+        "before": {
+          "median_us": 10279,
+          "us": [
+            14401,
+            14278,
+            10537,
+            10217,
+            9769,
+            10279,
+            10733,
+            10226,
+            11276,
+            9809,
+            10236
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 9865,
+          "us": [
+            10731,
+            10607,
+            10256,
+            10613,
+            9801,
+            9828,
+            9733,
+            9850,
+            10208,
+            9865,
+            9846
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 4.027629146804168
+      },
+      "text mebibytes=2 mode=1": {
+        "before": {
+          "median_us": 13323,
+          "us": [
+            14006,
+            14292,
+            13937,
+            13323,
+            12396,
+            12279,
+            13614,
+            13146,
+            13927,
+            12567,
+            13131
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 12523,
+          "us": [
+            12308,
+            12374,
+            13251,
+            14001,
+            12449,
+            12523,
+            13290,
+            14039,
+            13091,
+            12399,
+            12377
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 6.004653606545074
+      },
+      "text mebibytes=2 mode=2": {
+        "before": {
+          "median_us": 12341,
+          "us": [
+            13761,
+            11553,
+            13720,
+            12422,
+            11426,
+            12340,
+            12341,
+            13205,
+            12275,
+            11420,
+            12489
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 11464,
+          "us": [
+            13329,
+            12975,
+            12246,
+            11464,
+            11454,
+            11434,
+            11320,
+            12822,
+            12384,
+            11438,
+            11434
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 7.106393323069449
+      },
+      "text mebibytes=2 mode=3": {
+        "before": {
+          "median_us": 14109,
+          "us": [
+            14098,
+            14109,
+            15008,
+            12980,
+            14834,
+            14790,
+            13568,
+            13797,
+            14749,
+            13185,
+            14143
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 13721,
+          "us": [
+            13241,
+            13106,
+            13721,
+            14568,
+            13003,
+            13352,
+            13934,
+            14885,
+            13929,
+            12971,
+            13937
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 2.7500177191863373
+      },
+      "text mebibytes=4 mode=0": {
+        "before": {
+          "median_us": 20362,
+          "us": [
+            20052,
+            19866,
+            21178,
+            20362,
+            19782,
+            21451,
+            21071,
+            21641,
+            20415,
+            19509,
+            19696
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 20365,
+          "us": [
+            21389,
+            19820,
+            20985,
+            20926,
+            19561,
+            19424,
+            20420,
+            21247,
+            20170,
+            19809,
+            20365
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": -0.014733326785187906
+      },
+      "text mebibytes=4 mode=1": {
+        "before": {
+          "median_us": 25991,
+          "us": [
+            26071,
+            24214,
+            27728,
+            24666,
+            24440,
+            26062,
+            27079,
+            26083,
+            25958,
+            24778,
+            25991
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 26043,
+          "us": [
+            25518,
+            24310,
+            26043,
+            27647,
+            24533,
+            24676,
+            26122,
+            27157,
+            26202,
+            24809,
+            26054
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": -0.2000692547420302
+      },
+      "text mebibytes=4 mode=2": {
+        "before": {
+          "median_us": 24472,
+          "us": [
+            23360,
+            23311,
+            25562,
+            24472,
+            23046,
+            26180,
+            24584,
+            26409,
+            26238,
+            22878,
+            22774
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 24550,
+          "us": [
+            26271,
+            25763,
+            25562,
+            25517,
+            23314,
+            22881,
+            22659,
+            26515,
+            24550,
+            22825,
+            22968
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": -0.3187316116377792
+      },
+      "text mebibytes=4 mode=3": {
+        "before": {
+          "median_us": 27705,
+          "us": [
+            27677,
+            26083,
+            29427,
+            25757,
+            26025,
+            28477,
+            28615,
+            28921,
+            28669,
+            26111,
+            27705
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 27278,
+          "us": [
+            30820,
+            26258,
+            27048,
+            29107,
+            26078,
+            26286,
+            27278,
+            28730,
+            27717,
+            26128,
+            27722
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 1.541238043674431
+      },
+      "text mebibytes=8 mode=0": {
+        "before": {
+          "median_us": 40773,
+          "us": [
+            39062,
+            39634,
+            43249,
+            40773,
+            40708,
+            42468,
+            41643,
+            43476,
+            42167,
+            38804,
+            38975
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 39889,
+          "us": [
+            41211,
+            39157,
+            40973,
+            41368,
+            39889,
+            40746,
+            38930,
+            42754,
+            38952,
+            39282,
+            39264
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 2.168101439678216
+      },
+      "text mebibytes=8 mode=1": {
+        "before": {
+          "median_us": 50811,
+          "us": [
+            48742,
+            50214,
+            55297,
+            50811,
+            48531,
+            54780,
+            50318,
+            53650,
+            55025,
+            49630,
+            52395
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 50553,
+          "us": [
+            50898,
+            48400,
+            50784,
+            55186,
+            49598,
+            49566,
+            49519,
+            50979,
+            53757,
+            50440,
+            50553
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 0.5077640668359251
+      },
+      "text mebibytes=8 mode=2": {
+        "before": {
+          "median_us": 47745,
+          "us": [
+            47745,
+            45939,
+            53069,
+            47289,
+            45853,
+            51265,
+            47349,
+            50654,
+            49006,
+            46086,
+            47774
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 47390,
+          "us": [
+            45857,
+            46875,
+            50571,
+            53256,
+            45543,
+            45455,
+            47521,
+            50921,
+            49002,
+            45606,
+            47390
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 0.7435333542779365
+      },
+      "text mebibytes=8 mode=3": {
+        "before": {
+          "median_us": 53388,
+          "us": [
+            52869,
+            52968,
+            58896,
+            53444,
+            51668,
+            55490,
+            53388,
+            58023,
+            56802,
+            53067,
+            51658
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 54424,
+          "us": [
+            54736,
+            51647,
+            55570,
+            57876,
+            52269,
+            52221,
+            54424,
+            56962,
+            54439,
+            52631,
+            53549
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": -1.9405109762493433
+      },
+      "batch_cancel count=2000 close_race=0": {
+        "before": {
+          "median_us": 651,
+          "us": [
+            662,
+            651,
+            615,
+            642,
+            861,
+            732,
+            620,
+            662,
+            651,
+            625,
+            715
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 657,
+          "us": [
+            657,
+            659,
+            674,
+            756,
+            611,
+            615,
+            660,
+            615,
+            642,
+            570,
+            662
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": -0.9216589861751112
+      },
+      "batch_cancel count=4000 close_race=0": {
+        "before": {
+          "median_us": 1334,
+          "us": [
+            1356,
+            1338,
+            1312,
+            1415,
+            1334,
+            1259,
+            1329,
+            1348,
+            1362,
+            1276,
+            1262
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 1284,
+          "us": [
+            1284,
+            1255,
+            1418,
+            1256,
+            1286,
+            1408,
+            1271,
+            1292,
+            1269,
+            1259,
+            1305
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 3.748125937031488
+      },
+      "batch_cancel count=8000 close_race=0": {
+        "before": {
+          "median_us": 2569,
+          "us": [
+            2865,
+            2741,
+            2522,
+            2285,
+            2605,
+            2526,
+            2751,
+            2534,
+            2659,
+            2569,
+            2563
+          ],
+          "allocated_bytes": []
+        },
+        "after": {
+          "median_us": 2436,
+          "us": [
+            2549,
+            2436,
+            2556,
+            2389,
+            2650,
+            2730,
+            2375,
+            2407,
+            2775,
+            2355,
+            2418
+          ],
+          "allocated_bytes": []
+        },
+        "time_reduction_percent": 5.177111716621252
+      },
+      "sized count=1000000": {
+        "before": {
+          "median_us": 2554,
+          "us": [
+            2555,
+            2474,
+            2502,
+            2492,
+            2583,
+            2528,
+            2540,
+            2633,
+            2561,
+            2574,
+            2554
+          ],
+          "allocated_bytes": [
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40
+          ]
+        },
+        "after": {
+          "median_us": 2551,
+          "us": [
+            2545,
+            2564,
+            2562,
+            2516,
+            2522,
+            2551,
+            2574,
+            2566,
+            2503,
+            2555,
+            2464
+          ],
+          "allocated_bytes": [
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40
+          ]
+        },
+        "time_reduction_percent": 0.11746280344557825
+      },
+      "encode count=128": {
+        "before": {
+          "median_us": 1288,
+          "us": [
+            1307,
+            1215,
+            1309,
+            1232,
+            1325,
+            1279,
+            1288,
+            1304,
+            1225,
+            1262,
+            1306
+          ],
+          "allocated_bytes": [
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376
+          ]
+        },
+        "after": {
+          "median_us": 1294,
+          "us": [
+            1315,
+            1284,
+            1312,
+            1296,
+            1325,
+            1231,
+            1272,
+            1281,
+            1342,
+            1280,
+            1294
+          ],
+          "allocated_bytes": [
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376
+          ]
+        },
+        "time_reduction_percent": -0.46583850931676274
+      },
+      "decode count=128": {
+        "before": {
+          "median_us": 4496,
+          "us": [
+            4944,
+            5176,
+            4459,
+            4422,
+            4430,
+            5041,
+            4491,
+            4883,
+            4316,
+            4510,
+            4496
+          ],
+          "allocated_bytes": [
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976
+          ]
+        },
+        "after": {
+          "median_us": 4497,
+          "us": [
+            4538,
+            5069,
+            4497,
+            4461,
+            4462,
+            4494,
+            4492,
+            4498,
+            5293,
+            4396,
+            5176
+          ],
+          "allocated_bytes": [
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976
+          ]
+        },
+        "time_reduction_percent": -0.022241992882565675
+      }
+    },
+    "managed_steady_state_warmup_iterations": 2000,
+    "managed_steady_state_repetitions": 15,
+    "managed_steady_state": {
+      "sized count=1000000": {
+        "before": {
+          "us": [
+            2737,
+            2546,
+            2548,
+            2546,
+            2571,
+            2571,
+            2559,
+            2551,
+            2657,
+            2686,
+            2543,
+            2467,
+            2556,
+            2649,
+            2652
+          ],
+          "allocated_bytes": [
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40
+          ]
+        },
+        "after": {
+          "us": [
+            2580,
+            2505,
+            2585,
+            2620,
+            2546,
+            2610,
+            2547,
+            2496,
+            2604,
+            2498,
+            2504,
+            2517,
+            2504,
+            2565,
+            2633
+          ],
+          "allocated_bytes": [
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40,
+            40
+          ]
+        },
+        "before_median_us": 2559,
+        "after_median_us": 2547,
+        "change_percent": -0.4689331770222793
+      },
+      "encode count=128": {
+        "before": {
+          "us": [
+            1393,
+            1384,
+            1362,
+            1381,
+            1326,
+            1390,
+            1392,
+            1348,
+            1396,
+            1391,
+            1359,
+            1383,
+            1350,
+            1401,
+            1362
+          ],
+          "allocated_bytes": [
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376
+          ]
+        },
+        "after": {
+          "us": [
+            1382,
+            1321,
+            1405,
+            1391,
+            1436,
+            1362,
+            1393,
+            1355,
+            1378,
+            1367,
+            1374,
+            1392,
+            1433,
+            1409,
+            1336
+          ],
+          "allocated_bytes": [
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376,
+            14376
+          ]
+        },
+        "before_median_us": 1383,
+        "after_median_us": 1382,
+        "change_percent": -0.0723065798987732
+      },
+      "decode count=128": {
+        "before": {
+          "us": [
+            4810,
+            4799,
+            4537,
+            4825,
+            4621,
+            4744,
+            5078,
+            5257,
+            4432,
+            4410,
+            4229,
+            4313,
+            4919,
+            4391,
+            4292
+          ],
+          "allocated_bytes": [
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976
+          ]
+        },
+        "after": {
+          "us": [
+            4379,
+            5276,
+            4295,
+            4307,
+            4427,
+            4838,
+            4705,
+            4589,
+            4328,
+            4521,
+            4608,
+            4428,
+            4698,
+            4398,
+            4334
+          ],
+          "allocated_bytes": [
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976,
+            67111976
+          ]
+        },
+        "before_median_us": 4621,
+        "after_median_us": 4428,
+        "change_percent": -4.176585154728418
+      }
+    },
+    "notes": [
+      "The baseline is the saved pre-refactor library and managed sources on the same host.",
+      "Removed factory closure heap allocation and enabled supported Release IPO/LTO to preserve optimization across modules.",
+      "Some microbenchmark medians vary in both directions. A small low-warmup managed encode difference was investigated with identical benchmark code and 2000 warmup calls; steady-state encode timing was unchanged and allocation counts were identical.",
+      "These timings do not establish performance on unmeasured hosts or workloads."
+    ]
+  },
+  "baseline_source_commit": "51744cd"
+}

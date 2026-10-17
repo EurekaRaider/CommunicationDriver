@@ -1,6 +1,6 @@
 """Build and run independent C/C++ clients using only staged headers and libraries."""
 
-import argparse, os, shlex, subprocess, sys
+import argparse, os, shlex, shutil, subprocess, sys
 from pathlib import Path
 
 parser = argparse.ArgumentParser()
@@ -20,6 +20,16 @@ environment["LD_LIBRARY_PATH"] = str(native)
 environment["DYLD_LIBRARY_PATH"] = str(native)
 
 for language in ["c", "cpp"]:
+    # Each consumer receives exactly its one public header, without sibling headers.
+    include = out / ("single-header-" + language)
+    if include.exists():
+        shutil.rmtree(include)
+    header = "communicationdriver.h" if language == "c" else "communicationdriver.hpp"
+    (include / "communicationdriver").mkdir(parents=True)
+    shutil.copy2(
+        package / "include" / "communicationdriver" / header,
+        include / "communicationdriver" / header,
+    )
     source = root / "examples" / language / ("main.c" if language == "c" else "main.cpp")
     binary = out / ("consumer-" + language + (".exe" if os.name == "nt" else ""))
 
@@ -29,7 +39,7 @@ for language in ["c", "cpp"]:
             "/nologo",
             "/utf-8",
             "/MT",
-            "/I" + str(package / "include"),
+            "/I" + str(include),
             str(source),
             "/Fo" + str(out / (language + ".obj")),
             "/Fe" + str(binary),
@@ -49,7 +59,7 @@ for language in ["c", "cpp"]:
             command += ["-std=c++23"]
 
         command += [
-            "-I" + str(package / "include"),
+            "-I" + str(include),
             str(source),
             "-L" + str(native),
             "-lcommunicationdriver_native",

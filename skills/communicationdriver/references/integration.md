@@ -41,7 +41,7 @@ CMake installation also places the skill at
 ## C# through NuGet
 
 Use the package from the same release or successful CI run. Do not assume it
-exists on nuget.org; use the provided feed/package location. Release 0.1.1:
+exists on nuget.org; use the provided feed/package location. Release 0.1.2:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -51,7 +51,7 @@ exists on nuget.org; use the provided feed/package location. Release 0.1.1:
   <CommunicationDriverRid>osx-arm64</CommunicationDriverRid>
  </PropertyGroup>
  <ItemGroup>
-  <PackageReference Include="CommunicationDriver" Version="0.1.1" />
+  <PackageReference Include="CommunicationDriver" Version="0.1.2" />
  </ItemGroup>
 </Project>
 ```

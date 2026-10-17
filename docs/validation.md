@@ -2,6 +2,16 @@
 
 软件验收与真实硬件分别记录。以下 PASS 仅对应明确列出的测试范围，不把编译或模拟称作设备通过。
 
+## 0.1.2 架构重构验证（2026-10-17）
+
+本轮将 TCP、UDP、串口、SSH、ADB、CLI 拆为六个独立目录、配置类型、类头文件和实现，并拆分原生核心、C ABI 适配与 C# 源码。C ABI 头文件逐字节一致，105 个 C 导出名称一致；66 个托管类型的类型体在同样格式化后与重构前完全一致。C/C++ 分别仅使用一个公开头文件的独立消费者、安装后的 CMake 消费者、net48/net10 构建、net10 NuGet 消费者及 Skill 制品检查均通过。
+
+本轮 Release、ASan/UBSan、TSan 各 6 项 CTest、严格主机信任的三轮 OpenSSH/SFTP、原生/混合通信/托管并发压力测试和双 ADB 真机测试的最终结果、全部对比样本及源码/程序指纹统一记录在 [architecture-refactor-macos-arm64.json](evidence/architecture-refactor-macos-arm64.json)。实体串口、其他设备/主机平台及隔夜负载未纳入本机验收。
+
+性能以同一公开 API 工作负载交替比较保存的重构前运行库与重构运行库。拆分后发现的工厂闭包分配已改为按值保存类型化配置；CLI 将参数与环境配置直接移入进程组件，支持的 Release 工具链启用 IPO/LTO 保留跨文件内联。低预热托管编码的微小差异另以相同基准、每项 2,000 次预热、15 轮交替对比核对：编码中位耗时 1,383 → 1,382 微秒，解码 4,621 → 4,428 微秒，分配量一致。这些数据仅对应本机及测得工作负载，不保证未测平台的性能。
+
+资源采样的首次启动因测试环境缺少 psutil 未执行负载，安装到隔离临时环境后重跑；未修改 SDK 并发、超时或重试策略。当前提交的跨平台与合并制品验收以 [Platform CI](https://github.com/EurekaRaider/CommunicationDriver/actions/workflows/ci.yml) 为准，历史 CI 不替代当前提交。
+
 ## 0.1.1 Skill 交付验证（2026-10-17）
 
 在 `7d1e40c` 基础上新增通用 agent skill，并将其加入原生包、NuGet、CMake 安装及带版本的独立 ZIP。CMake、托管包和消费者引用同步升为 `0.1.1`，公开 API/ABI 未改变。

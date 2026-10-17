@@ -27,7 +27,9 @@ static class Program
 
         watch.Stop();
         allocated = GC.GetAllocatedBytesForCurrentThread() - allocated;
-        Console.WriteLine($"METRIC {name} count={count} elapsed_us={watch.Elapsed.TotalMicroseconds:F0} allocated_bytes={allocated}");
+        Console.WriteLine(
+            $"METRIC {name} count={count} elapsed_us={watch.Elapsed.TotalMicroseconds:F0} allocated_bytes={allocated}"
+        );
     }
 
     static void Main()
@@ -59,7 +61,10 @@ static class Program
             {
                 arena.Text("\ud800");
             }
-            catch (EncoderFallbackException) { rejected = true; }
+            catch (EncoderFallbackException)
+            {
+                rejected = true;
+            }
 
             Expect(rejected, "invalid UTF16 rejected");
 
@@ -70,7 +75,10 @@ static class Program
             {
                 Interop.Text(new NStringView { data = bytes.data, size = bytes.size });
             }
-            catch (DecoderFallbackException) { rejected = true; }
+            catch (DecoderFallbackException)
+            {
+                rejected = true;
+            }
 
             Expect(rejected, "invalid UTF8 rejected");
         }
@@ -83,7 +91,10 @@ static class Program
         {
             Interop.Text(new NStringView { data = IntPtr.Zero, size = (ulong)int.MaxValue + 1 });
         }
-        catch (InvalidOperationException) { oversized = true; }
+        catch (InvalidOperationException)
+        {
+            oversized = true;
+        }
 
         Expect(oversized, "oversized native text rejected before pointer access");
 
@@ -98,7 +109,10 @@ static class Program
             {
                 Interop.Text(new NStringView { data = bytes.data, size = bytes.size });
             }
-            catch (DecoderFallbackException) { truncated = true; }
+            catch (DecoderFallbackException)
+            {
+                truncated = true;
+            }
 
             Expect(truncated, "truncated UTF8 rejected");
         }
@@ -107,32 +121,42 @@ static class Program
             0,
             1000,
             i =>
-{
-    using (var arena = new Arena())
-    {
-        string value = "并发😄" + i;
-        Expect(
-            Interop.Text(arena.Text(value)) == value,
-            "concurrent conversion"
-        );
-        Expect(
-            Interop.Sized<NExecutionInfo>().exit_code == 0,
-            "concurrent struct initialization"
-        );
-    }
-}
+            {
+                using (var arena = new Arena())
+                {
+                    string value = "并发😄" + i;
+                    Expect(Interop.Text(arena.Text(value)) == value, "concurrent conversion");
+                    Expect(
+                        Interop.Sized<NExecutionInfo>().exit_code == 0,
+                        "concurrent struct initialization"
+                    );
+                }
+            }
         );
         Measure(
             "sized",
             1000000,
-            () => { var v = Interop.Sized<NExecutionInfo>(); if (v.struct_size == 0) throw new Exception(); }
+            () =>
+            {
+                var v = Interop.Sized<NExecutionInfo>();
+                if (v.struct_size == 0)
+                    throw new Exception();
+            }
         );
 
         string input = new string('x', 256 * 1024);
         Measure(
             "encode",
             128,
-            () => { using (var arena = new Arena()) { var view = arena.Text(input); if (view.size != (ulong)input.Length) throw new Exception(); } }
+            () =>
+            {
+                using (var arena = new Arena())
+                {
+                    var view = arena.Text(input);
+                    if (view.size != (ulong)input.Length)
+                        throw new Exception();
+                }
+            }
         );
 
         using (var arena = new Arena())
@@ -141,7 +165,12 @@ static class Program
             Measure(
                 "decode",
                 128,
-                () => { var text = Interop.Text(view); if (text.Length != input.Length) throw new Exception(); }
+                () =>
+                {
+                    var text = Interop.Text(view);
+                    if (text.Length != input.Length)
+                        throw new Exception();
+                }
             );
         }
 

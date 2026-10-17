@@ -77,10 +77,11 @@ def main():
                 "CMakeLists.txt",
                 "cmake/Dependencies.cmake",
                 "cmake/PatchLibssh2.cmake",
-                "src/core.cpp",
-                "src/core.hpp",
-                "src/macos_process.cpp",
-                "src/ssh.cpp",
+                *[
+                    str(path.relative_to(repo))
+                    for path in sorted((repo / "src").rglob("*"))
+                    if path.suffix in {".cpp", ".hpp"}
+                ],
                 "tests/transport_soak_tests.cpp",
                 "tests/adb_hardware_tests.cpp",
                 "scripts/test_ssh_local.py",

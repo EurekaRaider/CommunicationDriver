@@ -1,6 +1,6 @@
-using CommunicationDriver;
 using System.Security.Cryptography;
 using System.Text;
+using CommunicationDriver;
 
 static class Program
 {
@@ -17,7 +17,14 @@ static class Program
 
     static Connection Connect(Driver d, string adb, string serial, string session = null)
     {
-        var c = d.CreateAdb(new AdbOptions { ExecutablePath = adb, DeviceSerial = serial, SessionCommand = session });
+        var c = d.CreateAdb(
+            new AdbOptions
+            {
+                ExecutablePath = adb,
+                DeviceSerial = serial,
+                SessionCommand = session,
+            }
+        );
         c.Open();
         return c;
     }
@@ -36,7 +43,9 @@ static class Program
             Console.WriteLine("DEVICE_ROOT " + label + " " + remote);
             await c.ExecuteAsync("mkdir -p " + Q(remote));
 
-            var version = await c.ExecuteAsync("getprop ro.build.version.incremental; dumpsys package android | grep -m 2 -E 'version(Name|Code)='");
+            var version = await c.ExecuteAsync(
+                "getprop ro.build.version.incremental; dumpsys package android | grep -m 2 -E 'version(Name|Code)='"
+            );
             Expect(
                 version.ExitCode == 0 && version.Response.Contains("versionName="),
                 "managed software/package version"
@@ -58,18 +67,18 @@ static class Program
                 "managed output ownership"
             );
 
-            var queue = Enumerable.Range(0, 64).Select(n => c.ExecuteAsync("printf Q" + n)).ToArray();
+            var queue = Enumerable
+                .Range(0, 64)
+                .Select(n => c.ExecuteAsync("printf Q" + n))
+                .ToArray();
             var replies = await Task.WhenAll(queue);
 
             for (int n = 0; n < replies.Length; ++n)
                 Expect(replies[n].Response == "Q" + n, "managed FIFO");
 
-            using (var logs = Connect(
-                d,
-                adb,
-                serial,
-                "logcat -b main -v raw -s CDHardwareManaged:I"
-            ))
+            using (
+                var logs = Connect(d, adb, serial, "logcat -b main -v raw -s CDHardwareManaged:I")
+            )
             {
                 var token = label + "-" + Guid.NewGuid().ToString("N");
                 var pending = logs.ReadUntilStringAsync(ReceiveUntil.Delimiter(token, true));
@@ -77,7 +86,8 @@ static class Program
 
                 var shortCommand = c.ExecuteAsync("getprop ro.build.version.release");
                 Expect(
-                    (await pending).Contains(token) && !string.IsNullOrWhiteSpace((await shortCommand).Response),
+                    (await pending).Contains(token)
+                        && !string.IsNullOrWhiteSpace((await shortCommand).Response),
                     "managed logcat and short command overlap"
                 );
             }
@@ -90,11 +100,14 @@ static class Program
             var upload = await c.UploadAsync(source, remote + "/file 空格'.bin");
             var download = await c.DownloadAsync(remote + "/file 空格'.bin", pulled);
             Expect(
-                upload.BytesTransferred == (ulong)bytes.Length && download.BytesTransferred == (ulong)bytes.Length,
+                upload.BytesTransferred == (ulong)bytes.Length
+                    && download.BytesTransferred == (ulong)bytes.Length,
                 "managed transfer sizes"
             );
             Expect(
-                SHA256.HashData(await File.ReadAllBytesAsync(pulled)).SequenceEqual(SHA256.HashData(bytes)),
+                SHA256
+                    .HashData(await File.ReadAllBytesAsync(pulled))
+                    .SequenceEqual(SHA256.HashData(bytes)),
                 "managed SHA256 roundtrip"
             );
 
@@ -213,10 +226,7 @@ static class Program
                 }
                 catch (CommOperationCanceledException e)
                 {
-                    Expect(
-                        e.Error.Code == ErrorCode.Cancelled,
-                        "managed command cancellation"
-                    );
+                    Expect(e.Error.Code == ErrorCode.Cancelled, "managed command cancellation");
                 }
             }
 
@@ -230,16 +240,19 @@ static class Program
                 (await c.ExecuteAsync("printf END")).Response == "END",
                 "managed concurrent close and reopen"
             );
-            Console.WriteLine("PASS " + label + " managed ADB, active push/pull cancellation, SHA256 and concurrent lifecycle");
+            Console.WriteLine(
+                "PASS "
+                    + label
+                    + " managed ADB, active push/pull cancellation, SHA256 and concurrent lifecycle"
+            );
         }
         finally
         {
             await c.CloseAsync();
-            var cleanup = await observer.ExecuteAsync("rm -rf " + Q(remote) + "; test ! -e " + Q(remote));
-            Expect(
-                cleanup.ExitCode == 0,
-                "managed temporary directory cleanup"
+            var cleanup = await observer.ExecuteAsync(
+                "rm -rf " + Q(remote) + "; test ! -e " + Q(remote)
             );
+            Expect(cleanup.ExitCode == 0, "managed temporary directory cleanup");
         }
     }
 
@@ -252,16 +265,17 @@ static class Program
             if (serials.Length < (args.Contains("--allow-single-device") ? 1 : 2))
                 throw new Exception("Use: <adb> <local-root> <serial>... [--allow-single-device]");
 
-            await Task.WhenAll(serials.Select((serial, n) => Device(
-                args[0],
-                serial,
-                args[1],
-                "device-" + (n + 1)
-            )));
+            await Task.WhenAll(
+                serials.Select((serial, n) => Device(args[0], serial, args[1], "device-" + (n + 1)))
+            );
             Console.WriteLine("PASS managed assertions=" + assertions);
 
             return 0;
         }
-        catch (Exception e) { Console.Error.WriteLine("FAIL " + e); return 1; }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine("FAIL " + e);
+            return 1;
+        }
     }
 }

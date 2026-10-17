@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 
 project(
     CommunicationDriver
-    VERSION 0.1.1
+    VERSION 0.1.2
     LANGUAGES C CXX
 )
 if(MSVC)
@@ -35,12 +35,48 @@ endif()
 find_package(Threads REQUIRED)
 find_package(Iconv)
 
-add_library(communicationdriver SHARED src/core.cpp src/c_api.cpp src/ssh.cpp)
+add_library(
+    communicationdriver SHARED
+    src/backends/adb/adb_backend.cpp
+    src/backends/backend_factory.cpp
+    src/backends/cli/cli_backend.cpp
+    src/backends/serial/serial_backend.cpp
+    src/backends/shared/process_channel.cpp
+    src/backends/shared/shell_session.cpp
+    src/backends/ssh/ssh_backend.cpp
+    src/backends/tcp/tcp_backend.cpp
+    src/backends/udp/udp_backend.cpp
+    src/c_api/batch.cpp
+    src/c_api/checker.cpp
+    src/c_api/common.cpp
+    src/c_api/connection.cpp
+    src/c_api/contracts.cpp
+    src/c_api/driver.cpp
+    src/c_api/handles.cpp
+    src/c_api/operation.cpp
+    src/c_api/result.cpp
+    src/core/batch.cpp
+    src/core/cancellation.cpp
+    src/core/connection.cpp
+    src/core/operation.cpp
+    src/core/options.cpp
+    src/core/runtime.cpp
+    src/execution/check.cpp
+    src/execution/receive_rule.cpp
+    src/execution/text_codec.cpp
+    src/platform/process.cpp
+)
 if(APPLE)
-    target_sources(communicationdriver PRIVATE src/macos_process.cpp)
+    target_sources(communicationdriver PRIVATE src/platform/macos/process_spawn.cpp)
 endif()
 
 target_compile_definitions(communicationdriver PRIVATE CD_BUILDING BOOST_ASIO_NO_DEPRECATED)
+# Retain cross-module inlining after splitting the former monolithic translation unit.
+include(CheckIPOSupported)
+check_ipo_supported(RESULT CD_HAS_IPO LANGUAGES CXX)
+if(CD_HAS_IPO)
+    set_property(TARGET communicationdriver PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+endif()
 if(UNIX)
     # Children only exec; they never run inherited Asio services. Fork notifications can inherit
     # another runtime's locked signal mutex and deadlock before exec.
@@ -50,7 +86,7 @@ endif()
 target_include_directories(
     communicationdriver
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>
-    PRIVATE ${LIBSSH2_INCLUDE_DIR}
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${LIBSSH2_INCLUDE_DIR}
 )
 target_link_libraries(
     communicationdriver PRIVATE Boost::process Boost::filesystem re2::re2 ${CD_SSH_TARGET}

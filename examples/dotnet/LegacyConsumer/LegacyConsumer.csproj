@@ -10,7 +10,7 @@
         <Reference Include="System"/>
         <Reference Include="System.Core"/>
         <Reference Include="CommunicationDriver">
-            <HintPath>packages\CommunicationDriver.0.1.1\lib\net48\CommunicationDriver.dll</HintPath>
+            <HintPath>packages\CommunicationDriver.0.1.2\lib\net48\CommunicationDriver.dll</HintPath>
         </Reference>
         <Compile Include="..\Consumer\Program.cs">
             <Link>Program.cs</Link>
@@ -18,5 +18,5 @@
         <None Include="packages.config"/>
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
-    <Import Project="packages\CommunicationDriver.0.1.1\build\CommunicationDriver.targets"/>
+    <Import Project="packages\CommunicationDriver.0.1.2\build\CommunicationDriver.targets"/>
 </Project>

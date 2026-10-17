@@ -6,11 +6,13 @@
 
 One core. Every connection.
 
-[![Platform CI](https://img.shields.io/github/actions/workflow/status/EurekaRaider/CommunicationDriver/ci.yml?branch=main&style=flat-square&label=Platform%20CI&labelColor=1e293b)](https://github.com/EurekaRaider/CommunicationDriver/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/Version-0.1.1-38bdf8?style=flat-square&labelColor=1e293b)](CMakeLists.txt)
-[![C++23](https://img.shields.io/badge/C%2B%2B-23-38bdf8?style=flat-square&labelColor=1e293b)](include/communicationdriver/communicationdriver.hpp)
-[![.NET](https://img.shields.io/badge/.NET-net48%20%7C%20net10-38bdf8?style=flat-square&labelColor=1e293b)](bindings/dotnet/CommunicationDriver)
-[![License: MIT](https://img.shields.io/badge/License-MIT-38bdf8?style=flat-square&labelColor=1e293b)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-0.1.2-F97316?style=flat-square&labelColor=24292F&logo=git&logoColor=white)](CMakeLists.txt)
+[![Windows](https://img.shields.io/badge/Windows-x86%20%7C%20x64-0078D4?style=flat-square&labelColor=24292F&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0yIDJoOXY5SDJ6bTExIDBoOXY5aC05ek0yIDEzaDl2OUgyem0xMSAwaDl2OWgtOXoiLz48L3N2Zz4%3D&logoColor=white)](#validation)
+[![Linux](https://img.shields.io/badge/Linux-x64%20%7C%20ARM64-FCC624?style=flat-square&labelColor=24292F&logo=linux&logoColor=white)](#validation)
+[![macOS](https://img.shields.io/badge/macOS-x64%20%7C%20ARM64-6B7280?style=flat-square&labelColor=24292F&logo=apple&logoColor=white)](#validation)
+[![C++23](https://img.shields.io/badge/C%2B%2B-23-00599C?style=flat-square&labelColor=24292F&logo=cplusplus&logoColor=white)](include/communicationdriver/communicationdriver.hpp)
+[![.NET](https://img.shields.io/badge/.NET-net48%20%7C%20net10-512BD4?style=flat-square&labelColor=24292F&logo=dotnet&logoColor=white)](bindings/dotnet/CommunicationDriver)
+[![License: MIT](https://img.shields.io/badge/License-MIT-10B981?style=flat-square&labelColor=24292F&logo=opensourceinitiative&logoColor=white)](LICENSE)
 
 [Quick Start](#quick-start) · [Build & Integration](#build) · [Agent Skill](#agent-skill) · [Platform Validation](#validation) · [Documentation](#docs)
 
@@ -22,7 +24,7 @@ CommunicationDriver is a cross-platform communication library for device control
 
 From a local shell command to parallel batches across devices, the workflow stays consistent: create a connection, open resources, perform an operation, check the response, and close the connection.
 
-> **Current version: 0.1.1.** Native and NuGet packages include an agent skill with C, C++23, and C# usage guidance. Six-platform software acceptance and macOS / Windows device tests are recorded separately in the [validation report](docs/validation.md); physical serial ports and broader hardware coverage remain pending.
+> **Current version: 0.1.2.** Native and NuGet packages include an agent skill with C, C++23, and C# usage guidance. Six-platform software acceptance and macOS / Windows device tests are recorded separately in the [validation report](docs/validation.md); physical serial ports and broader hardware coverage remain pending.
 
 ## Why CommunicationDriver
 
@@ -47,11 +49,15 @@ From a local shell command to parallel batches across devices, the workflow stay
 | **ADB** | Android shell commands, file upload and download | Fixed `DeviceSerial`; uses Android Platform Tools supplied by the caller |
 | **CLI** | Local shells, toolchains, subprocesses | Persistent or one-shot execution, direct programs, arguments, working directories, and environment variables |
 
-## Architecture: One Contract, One Implementation
+## Architecture: Six Modules, One Public Contract
 
 ![CommunicationDriver architecture: language APIs, stable C ABI, native async core, and six backends](docs/assets/architecture.svg)
 
-[Editable diagram source](docs/assets/architecture.html)
+[Editable diagram source](docs/assets/architecture.html) · [Architecture and source guide](docs/architecture.md)
+
+Each backend has its own directory, configuration type, class header, and implementation under `src/backends/`: `tcp/`, `udp/`, `serial/`, `ssh/`, `adb/`, and `cli/`. The shared `core/` owns scheduling and lifecycle; `execution/` owns response boundaries, decoding, and checks; `c_api/` owns the stable ABI adapters. ADB and CLI reuse the asynchronous process component.
+
+**Single-header delivery:** C consumers need only `communicationdriver.h`; C++23 consumers need only `communicationdriver.hpp`. Pair either header with the platform library and its runtime dependencies. Private implementation headers are excluded from installed and packaged headers.
 
 `Create` copies and validates configuration; `Open` connects to a device or starts local resources. Operations are serialized within each connection and may run concurrently across connections. A normally closed connection can be opened again. Once the `Driver` is closed, connections cannot be created or reopened.
 
@@ -220,7 +226,7 @@ Set `CMAKE_PREFIX_PATH` to the `install` directory when configuring the consumer
 
 ### C# and NuGet
 
-Download the **`CommunicationDriver-NuGet`** artifact from a successful [Platform CI](https://github.com/EurekaRaider/CommunicationDriver/actions/workflows/ci.yml) run for the version you need. Place its `.nupkg` in a local NuGet feed, then reference **`CommunicationDriver` 0.1.1** using `PackageReference`. Distribution currently uses CI artifacts; the version in your project must match the downloaded package.
+Download the **`CommunicationDriver-NuGet`** artifact from a successful [Platform CI](https://github.com/EurekaRaider/CommunicationDriver/actions/workflows/ci.yml) run for the version you need. Place its `.nupkg` in a local NuGet feed, then reference **`CommunicationDriver` 0.1.2** using `PackageReference`. Distribution currently uses CI artifacts; the version in your project must match the downloaded package.
 
 The merged package includes `net48 / net10.0`, native libraries for six RIDs, third-party licenses, and `skills/communicationdriver/`. Windows selects `win-x86 / win-x64` according to `PlatformTarget`. On Unix, set `RuntimeIdentifier` or `CommunicationDriverRid` as needed. Native library architecture must match the process.
 
@@ -247,7 +253,7 @@ The same skill source is delivered with each library build:
 | Source checkout | `skills/communicationdriver/` |
 | Native RID package or NuGet package | `skills/communicationdriver/` inside the package |
 | CMake installation | `<prefix>/share/communicationdriver/skills/communicationdriver/` with the default data directory |
-| **`CommunicationDriver-Skill`** CI artifact | `CommunicationDriver-Skill-0.1.1.zip`, containing `skills/communicationdriver/` |
+| **`CommunicationDriver-Skill`** CI artifact | `CommunicationDriver-Skill-0.1.2.zip`, containing `skills/communicationdriver/` |
 
 Copy the whole `communicationdriver` folder into your agent's skills directory, preserving `SKILL.md` and its references. Use the skill from the same library version. Agents that load Markdown instructions directly can read `SKILL.md` without installing it. For example: “Use the CommunicationDriver skill to write a C# TCP consumer with a protocol delimiter, response checking, and cancellation.” The skill is independent of any specific agent product.
 
@@ -287,12 +293,14 @@ Physical serial ports, broader Android/host combinations, and overnight device t
 | Document / example | Contents |
 | --- | --- |
 | [Agent skill](skills/communicationdriver/SKILL.md) | Portable consumer-writing guidance with C, C++23, C#, and integration references |
+| [Architecture and source guide](docs/architecture.md) | Module responsibilities, six backend classes, dependencies, and single-header distribution |
+| [0.1.2 refactor validation](docs/evidence/architecture-refactor-macos-arm64.json) | ABI compatibility, sanitizer suites, dual-device ADB, package consumers, and performance comparisons |
 | [API and runtime semantics](docs/api.md) | Lifecycle, completion boundaries, cancellation, recovery, batches, and handle ownership |
 | [Validation report](docs/validation.md) | Local tests, platform CI, package consumption, soak-test evidence, and hardware acceptance scope |
 | [Dependencies, toolchain, and licensing](docs/dependencies.md) | Pinned versions, system dependencies, distribution requirements, and compatibility baselines |
 | [Approved plan](docs/approved-plan.md) | Project scope and acceptance criteria |
 | [C API](include/communicationdriver/communicationdriver.h) · [C++ wrappers](include/communicationdriver/communicationdriver.hpp) | Public native interfaces |
-| [C# contracts](bindings/dotnet/CommunicationDriver/Contracts.cs) | Configuration, checks, results, and error types |
+| [C# contracts](bindings/dotnet/CommunicationDriver) | Configuration, checks, results, and error types |
 | [C examples](examples/c) · [C++ examples](examples/cpp) · [C# examples](examples/dotnet/Consumer) | Runnable language consumers |
 
 ## License

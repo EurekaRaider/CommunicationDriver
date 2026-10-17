@@ -6,7 +6,7 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <ImplicitUsings>disable</ImplicitUsings>
         <PackageId>CommunicationDriver</PackageId>
-        <Version>0.1.1</Version>
+        <Version>0.1.2</Version>
         <Authors>CommunicationDriver contributors</Authors>
         <Description>Shared native asynchronous communication core for TCP, UDP, serial, SSH, ADB and CLI.</Description>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>

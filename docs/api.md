@@ -1,6 +1,8 @@
 # API 与运行语义
 
-公开 C API 见 `include/communicationdriver/communicationdriver.h`；C++ 包装见同目录 `.hpp`；C# 合约见 `bindings/dotnet/CommunicationDriver/Contracts.cs`。所有 IO 都有同步与异步版本，异步由原生事件驱动。默认 UTF8，可选 ASCII/GB18030；C/C++ 文本始终以 UTF8 表示，选项编码用于传输字节；C# 使用 Unicode string。
+公开 C API 见 `include/communicationdriver/communicationdriver.h`；C++ 包装见同目录 `.hpp`；C# 合约按职责放在 `bindings/dotnet/CommunicationDriver/` 下的 `Api/`、`Options/`、`Results/`、`Checks/`、`Batch/` 和 `Errors/`。所有 IO 都有同步与异步版本，异步由原生事件驱动。默认 UTF8，可选 ASCII/GB18030；C/C++ 文本始终以 UTF8 表示，选项编码用于传输字节；C# 使用 Unicode string。
+
+C 和 C++ 均支持单头文件交付：C 用户只需 `communicationdriver.h`，C++ 用户只需 `communicationdriver.hpp`，再配套当前平台的原生库及其运行依赖。C++ 头文件内嵌受同一 include guard 保护的 C ABI 声明，也可与 C 头文件按任意顺序一起包含。内部头文件不安装、不打包。内部模块边界见 [架构与源码导航](architecture.md)。
 
 Create 复制并校验配置，不连接。Open 建立本地资源/会话；UDP Open 不代表远端在线。Close 可中断未完成事务，CloseAsync 可在完成回调中使用。关闭后可以 Open 恢复，Driver Close 后不能创建或重新打开连接。
 

@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-`src/` contains the shared C++23 communication core. `include/communicationdriver/` exposes the stable C ABI and C++ wrapper; `bindings/dotnet/CommunicationDriver/` provides C# bindings targeting `net48` and `net10.0`. Tests live in `tests/`; standalone consumers in `examples/`; packaging and integration helpers in `scripts/`. Consult `docs/approved-plan.md`, `docs/api.md`, and `docs/validation.md` for contracts and acceptance boundaries. Generated packages and evidence fixtures belong in ignored `artifacts/`.
+`src/core/` contains the shared C++23 runtime and connection scheduler; `src/execution/` handles response processing; `src/backends/{tcp,udp,serial,ssh,adb,cli}/` contains six independent backends; `src/c_api/` exposes the C ABI adapters. `include/communicationdriver/` exposes the stable C ABI and C++ wrapper; `bindings/dotnet/CommunicationDriver/` provides C# bindings targeting `net48` and `net10.0`. Tests live in `tests/`; standalone consumers in `examples/`; packaging and integration helpers in `scripts/`. Consult `docs/approved-plan.md`, `docs/api.md`, and `docs/validation.md` for contracts and acceptance boundaries. Generated packages and evidence fixtures belong in ignored `artifacts/`.
 
 ## Build, Test, and Development Commands
 
@@ -20,7 +20,7 @@ Commands configure, build, test, install native files, and compile managed bindi
 
 ## Coding Style & Architecture
 
-Use four-space indentation and expand functions, control flow, and declarations onto readable lines. Separate methods and logical phases with blank lines; keep related assignments together. Follow `.clang-format` for C/C++, `.editorconfig` for C#, `pyproject.toml` for Python, and `.cmake-format.py` for CMake. Use `cd_` names for C exports, `snake_case` for native functions, and `PascalCase` with `Async` suffixes for C# asynchronous methods. Keep shared behavior in the native core and wrappers thin. Preserve actual asynchronous I/O, handle ownership, and C ABI layout; never pass STL objects or exceptions across the ABI. Keep changes focused and run `git diff --check`.
+Use four-space indentation and expand functions, control flow, and declarations onto readable lines. Separate methods and logical phases with blank lines; keep related assignments together. Follow `.clang-format` for C/C++, `.editorconfig` for C#, `pyproject.toml` for Python, and `.cmake-format.py` for CMake. Use `cd_` names for C exports, `snake_case` for native functions, and `PascalCase` with `Async` suffixes for C# asynchronous methods. Keep shared behavior in the native core and wrappers thin. Preserve actual asynchronous I/O, handle ownership, and C ABI layout; never pass STL objects or exceptions across the ABI. Keep changes focused and run `git diff --check`. Format C# with the pinned CSharpier tool (`dotnet tool restore`, then `dotnet tool run csharpier -- format <files>`); preserve nested lambda indentation. Edit C++ wrapper sources in `src/api/cpp/` and regenerate the standalone public header with `python3 scripts/generate_cpp_header.py`.
 
 ## Testing Guidelines
 
