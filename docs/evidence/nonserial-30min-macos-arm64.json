@@ -1,0 +1,724 @@
+{
+  "date": "2026-10-17",
+  "host_scope": "macOS ARM64; actual loopback TCP/UDP and OpenSSH/SFTP; two physical USB Android 10 devices",
+  "duration_requested_s": 1800,
+  "controllers_launched_together": true,
+  "independent_readiness_barrier_per_load": true,
+  "changes_committed": false,
+  "build_configuration": "Release; AppleClang 21; SHA256-locked dependencies; OpenSSL 4.0.3",
+  "load_workers_total": 242,
+  "baseline_git_head": "fc5f42d924e567821260ee520fa02f46dc5d21ee",
+  "native_sha256": "a33a3a901135b2812b71dac3e654e1eda2ae107dcda4daec063886da389c2f5a",
+  "source_sha256": {
+    "CMakeLists.txt": "47accfc6505a4cd2deb77a167ca05d44fe8b174c96a949a5347d1c40f6908f03",
+    "cmake/Dependencies.cmake": "7e453fdccfb9a20f2c82a646e0a4da271a277891559059a369967c21bf79f28d",
+    "cmake/PatchLibssh2.cmake": "dfc2d145d4c9bd172ea2cf22de14020d371dfa7d5b174fc9fea117bc0cc2d99b",
+    "src/core.cpp": "7e56b8db7f522f2252025a13b33e66fd730c89c78014e01599adaeef1e8348ea",
+    "src/core.hpp": "4ff85f072f3f04b8cb5fceb2a854252283909e63480f4812eaa5fe737ddf6663",
+    "src/macos_process.cpp": "3fca7fb09ac0196bbb13b73fc5e1085dcd739e68b9511d6d04808d8a5536c538",
+    "src/ssh.cpp": "e4ddf8566ec1460eca9d6b97c1fa4e2f9ccf09156e38bf078301637054e7dac0",
+    "tests/transport_soak_tests.cpp": "a326e11917059ae16f91048c293f73ee3f0b2c8139d51e1dea73bd1a5749a676",
+    "tests/adb_hardware_tests.cpp": "68012df9d4715290e3c2a033f1496e6acae70ea44263ee23e11cb107d4f96b42",
+    "scripts/test_ssh_local.py": "983b1daed23fb2586ce2be70d98f4b9a48bf08f1bb65cc18f570f7b1585a2e9c",
+    "scripts/run_all_transport_soak.py": "0c009755688963e8be77590ab10aaf61293a2257ee0cb5270648b36fbd327420"
+  },
+  "binary_sha256": {
+    "cd_transport_soak_tests": "1a42ab699539a281dd16d6210d483f66acb6f573ca1fee5d2a6ebfe93668b634",
+    "cd_adb_hardware_tests": "9841eebff629c89ea27fa7b2861a9196c9ebbc3c4d46e1405bfdb3a4ba8cdc54"
+  },
+  "loads": {
+    "tcp": {
+      "commands": 32,
+      "bulk": 2,
+      "cancel_timeout": 4,
+      "drivers": 4
+    },
+    "udp": {
+      "commands": 32,
+      "bulk": 2,
+      "cancel_timeout": 4,
+      "drivers": 4
+    },
+    "cli": {
+      "commands": 32,
+      "streams": 2,
+      "cancel_timeout": 4,
+      "drivers": 4
+    },
+    "ssh": {
+      "commands": 32,
+      "streams": 2,
+      "sftp": 4,
+      "cancel_timeout": 4,
+      "drivers": 4
+    },
+    "adb_per_slot": {
+      "commands": 32,
+      "transfers": 4,
+      "streams": 3,
+      "cancel_reopen": 4,
+      "drivers": 4
+    }
+  },
+  "runs": {
+    "tcp": {
+      "status": "PASS",
+      "elapsed_s": 1800.55,
+      "exit_code": 0,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "surviving_observed_children": 0,
+      "artifact_sha256": {
+        "cd_transport_soak_tests": "1a42ab699539a281dd16d6210d483f66acb6f573ca1fee5d2a6ebfe93668b634",
+        "libcommunicationdriver_native.dylib": "a33a3a901135b2812b71dac3e654e1eda2ae107dcda4daec063886da389c2f5a"
+      },
+      "raw_log_sha256": "40d83234ffa59c1f6dbb79ae0d8e53c1e3c20d11618a0ea876aa95fa4b3535f1",
+      "counts": {
+        "seconds": 1800,
+        "workers": 38,
+        "commands": 9301382,
+        "bulk": 90991,
+        "transfers": 0,
+        "bytes": 114622685059,
+        "streams": 0,
+        "cancels": 71082,
+        "timeouts": 71081,
+        "reopens": 142163,
+        "checks": 9534575,
+        "unknown_exit": 0,
+        "max_command_pair_us": 470800
+      },
+      "resources": {
+        "sample_count": 350,
+        "max_sample_gap_s": 5.53,
+        "rss_first_5min_after_warmup_median_bytes": 46645248,
+        "rss_last_5min_median_bytes": 51904512.0,
+        "rss_peak_bytes": 51920896,
+        "threads_min_max": [
+          57,
+          57
+        ],
+        "fds_min_max": [
+          88,
+          96
+        ],
+        "observed_children_peak": 0
+      }
+    },
+    "udp": {
+      "status": "PASS",
+      "elapsed_s": 1800.51,
+      "exit_code": 0,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "surviving_observed_children": 0,
+      "artifact_sha256": {
+        "cd_transport_soak_tests": "1a42ab699539a281dd16d6210d483f66acb6f573ca1fee5d2a6ebfe93668b634",
+        "libcommunicationdriver_native.dylib": "a33a3a901135b2812b71dac3e654e1eda2ae107dcda4daec063886da389c2f5a"
+      },
+      "raw_log_sha256": "c4273c4b67192b087adcee3096be3ccc578e7cda6de4720ad01b94467cd470e0",
+      "counts": {
+        "seconds": 1800,
+        "workers": 38,
+        "commands": 11754488,
+        "bulk": 661430,
+        "transfers": 0,
+        "bytes": 29697839307,
+        "streams": 0,
+        "cancels": 73882,
+        "timeouts": 73881,
+        "reopens": 147763,
+        "checks": 12563720,
+        "unknown_exit": 0,
+        "max_command_pair_us": 602119
+      },
+      "resources": {
+        "sample_count": 349,
+        "max_sample_gap_s": 5.601,
+        "rss_first_5min_after_warmup_median_bytes": 17432576,
+        "rss_last_5min_median_bytes": 17661952.0,
+        "rss_peak_bytes": 17661952,
+        "threads_min_max": [
+          57,
+          57
+        ],
+        "fds_min_max": [
+          90,
+          94
+        ],
+        "observed_children_peak": 0
+      }
+    },
+    "cli": {
+      "status": "PASS",
+      "elapsed_s": 1800.491,
+      "exit_code": 0,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "surviving_observed_children": 0,
+      "artifact_sha256": {
+        "cd_transport_soak_tests": "1a42ab699539a281dd16d6210d483f66acb6f573ca1fee5d2a6ebfe93668b634",
+        "libcommunicationdriver_native.dylib": "a33a3a901135b2812b71dac3e654e1eda2ae107dcda4daec063886da389c2f5a"
+      },
+      "raw_log_sha256": "a2a1d668c587eb5b8c69997bbe5de973b2e44b3866e874d6d46d77ac5c3fb6f3",
+      "counts": {
+        "seconds": 1800,
+        "workers": 38,
+        "commands": 3982514,
+        "bulk": 0,
+        "transfers": 0,
+        "bytes": 0,
+        "streams": 275118,
+        "cancels": 43909,
+        "timeouts": 43907,
+        "reopens": 87816,
+        "checks": 4550421,
+        "unknown_exit": 0,
+        "max_command_pair_us": 0
+      },
+      "resources": {
+        "sample_count": 350,
+        "max_sample_gap_s": 5.694,
+        "rss_first_5min_after_warmup_median_bytes": 10092544,
+        "rss_last_5min_median_bytes": 10502144.0,
+        "rss_peak_bytes": 10534912,
+        "threads_min_max": [
+          51,
+          51
+        ],
+        "fds_min_max": [
+          104,
+          136
+        ],
+        "observed_children_peak": 46
+      }
+    },
+    "ssh": {
+      "status": "PASS",
+      "elapsed_s": 1800.863,
+      "exit_code": 0,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "surviving_observed_children": 0,
+      "artifact_sha256": {
+        "cd_transport_soak_tests": "1a42ab699539a281dd16d6210d483f66acb6f573ca1fee5d2a6ebfe93668b634",
+        "libcommunicationdriver_native.dylib": "a33a3a901135b2812b71dac3e654e1eda2ae107dcda4daec063886da389c2f5a"
+      },
+      "raw_log_sha256": "5384faa8debbdccfac6c9abb5778a37b764cb35f0b8116cd51e66739c6fbc677",
+      "counts": {
+        "seconds": 1800,
+        "workers": 42,
+        "commands": 3172535,
+        "bulk": 0,
+        "transfers": 42870,
+        "bytes": 44952453120,
+        "streams": 275160,
+        "cancels": 13396,
+        "timeouts": 13395,
+        "reopens": 26791,
+        "checks": 3616054,
+        "unknown_exit": 14545,
+        "max_command_pair_us": 0
+      },
+      "resources": {
+        "sample_count": 350,
+        "max_sample_gap_s": 5.564,
+        "rss_first_5min_after_warmup_median_bytes": 43024384,
+        "rss_last_5min_median_bytes": 45154304.0,
+        "rss_peak_bytes": 45400064,
+        "threads_min_max": [
+          59,
+          59
+        ],
+        "fds_min_max": [
+          57,
+          62
+        ],
+        "observed_children_peak": 0
+      }
+    },
+    "adb": {
+      "status": "PASS",
+      "elapsed_s": 1821.467,
+      "exit_code": 0,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "surviving_observed_children": 0,
+      "artifact_sha256": {
+        "cd_adb_hardware_tests": "9841eebff629c89ea27fa7b2861a9196c9ebbc3c4d46e1405bfdb3a4ba8cdc54",
+        "libcommunicationdriver_native.dylib": "a33a3a901135b2812b71dac3e654e1eda2ae107dcda4daec063886da389c2f5a"
+      },
+      "raw_log_sha256": "8b32a23fdc48a91007c02bfedd28ddaf5e7e63a23f878dfc4fbec1648c4121b4",
+      "counts": {
+        "assertions": 956024,
+        "commands": 545567,
+        "transfers": 9690,
+        "transfer_bytes": 40596963328,
+        "stream_reads": 93032,
+        "stream_bytes": 5677873,
+        "recoveries": 22222,
+        "exit": 0
+      },
+      "resources": {
+        "sample_count": 350,
+        "max_sample_gap_s": 5.823,
+        "rss_first_5min_after_warmup_median_bytes": 98713600.0,
+        "rss_last_5min_median_bytes": 104472576.0,
+        "rss_peak_bytes": 119111680,
+        "threads_min_max": [
+          114,
+          114
+        ],
+        "fds_min_max": [
+          289,
+          309
+        ],
+        "observed_children_peak": 96
+      },
+      "slots": {
+        "device-2": {
+          "kernel_log": {
+            "bytes": 1754108,
+            "reads": 2189
+          },
+          "command_pair_latency_us": {
+            "count": 128265,
+            "p50_us": 429491,
+            "p95_us": 723046,
+            "p99_us": 897183,
+            "max_us": 1519178
+          },
+          "counts": {
+            "commands": 256530,
+            "transfers": 4812,
+            "transfer_bytes": 20182990848,
+            "stream_reads": 46438,
+            "stream_bytes": 2845965,
+            "recoveries": 11132
+          }
+        },
+        "device-1": {
+          "kernel_log": {
+            "bytes": 1728174,
+            "reads": 2035
+          },
+          "command_pair_latency_us": {
+            "count": 126859,
+            "p50_us": 436232,
+            "p95_us": 724845,
+            "p99_us": 901094,
+            "max_us": 1854952
+          },
+          "counts": {
+            "commands": 253718,
+            "transfers": 4850,
+            "transfer_bytes": 20342374400,
+            "stream_reads": 46594,
+            "stream_bytes": 2831908,
+            "recoveries": 11080
+          }
+        }
+      }
+    }
+  },
+  "per_slot_observed_concurrency": [
+    {
+      "slot": 1,
+      "samples": 257,
+      "adb_process_peak": 48,
+      "transfer_process_peak": 4,
+      "samples_with_four_transfers_and_logcat_and_dmesg": 26
+    },
+    {
+      "slot": 2,
+      "samples": 257,
+      "adb_process_peak": 48,
+      "transfer_process_peak": 4,
+      "samples_with_four_transfers_and_logcat_and_dmesg": 27
+    }
+  ],
+  "root_state": [
+    {
+      "slot": 1,
+      "original_uid": "2000",
+      "root_requested": true,
+      "test_uid": "0",
+      "restored_uid": "2000"
+    },
+    {
+      "slot": 2,
+      "original_uid": "2000",
+      "root_requested": true,
+      "test_uid": "0",
+      "restored_uid": "2000"
+    }
+  ],
+  "controller_survivors": [],
+  "leaks_scans": [
+    {
+      "workload": "udp",
+      "elapsed_s": 60.02,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-0060-udp.log"
+    },
+    {
+      "workload": "tcp",
+      "elapsed_s": 60.02,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-0060-tcp.log"
+    },
+    {
+      "workload": "cli",
+      "elapsed_s": 60.02,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-0060-cli.log"
+    },
+    {
+      "workload": "ssh",
+      "elapsed_s": 60.02,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-0060-ssh.log"
+    },
+    {
+      "workload": "adb",
+      "elapsed_s": 60.02,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-0060-adb.log"
+    },
+    {
+      "workload": "udp",
+      "elapsed_s": 452.961,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-0452-udp.log"
+    },
+    {
+      "workload": "tcp",
+      "elapsed_s": 452.961,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-0452-tcp.log"
+    },
+    {
+      "workload": "cli",
+      "elapsed_s": 452.961,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-0452-cli.log"
+    },
+    {
+      "workload": "ssh",
+      "elapsed_s": 452.961,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-0452-ssh.log"
+    },
+    {
+      "workload": "adb",
+      "elapsed_s": 452.961,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-0452-adb.log"
+    },
+    {
+      "workload": "udp",
+      "elapsed_s": 900.719,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-0900-udp.log"
+    },
+    {
+      "workload": "tcp",
+      "elapsed_s": 900.719,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-0900-tcp.log"
+    },
+    {
+      "workload": "cli",
+      "elapsed_s": 900.719,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-0900-cli.log"
+    },
+    {
+      "workload": "ssh",
+      "elapsed_s": 900.719,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-0900-ssh.log"
+    },
+    {
+      "workload": "adb",
+      "elapsed_s": 900.719,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-0900-adb.log"
+    },
+    {
+      "workload": "udp",
+      "elapsed_s": 1350.27,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-1350-udp.log"
+    },
+    {
+      "workload": "tcp",
+      "elapsed_s": 1350.27,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-1350-tcp.log"
+    },
+    {
+      "workload": "cli",
+      "elapsed_s": 1350.27,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-1350-cli.log"
+    },
+    {
+      "workload": "ssh",
+      "elapsed_s": 1350.27,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-1350-ssh.log"
+    },
+    {
+      "workload": "adb",
+      "elapsed_s": 1350.27,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-1350-adb.log"
+    },
+    {
+      "workload": "udp",
+      "elapsed_s": 1750.539,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-1750-udp.log"
+    },
+    {
+      "workload": "tcp",
+      "elapsed_s": 1750.539,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-1750-tcp.log"
+    },
+    {
+      "workload": "cli",
+      "elapsed_s": 1750.539,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-1750-cli.log"
+    },
+    {
+      "workload": "ssh",
+      "elapsed_s": 1750.539,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-1750-ssh.log"
+    },
+    {
+      "workload": "adb",
+      "elapsed_s": 1750.539,
+      "exit_code": 0,
+      "leaks": 0,
+      "bytes": 0,
+      "file": "leaks-1750-adb.log"
+    }
+  ],
+  "raw_evidence_directory": "artifacts/soak-current/half-hour-001",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "memory_scan_method": "macOS leaks --forkCorpse -quiet; five rounds across five client processes",
+  "scope_limits": [
+    "Current local uncommitted macOS ARM64 build only",
+    "TCP/UDP and SSH/SFTP are real loopback services",
+    "ADB uses two physical USB Android 10 userdebug devices",
+    "Each load starts its full 1800-second timer after its own readiness barrier; setup and cleanup are additional",
+    "No new Windows/Linux CI, physical serial, unplug/reboot or overnight acceptance"
+  ],
+  "fixes": [
+    {
+      "area": "SSH socket ownership",
+      "source": "src/ssh.cpp",
+      "behavior": "shutdown and retain socket ownership until libssh2 cleanup completes; close afterward to prevent writes to a reused descriptor"
+    },
+    {
+      "area": "SSH buffered reads",
+      "source": "src/ssh.cpp",
+      "behavior": "reschedule reads when libssh2 buffered stdout/stderr remains instead of waiting for another socket event"
+    },
+    {
+      "area": "libssh2 host key ownership",
+      "source": "cmake/PatchLibssh2.cmake",
+      "behavior": "release replaced Curve25519/ECDH server host key on rekey"
+    },
+    {
+      "area": "OpenSSL ECDH temporary ownership",
+      "source": "cmake/PatchLibssh2.cmake",
+      "behavior": "release peer key, key-fromdata context and BN context in the OpenSSL 3+ path"
+    },
+    {
+      "area": "macOS process launch",
+      "source": "src/macos_process.cpp",
+      "behavior": "use posix_spawn with explicit stdio, working directory, environment and descriptor closure; retain Boost asynchronous process waiting",
+      "reproduction_scope": "fork-child ObjC/ASan CHECK failure captured before exec during ASan ADB concurrency; the same root cause in ordinary Release was not established"
+    }
+  ],
+  "asan": {
+    "status": "PASS",
+    "mixed_duration_s": 180,
+    "native_sha256": "ae436fc89232b7bd5207e761c2072b503cd5e13373eb8cacb3c9de6882122e05",
+    "same_source_fingerprints_as_release": true,
+    "ctest_passed": 6,
+    "third_party_scope": "Pinned libssh2 compiled with ASan; external OpenSSL dynamic library is not ASan-instrumented",
+    "runs": {
+      "tcp": {
+        "exit_code": 0,
+        "elapsed_s": 180.753,
+        "raw_log_sha256": "e63db45bb67bf28e8a84cbab28e654f16be01705880ccd22c581bc9740a1b5c8"
+      },
+      "udp": {
+        "exit_code": 0,
+        "elapsed_s": 180.774,
+        "raw_log_sha256": "be366985c85954dc42d09d91c361c373f2a5645be3731e6a71401048dcdc8ff3"
+      },
+      "cli": {
+        "exit_code": 0,
+        "elapsed_s": 180.652,
+        "raw_log_sha256": "285cc309e29eeb1785e010bd8dd52f4505ca11f77fa19884e040d4372cd02bbe"
+      },
+      "ssh": {
+        "exit_code": 0,
+        "elapsed_s": 181.003,
+        "raw_log_sha256": "55fa286250b7cd7c686ee0e475943b10d51dda56c4864f66e6f174fefac6ef63"
+      },
+      "adb": {
+        "exit_code": 0,
+        "elapsed_s": 262.824,
+        "raw_log_sha256": "aa61b6ab2c6d9f027be06994ca937f52ab2e3e882bcc39bc76d76d542171d656"
+      }
+    }
+  },
+  "process_launch_regression": {
+    "drivers": 8,
+    "launches": 8000,
+    "status": "PASS",
+    "log_sha256": "c370fdfc234262877941c1325bb0fb48323dee149454b1fc4562a9c0fc80cd7e"
+  },
+  "accelerated_rekey_validation": [
+    {
+      "case": "ssh-rekey-before",
+      "key_exchange": "curve25519-sha256",
+      "rekey_limit": "1M",
+      "requested_s": 120,
+      "io_exit_code": 0,
+      "elapsed_s": 121.028,
+      "leaks": 2650,
+      "leaked_bytes": 1187200,
+      "native_sha256": "d22f2199b17f6d88c24d13a6a91255b6cd68960bdc34bacbbb647c9da6ad4d4f",
+      "scope": "Targeted dependency ownership checks preceding the final macOS process launch change",
+      "log_sha256": "0afc573dbf6a8f0ad333a4eaf713d99e4f5e5d3be15fefa5eb6370f0b5c8901d"
+    },
+    {
+      "case": "ssh-rekey-curve-fixed",
+      "key_exchange": "curve25519-sha256",
+      "rekey_limit": "1M",
+      "requested_s": 120,
+      "io_exit_code": 0,
+      "elapsed_s": 120.777,
+      "leaks": 0,
+      "leaked_bytes": 0,
+      "native_sha256": "4580c4b07471883279212ff6c6374418843bd526714fb846e205dec11d219daa",
+      "scope": "Targeted dependency ownership checks preceding the final macOS process launch change",
+      "log_sha256": "d05b647f47ae54f2bd38f7566241199858928000745a73ae27e1fa86ed69215b"
+    },
+    {
+      "case": "ssh-rekey-ecdh-fixed",
+      "key_exchange": "ecdh-sha2-nistp256",
+      "rekey_limit": "1M",
+      "requested_s": 120,
+      "io_exit_code": 0,
+      "elapsed_s": 120.613,
+      "leaks": 153470,
+      "leaked_bytes": 9570336,
+      "native_sha256": "4580c4b07471883279212ff6c6374418843bd526714fb846e205dec11d219daa",
+      "scope": "Targeted dependency ownership checks preceding the final macOS process launch change",
+      "log_sha256": "db6248fa178dac4672e0357581fed1064a00481057ffd696b7394266ce406ae4"
+    },
+    {
+      "case": "ssh-rekey-ecdh-all-fixed",
+      "key_exchange": "ecdh-sha2-nistp256",
+      "rekey_limit": "1M",
+      "requested_s": 120,
+      "io_exit_code": 0,
+      "elapsed_s": 120.729,
+      "leaks": 0,
+      "leaked_bytes": 0,
+      "native_sha256": "68858e4782be9ba5d496bff71533cf4bbc996e4e4c317ae990f475e09a4f463f",
+      "scope": "Targeted dependency ownership checks preceding the final macOS process launch change",
+      "log_sha256": "acb8ee18ec07eca2adc126e18442ad959b0fe35875d30d923bdbd6b03ad4a814"
+    }
+  ],
+  "superseded_or_failed_runs": [
+    {
+      "directory": "artifacts/soak-current/hour-001",
+      "accepted": false,
+      "reason": "SSH buffered-read stall"
+    },
+    {
+      "directory": "artifacts/soak-current/hour-002",
+      "accepted": false,
+      "reason": "SSH rekey leaks; direct live-process leak scanning also paused ADB beyond its read timeout"
+    },
+    {
+      "directory": "artifacts/soak-current/adb-exit-diagnostic-180s",
+      "accepted": false,
+      "reason": "ASan fork-child CHECK before exec"
+    },
+    {
+      "directory": "artifacts/soak-current/hour-003",
+      "accepted": false,
+      "reason": "Intentionally interrupted after user changed duration to 30 minutes; restarted all loads for complete final evidence"
+    }
+  ],
+  "post_run_device_process_cleanup": [
+    {
+      "slot": 1,
+      "remaining_marked_test_processes": 0
+    },
+    {
+      "slot": 2,
+      "remaining_marked_test_processes": 0
+    }
+  ]
+}

@@ -38,6 +38,9 @@ cd_bytes_view_t bytes_view(const std::string&);
 std::string decode(const std::string&,cd_encoding_t,bool final=true);
 std::string encode(const std::string&,cd_encoding_t);
 std::filesystem::path utf8_path(const std::string&);
+#ifdef __APPLE__
+std::shared_ptr<process::process> spawn_process_macos(asio::io_context&,const process::filesystem::path&,std::vector<std::string>&,std::vector<std::string>&,const std::filesystem::path&,asio::writable_pipe&,asio::readable_pipe&,asio::readable_pipe&);
+#endif
 size_t scalar_prefix(const std::string&,uint64_t);
 uint64_t scalar_count(const std::string&);
 struct Check {

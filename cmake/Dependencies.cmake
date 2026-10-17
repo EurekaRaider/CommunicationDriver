@@ -32,4 +32,6 @@ FetchContent_Declare(ssh2
  URL https://www.libssh2.org/download/libssh2-1.11.1.tar.gz
  URL_HASH SHA256=d9ec76cbe34db98eec3539fe2c899d26b0c837cb3eb466a56b0f109cabf658f7)
 FetchContent_MakeAvailable(boost absl re2 ssh2)
+include(${CMAKE_CURRENT_LIST_DIR}/PatchLibssh2.cmake)
+cd_patch_libssh2("${ssh2_SOURCE_DIR}")
 set(CD_SSH_TARGET libssh2_static)

@@ -326,6 +326,68 @@ python scripts/run_platform_soak.py --build build --output artifacts/soak/local 
 本地原始证据保留在忽略目录 `artifacts/soak-crossplatform/`，远程产物链接和摘要保存在 JSON 中。结论限于上述有限场景：未做 Windows 消毒器、Linux TSan 小时测试；Windows x86、Linux ARM64、net48 本轮只有常规 CI 覆盖；真实 Android、实体串口及隔夜运行仍未验证。子进程清理结论限于采样观测到的进程身份，采样间隔内的短寿命子进程可能未被观测。
 
 
+## 第七轮：双 Android 真机与每 slot 高并发（2026-10-17）
+
+在本机 macOS ARM64 上连接两台真实 USB Android 10 / userdebug Standalone HMD。每个 slot 固定绑定自己的设备；相同远端路径写入不同标记并通过跨设备 Batch 验证隔离。原始串号、主机路径和日志仅留在忽略目录 `artifacts/adb-real/`，不纳入公开证据。摘要见 [adb-hardware-macos-arm64.json](evidence/adb-hardware-macos-arm64.json)，复跑步骤见 [真机测试说明](adb-hardware-testing.md)。
+
+最初以普通 shell 权限完成双机功能和 600 秒混合测试；随后在 C# 复测中发现真实的多 Driver 子进程启动死锁。父进程在等待 exec 错误管道，fork 后的子进程在 Asio signal-state 全局互斥锁中等待；该锁可能由另一个运行时的线程持有。父运行时被阻塞后，原本的操作计时器也无法推进。调用栈及 watchdog 失败原样保留，不能以此前通过的单 Driver 600 秒测试覆盖该失败。
+
+无设备的 8 Driver 回归在修复前稳定卡于 107/800 个子进程。现在仅为 POSIX 原生库启用 Boost.Process 提供的 `BOOST_PROCESS_V2_DISABLE_NOTIFY_FORK`：这些子进程立即 exec，从不运行继承的 Asio 上下文，因此避免该通知路径；异步 IO、子进程等待和所有权保留。修复后同类负载完成 8,000 次启动。新增 `concurrent_process_launch` CTest；Release、AddressSanitizer 各 6 项 CTest 全部通过。上游约束与固定版本开关位置见 JSON 中的链接。
+
+用户明确授权 `adb root` 后，两台设备 uid 均由 2000 切换到 0，成功读取并持续跟随真实 `dmesg -w`。修复后的增强负载同时运行两个 slot，各有 4 个独立 Driver、32 路短命令（24 Persistent / 8 OneShot）、4 路 push/pull、真实 logcat、真实 dmesg、一条受控持续输出，以及 4 路取消/关闭/重开。每 slot 共 43 个工作任务，单独统计。连续混合阶段为 600 秒，含功能前置和清理的外部总时长为 616.296 秒，退出码 0，无 watchdog/无进度超时、断言失败或已观测子进程残留。
+
+| Slot | 短命令次数 | Push/pull 次数 | 比对流量 GiB | dmesg 读取次数 / 字节 | 取消后恢复次数 | 短命令对 P95 ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| device-1 | 109,930 | 2,410 | 9.41 | 4,084 / 1,693,929 | 6,993 | 535.2 |
+| device-2 | 110,952 | 2,428 | 9.48 | 4,223 / 1,689,243 | 6,999 | 539.1 |
+
+短命令对是 `printf` 加版本属性查询，P95 不是单请求延迟。文件流量按上传和下载分别计数，均逐字节核对；功能用例另覆盖 0 字节至 16 MiB、UTF8/NUL、空格/中文/引号路径、不覆盖已有文件、目录拒绝、缺失文件、早匹配后尾部归属、排队超时、输出限制和 16 路同时关闭。最终功能检查有 270 项断言。
+
+C# 双机回归在增强负载下连续三轮通过，各 160 项断言。其 push/pull 中断用例均先观察目标已有非空数据，再请求取消，核对部分路径、Close 后文件不继续增长以及重开恢复；正常传输使用 SHA256 比对。AddressSanitizer 还以相同的每 slot 配置额外运行 60 秒，两个 slot 均收到真实内核日志，未报告内存访问错误。macOS 不支持本轮 LeakSanitizer，`detect_leaks=0`；另两次运行中的 macOS `leaks` 扫描均为 0 leaks / 0 leaked bytes，不能视为对所有负载无泄漏的证明。
+
+增强负载首窗口/末 60 秒父进程 RSS 中位数为 83.83 / 83.38 MiB，线程范围 [114, 114]，FD 范围 [289, 306]。多个负载曾重叠运行，操作数和延迟只描述本轮正确性压力，不作为吞吐或性能回归比较。
+
+设备临时目录（包括早期挂起遗留且通过本地随机文件 SHA256 确认归属的目录）均已清理；匹配本轮标记的 logcat/持续输出进程为 0。测试结束后两台设备均恢复原始 uid 2000。没有执行 remount、设备 reboot、安装/卸载、清空日志或刻意 USB 拔插。结论限于上述两台设备及 macOS；本轮未触发新 Linux/Windows CI，未完成实体串口、其他 Android 版本、小时级真机或隔夜验收。
+
+## 第八轮：当前修复版全非串口 30 分钟高强度并发（2026-10-17）
+
+用户将一小时要求改为 30 分钟后，结束原任务并重新运行全部负载；原任务不计为通过。最终所有负载均使用同一份 Release 原生库，各自就绪后连续混合运行完整 1,800 秒，初始化和清理另计。共 242 个负载任务：TCP/UDP/CLI 各 38，SSH/SFTP 42，ADB 两个 slot 各 43。各组同时启动，详细负载与复跑入口见 [并发压测说明](nonserial-soak-testing.md)，匿名统计、源码/程序指纹和资源证据见 [nonserial-30min-macos-arm64.json](evidence/nonserial-30min-macos-arm64.json)。
+
+本轮发现并修复：SSH 清理时 socket FD 提前关闭导致跨 Driver 复用竞态；libssh2 已缓冲 stdout/stderr 却等待新 socket 事件造成停滞；Curve25519/ECDH 重协商泄漏旧 host key；OpenSSL 3+ ECDH 泄漏独立拥有的临时对象。锁定 libssh2 补丁按精确源码片段匹配并可重复配置，不改动外部安装库。
+
+另外，ASan 高并发 ADB 捕获到 exec 前 `fork → ObjC atfork → ASan allocator CHECK` 崩溃。macOS 原生库的进程启动改为 `posix_spawn`，保留 stdio、工作目录、环境、FD 隔离及 Boost 异步等待；不是在测试脚本绕过。普通 Release 是否发生相同根因崩溃没有证实，也不将该调用栈笼统归为 Boost 缺陷。Windows/Linux 保留原启动路径，本轮未运行这些平台的新 CI。
+
+| 负载 | 外部总时长 s | 命令次数 | 文件传输次数 | 结果 |
+| --- | ---: | ---: | ---: | --- |
+| TCP | 1800.550 | 9,301,382 | 0 | PASS |
+| UDP | 1800.510 | 11,754,488 | 0 | PASS |
+| CLI | 1800.491 | 3,982,514 | 0 | PASS |
+| SSH/SFTP | 1800.863 | 3,172,535 | 42,870 | PASS |
+| 双 ADB | 1821.467 | 545,567 | 9,690 | PASS |
+
+文件传输按上传和下载分别计数，逐字节比对；TCP/UDP bulk 收发另计于 JSON。预期取消/超时需返回正确状态并恢复连接，不能作为忽略失败的重试。所有工作任务必须实际完成 IO，并检查无进度和总时长 watchdog。SSH OneShot 成功退出码可空沿用固定 libssh2 1.11.1 的既有契约，非零退出码及所有 stdout/stderr 仍严格核对。
+
+| ADB slot | 短命令 | Push/pull | 比对流量 GiB | 真实 dmesg 字节 | 取消后恢复 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| device-2 | 256,530 | 4,812 | 18.80 | 1,754,108 | 11,132 |
+| device-1 | 253,718 | 4,850 | 18.95 | 1,728,174 | 11,080 |
+
+两个 slot 均实测到四路文件传输与 logcat/dmesg 同时运行。结束后临时目录删除，设备 uid 均从测试时的 0 恢复至原始 2000，客户端/控制器均无已观测子进程残留。
+
+| 客户端 | RSS MiB：预热后前五分钟中位数 → 最后五分钟中位数 | 线程范围 | FD 范围 |
+| --- | ---: | ---: | ---: |
+| tcp | 44.48 → 49.50 | 57–57 | 88–96 |
+| udp | 16.62 → 16.84 | 57–57 | 90–94 |
+| cli | 9.62 → 10.02 | 51–51 | 104–136 |
+| ssh | 41.03 → 43.06 | 59–59 | 57–62 |
+| adb | 94.14 → 99.63 | 114–114 | 289–309 |
+
+五轮 `leaks --forkCorpse -quiet` 快照覆盖五组客户端，共 25 次检查，均为 0 leaks / 0 leaked bytes。直接扫描运行进程会暂停客户端数秒并干扰 IO 超时，因此最终使用快照模式；所有原始超时和延迟记录不放宽。SSH 加速重协商检查另覆盖 Curve25519 与 ECDH：修复前分别观测 1,187,200 / 9,570,336 泄漏字节，对应修复后同类 120 秒用例均为 0；这些定向检查早于最后的 macOS 启动改动，最终版本的完整 30 分钟检查另列如上。
+
+同源 ASan 构建通过全部 6 项 CTest 及所有负载各 180 秒混合压测，锁定 libssh2 本身也有 ASan 插桩；外部 OpenSSL 动态库未插桩。Release 通过全部 6 项 CTest、严格 host key 的真实 OpenSSH/SFTP 功能前置及 8 Driver / 8,000 次并发进程启动回归。测试中没有通过降低并发、自动重试失败操作或放宽 SDK 超时取得通过。
+
+以上记录本机压力测试结束时尚未提交的工作区代码，原生库 SHA256 为 `a33a3a901135b2812b71dac3e654e1eda2ae107dcda4daec063886da389c2f5a`。本机压力测试阶段未提交、推送、发布或重新运行远端 CI；后续提交与平台回归以对应 GitHub Actions 记录为准。此处真机结果不扩展为实体串口、其他 Android/主机平台或隔夜验收。
+
 ## 既有平台与制品验收
 
 [最终软件提交 `3da0d8c`](https://github.com/EurekaRaider/CommunicationDriver/commit/3da0d8cab143ae1ea1d2c3e2f0a6e4e7b2150177) 的 [Platform CI #38397256682](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/38397256682) 六平台任务与合并 NuGet 任务均已终态成功。本机仅 macOS ARM64；其他平台结论来自对应真实 CI runner 上的实际程序执行。
@@ -345,4 +407,4 @@ Native 包独立 C/C++ 客户端直接使用包内头文件和运行库，Window
 
 ## 未验证
 
-至少两台真实 Android 设备与两个真实串口未验证。用户本轮明确回复“本轮暂无硬件，记录未验证”；不以虚拟 PTY、fake adb 或回环网络代替硬件验收。无人为 UP 总数限制，32 为默认批并发与验收规模。
+两台真实 Android 10 设备已完成第七轮功能及第八轮当前修复版每 slot 30 分钟高并发验收；不扩展为其他设备或主机平台的硬件结论。两个实体串口、其他 Android 版本、刻意拔插/设备重启和超过 30 分钟/隔夜的当前版本真机负载仍未验证。此前“本轮暂无硬件”的记录属于旧轮次。无人为 UP 总数限制，32 为默认批并发；本轮测试的每 slot 32 路短命令不是 API 连接上限。

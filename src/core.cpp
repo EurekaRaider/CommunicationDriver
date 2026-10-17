@@ -295,7 +295,11 @@ struct ProcessBackend : Backend {
    if(cmd_shell){std::random_device random;prompt_token="__CD_PROMPT_"+std::to_string(random())+std::to_string(random())+"__";env["PROMPT"]=prompt_token;prompt_ready=cb;}
    std::vector<std::string> env_list;for(auto& [k,v]:env) env_list.push_back(k+"="+v);
    auto dir=config.working_directory.empty()?std::filesystem::current_path():utf8_path(config.working_directory);
+#ifdef __APPLE__
+   child=spawn_process_macos(runtime->state->io,path,args,env_list,dir,input,out,err);
+#else
    child=std::make_shared<process::process>(runtime->state->io,path,args,process::process_stdio{input,out,err},process::process_environment(env_list),process::process_start_dir(process::filesystem::path(dir.native())));
+#endif
    pump(0);pump(1); auto self=std::static_pointer_cast<ProcessBackend>(shared_from_this());
    // async_wait retains references into the process; keep it alive through completion after Close.
    auto waiting_child=child;child->async_wait([self,waiting_child](ErrorCode ec,int code){if(self->stopped) return;if(ec) self->failure(CD_IO_ERROR,ec.message(),ec.value());else self->exited(code);});

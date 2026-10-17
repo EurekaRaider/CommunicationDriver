@@ -115,7 +115,13 @@ struct SshBackend : Backend {
    libssh2_channel_free(channel);channel=std::exchange(stdio_channel,nullptr);channel_phase=channel?3:0;command_active=false;
    emit(0,{},true);emit(1,{},true);ended(confirmed_code);if(channel&&!stopped){auto self=std::static_pointer_cast<SshBackend>(shared_from_this());asio::post(runtime->state->io,[self]{self->drive();});}return;
   }
-  if(read_data) {auto self=std::static_pointer_cast<SshBackend>(shared_from_this());asio::post(runtime->state->io,[self]{self->drive();});}
+  // Reading stderr can pull stdout into libssh2 after stdout was visited.
+  // Drain that buffered data without waiting for another socket readiness event.
+  unsigned long buffered=0,stdio_buffered=0;
+  libssh2_channel_window_read_ex(channel,&buffered,nullptr);
+  if(stdio_channel)libssh2_channel_window_read_ex(stdio_channel,&stdio_buffered,nullptr);
+  bool buffered_read=(buffered||stdio_buffered)&&!(libssh2_session_block_directions(session)&LIBSSH2_SESSION_BLOCK_OUTBOUND);
+  if(read_data||buffered_read) {auto self=std::static_pointer_cast<SshBackend>(shared_from_this());asio::post(runtime->state->io,[self]{self->drive();});}
   else wait_socket();
  }
  bool command_channels() const override {return config.mode==CD_ONE_SHOT;}
@@ -163,9 +169,12 @@ struct SshBackend : Backend {
    runtime->file_job([stream]{stream->clear();stream->close();if(stream->fail())throw Fault(CD_IO_ERROR,"Local file close failed");},[self](std::exception_ptr error){self->disk_busy=false;if(self->stopped)return;if(error){self->report(CD_IO_ERROR,0);return;}self->local.reset();self->progress(self->transferred);auto cb=std::exchange(self->transfer_callback,{});self->transfer_phase=0;cb(CD_OK,{},0);});}
  }
  void close() override {
-  if(stopped) return;stopped=true;resolver.cancel();ErrorCode e;socket.close(e);
+  if(stopped) return;stopped=true;resolver.cancel();ErrorCode e;socket.cancel(e);
+  // Keep ownership of the descriptor while libssh2 frees channels: those calls
+  // can still send packets. Closing it first lets another runtime reuse it.
+  socket.shutdown(asio::ip::tcp::socket::shutdown_both,e);
   if(file) {libssh2_sftp_close(file);file=nullptr;}if(sftp) {libssh2_sftp_shutdown(sftp);sftp=nullptr;}
-  if(channel) {libssh2_channel_free(channel);channel=nullptr;}if(stdio_channel){libssh2_channel_free(stdio_channel);stdio_channel=nullptr;}if(session) {libssh2_session_free(session);session=nullptr;}local.reset();
+  if(channel) {libssh2_channel_free(channel);channel=nullptr;}if(stdio_channel){libssh2_channel_free(stdio_channel);stdio_channel=nullptr;}if(session) {libssh2_session_free(session);session=nullptr;}socket.close(e);local.reset();
  }
 };
 std::shared_ptr<Backend> make_ssh(std::shared_ptr<Runtime> r,Config c) {return std::make_shared<SshBackend>(std::move(r),std::move(c));}

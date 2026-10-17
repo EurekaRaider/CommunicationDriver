@@ -22,7 +22,7 @@ CommunicationDriver is a cross-platform communication library for device control
 
 From a local shell command to parallel batches across devices, the workflow stays consistent: create a connection, open resources, perform an operation, check the response, and close the connection.
 
-> **Current version: 0.1.0.** Software acceptance results are available for six runtime identifiers (RIDs), and NuGet packages are distributed through CI artifacts. Real Android devices and physical serial ports still require hardware acceptance testing. See the [validation report](docs/validation.md) for the exact scope.
+> **Current version: 0.1.0.** Software acceptance results are available for six runtime identifiers (RIDs), and NuGet packages are distributed through CI artifacts. The current local macOS build has passed 30-minute concurrent TCP/UDP/CLI/SSH/SFTP tests and per-slot USB tests on two Android 10 devices; physical serial ports and broader hardware coverage remain pending. See the [validation report](docs/validation.md) for the exact scope.
 
 ## Why CommunicationDriver
 
@@ -255,7 +255,7 @@ Existing validation covers native behavior, standalone consumers, TCP fragmentat
 
 **Soak-test record:** on macOS ARM64, 32 mixed connections (eight each of TCP, UDP, persistent CLI, and virtual serial) completed a one-hour test totaling **250,092,544 operations**. This record applies to the historical binary identified in the report; later fixes have separate CI and local regression results. See the [machine-readable summary](docs/evidence/soak-macos-arm64.json).
 
-**Pending hardware acceptance:** at least two real Android devices and two physical serial ports. Simulated ADB and virtual serial tests do not establish acceptance for that hardware.
+**Current local stress acceptance:** TCP, UDP, CLI, real loopback SSH/SFTP, and two physical USB Android 10 devices each passed a full **30-minute** mixed phase on the same repaired macOS ARM64 build: **242 load workers**, including **43 per ADB slot**. Functional checks, ASan mixed stress, resource snapshots and cleanup passed. See the [anonymous evidence](docs/evidence/nonserial-30min-macos-arm64.json) and [reproduction guide](docs/nonserial-soak-testing.md). This local stress evidence is recorded separately from platform CI results. **Still pending:** physical serial ports, broader Android/host coverage and overnight hardware tests.
 
 ## v1 Scope
 

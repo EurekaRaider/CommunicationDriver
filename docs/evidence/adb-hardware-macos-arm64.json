@@ -1,0 +1,516 @@
+{
+  "date": "2026-10-17",
+  "timezone": "Asia/Shanghai",
+  "host_scope": "macOS 27.0.1 ARM64; physical USB ADB",
+  "implementation_baseline": "fc5f42d924e567821260ee520fa02f46dc5d21ee",
+  "adb": "37.0.1-15733141",
+  "adb_upstream": "https://developer.android.com/tools/releases/platform-tools",
+  "devices": [
+    {
+      "label": "device-1",
+      "model": "Standalone HMD",
+      "android": "10",
+      "dmesg_exit": 0,
+      "dmesg_denied": false
+    },
+    {
+      "label": "device-2",
+      "model": "Standalone HMD",
+      "android": "10",
+      "dmesg_exit": 0,
+      "dmesg_denied": false
+    }
+  ],
+  "per_slot_load": {
+    "command_workers": 32,
+    "transfer_workers": 4,
+    "cancel_workers": 4,
+    "drivers_per_slot": 4
+  },
+  "per_slot_observed_processes": [
+    {
+      "slot": 1,
+      "sample_count": 107,
+      "adb_process_peak": 48,
+      "transfer_process_peak": 4,
+      "samples_with_four_transfers_and_both_log_streams": 53
+    },
+    {
+      "slot": 2,
+      "sample_count": 107,
+      "adb_process_peak": 48,
+      "transfer_process_peak": 4,
+      "samples_with_four_transfers_and_both_log_streams": 47
+    }
+  ],
+  "runs": {
+    "high-slots-root-600s": {
+      "status": "PASS",
+      "elapsed_s": 616.296,
+      "exit_code": 0,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "observed_surviving_children": 0,
+      "artifact_sha256": {
+        "cd_adb_hardware_tests": "b3309f91f29d31e8037c8d7dafa04f5c8822e32ec95e01191151e5c81371f962",
+        "libcommunicationdriver_native.dylib": "31b0537cfb9933c98491799db6f81fd2ec668b41b6701aea7de9362ef98dc87a"
+      },
+      "raw_log_sha256": "b52129eb8ef5d3d012bcc1c89f53d8bb87e262dff171a4d0841df3ec68598df8",
+      "sample_count": 123,
+      "counts": {
+        "assertions": 424840,
+        "commands": 239651,
+        "transfers": 4866,
+        "transfer_bytes": 20363640832,
+        "stream_reads": 39630,
+        "stream_bytes": 4160153,
+        "recoveries": 14002,
+        "exit": 0
+      },
+      "slots": {
+        "device-2": {
+          "kernel_log": {
+            "bytes": 1689243,
+            "reads": 4223
+          },
+          "command_pair_latency_us": {
+            "count": 55476,
+            "p50_us": 326832,
+            "p95_us": 539078,
+            "p99_us": 763828,
+            "max_us": 1387181
+          },
+          "counts": {
+            "commands": 110952,
+            "transfers": 2428,
+            "transfer_bytes": 10183770112,
+            "stream_reads": 19998,
+            "stream_bytes": 2080840,
+            "recoveries": 6999
+          }
+        },
+        "device-1": {
+          "kernel_log": {
+            "bytes": 1693929,
+            "reads": 4084
+          },
+          "command_pair_latency_us": {
+            "count": 54965,
+            "p50_us": 330707,
+            "p95_us": 535175,
+            "p99_us": 768924,
+            "max_us": 1406401
+          },
+          "counts": {
+            "commands": 109930,
+            "transfers": 2410,
+            "transfer_bytes": 10108272640,
+            "stream_reads": 19632,
+            "stream_bytes": 2079313,
+            "recoveries": 6993
+          }
+        }
+      },
+      "resources": {
+        "sample_interval_max_s": 5.034,
+        "rss_peak_bytes": 142606336,
+        "rss_first_window_median_bytes": 87900160.0,
+        "rss_last_60s_median_bytes": 87433216.0,
+        "threads_min_max": [
+          114,
+          114
+        ],
+        "fds_min_max": [
+          289,
+          306
+        ]
+      }
+    },
+    "high-slots-root-asan-60s": {
+      "status": "PASS",
+      "elapsed_s": 64.604,
+      "exit_code": 0,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "observed_surviving_children": 0,
+      "artifact_sha256": {
+        "cd_adb_hardware_tests": "5c1b746affbf7d717c9eb895fafbe112b90b311d03c1bbaaf80d12ac72de0870",
+        "libcommunicationdriver_native.dylib": "59e955e08f639022641d5751f8e1ac8f94b1ed70ac761b2b714223264be76cc4"
+      },
+      "raw_log_sha256": "7a43b5330556a5ecc4798a90ffe440e224f262313aada73d22425fba36b7e17a",
+      "sample_count": 13,
+      "counts": {
+        "assertions": 23634,
+        "commands": 12619,
+        "transfers": 224,
+        "transfer_bytes": 939524096,
+        "stream_reads": 3337,
+        "stream_bytes": 2355332,
+        "recoveries": 742,
+        "exit": 0
+      },
+      "slots": {
+        "device-1": {
+          "kernel_log": {
+            "bytes": 1096006,
+            "reads": 267
+          },
+          "command_pair_latency_us": {
+            "count": 2919,
+            "p50_us": 659020,
+            "p95_us": 897271,
+            "p99_us": 1008184,
+            "max_us": 1109310
+          },
+          "counts": {
+            "commands": 5838,
+            "transfers": 112,
+            "transfer_bytes": 469762048,
+            "stream_reads": 1666,
+            "stream_bytes": 1178769,
+            "recoveries": 374
+          }
+        },
+        "device-2": {
+          "kernel_log": {
+            "bytes": 1092834,
+            "reads": 259
+          },
+          "command_pair_latency_us": {
+            "count": 2874,
+            "p50_us": 659984,
+            "p95_us": 904504,
+            "p99_us": 1051435,
+            "max_us": 1214254
+          },
+          "counts": {
+            "commands": 5748,
+            "transfers": 112,
+            "transfer_bytes": 469762048,
+            "stream_reads": 1671,
+            "stream_bytes": 1176563,
+            "recoveries": 368
+          }
+        }
+      },
+      "resources": {
+        "sample_interval_max_s": 5.035,
+        "rss_peak_bytes": 452968448,
+        "rss_first_window_median_bytes": 442712064,
+        "rss_last_60s_median_bytes": 442712064,
+        "threads_min_max": [
+          114,
+          114
+        ],
+        "fds_min_max": [
+          285,
+          296
+        ]
+      }
+    },
+    "managed-fixed-1": {
+      "status": "PASS",
+      "elapsed_s": 33.941,
+      "exit_code": 0,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "observed_surviving_children": 0,
+      "artifact_sha256": {
+        "dotnet": "2ff302a3c5cecc4a371fd6482d2f5547c57d93eff9fe19919ef729a54f69ce04",
+        "AdbHardware.dll": "2a8afad88b1fc0bdd5460c5ceca7dc2a88e5560f13574ea72335962760acea71",
+        "libcommunicationdriver_native.dylib": "31b0537cfb9933c98491799db6f81fd2ec668b41b6701aea7de9362ef98dc87a"
+      },
+      "raw_log_sha256": "b01b1accb1e61223ce3f2f9c1da8d9d71252173029b91de314e742c8a73c76e8",
+      "sample_count": 7,
+      "counts": {
+        "assertions": 160
+      },
+      "resources": {
+        "sample_interval_max_s": 5.019,
+        "rss_peak_bytes": 95174656,
+        "rss_first_window_median_bytes": 95174656,
+        "rss_last_60s_median_bytes": 95174656,
+        "threads_min_max": [
+          19,
+          19
+        ],
+        "fds_min_max": [
+          66,
+          66
+        ]
+      }
+    },
+    "managed-fixed-2": {
+      "status": "PASS",
+      "elapsed_s": 34.013,
+      "exit_code": 0,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "observed_surviving_children": 0,
+      "artifact_sha256": {
+        "dotnet": "2ff302a3c5cecc4a371fd6482d2f5547c57d93eff9fe19919ef729a54f69ce04",
+        "AdbHardware.dll": "2a8afad88b1fc0bdd5460c5ceca7dc2a88e5560f13574ea72335962760acea71",
+        "libcommunicationdriver_native.dylib": "31b0537cfb9933c98491799db6f81fd2ec668b41b6701aea7de9362ef98dc87a"
+      },
+      "raw_log_sha256": "7eba607a2747f262493ca546ae02e8045f49d433481eca24840510e6850e39e6",
+      "sample_count": 7,
+      "counts": {
+        "assertions": 160
+      },
+      "resources": {
+        "sample_interval_max_s": 5.02,
+        "rss_peak_bytes": 95027200,
+        "rss_first_window_median_bytes": 95027200,
+        "rss_last_60s_median_bytes": 95027200,
+        "threads_min_max": [
+          19,
+          19
+        ],
+        "fds_min_max": [
+          66,
+          66
+        ]
+      }
+    },
+    "managed-fixed-3": {
+      "status": "PASS",
+      "elapsed_s": 39.831,
+      "exit_code": 0,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "observed_surviving_children": 0,
+      "artifact_sha256": {
+        "dotnet": "2ff302a3c5cecc4a371fd6482d2f5547c57d93eff9fe19919ef729a54f69ce04",
+        "AdbHardware.dll": "2a8afad88b1fc0bdd5460c5ceca7dc2a88e5560f13574ea72335962760acea71",
+        "libcommunicationdriver_native.dylib": "31b0537cfb9933c98491799db6f81fd2ec668b41b6701aea7de9362ef98dc87a"
+      },
+      "raw_log_sha256": "cce40b3b678c99bb1724eb0d2b41953502d7a6e35830d90fac3eb17f22d7419d",
+      "sample_count": 8,
+      "counts": {
+        "assertions": 160
+      },
+      "resources": {
+        "sample_interval_max_s": 5.023,
+        "rss_peak_bytes": 95207424,
+        "rss_first_window_median_bytes": 95199232.0,
+        "rss_last_60s_median_bytes": 95199232.0,
+        "threads_min_max": [
+          19,
+          20
+        ],
+        "fds_min_max": [
+          66,
+          66
+        ]
+      }
+    },
+    "launch-after": {
+      "status": "PASS",
+      "elapsed_s": 5.728,
+      "exit_code": 0,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "observed_surviving_children": 0,
+      "artifact_sha256": {
+        "cd_process_launch_tests": "9091e837bbab4915b04d077d3df000d7d3e9c342dadac7eed97d94c279e908d1",
+        "libcommunicationdriver_native.dylib": "31b0537cfb9933c98491799db6f81fd2ec668b41b6701aea7de9362ef98dc87a"
+      },
+      "raw_log_sha256": "a8e98b5f28ef0f6c6118e58ab40cbdac3df52b963b1b6754a17801cfc13ecb47",
+      "sample_count": 6,
+      "counts": {}
+    }
+  },
+  "before_fix": {
+    "native_initial_600s": {
+      "status": "PASS",
+      "elapsed_s": 610.564,
+      "exit_code": 0,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "observed_surviving_children": 0,
+      "artifact_sha256": {
+        "cd_adb_hardware_tests": "2daa0c98a8ccb5395e84678505ebd8e5a499654f7b99139059bbe1f646b4e652",
+        "libcommunicationdriver_native.dylib": "01a27c0e68bc391aefab304ede8e653ee79872709d4a47be1bcbe1f8a54acb91"
+      },
+      "raw_log_sha256": "4f0783145d21f3bc9708f4b2513e6e10f9b39bccd787039d4b23443d5067415a",
+      "sample_count": 122,
+      "counts": {
+        "assertions": 363405,
+        "commands": 202823,
+        "transfers": 5734,
+        "transfer_bytes": 24004296704,
+        "stream_reads": 41877,
+        "stream_bytes": 758110,
+        "recoveries": 7574,
+        "exit": 0
+      },
+      "resources": {
+        "sample_interval_max_s": 5.023,
+        "rss_peak_bytes": 69582848,
+        "rss_first_window_median_bytes": 40886272.0,
+        "rss_last_60s_median_bytes": 44023808.0,
+        "threads_min_max": [
+          30,
+          30
+        ],
+        "fds_min_max": [
+          89,
+          98
+        ]
+      }
+    },
+    "managed_hang": {
+      "status": "FAIL",
+      "elapsed_s": 120.643,
+      "exit_code": -9,
+      "watchdog_timeout": false,
+      "idle_timeout": true,
+      "observed_surviving_children": 0,
+      "artifact_sha256": {
+        "dotnet": "2ff302a3c5cecc4a371fd6482d2f5547c57d93eff9fe19919ef729a54f69ce04",
+        "AdbHardware.dll": "854ef830bdb3161fcbf05f4cdd92907f2b40b3356f4c63e684e4f575b16faaee",
+        "libcommunicationdriver_native.dylib": "01a27c0e68bc391aefab304ede8e653ee79872709d4a47be1bcbe1f8a54acb91"
+      },
+      "raw_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sample_count": 24,
+      "counts": {},
+      "resources": {
+        "sample_interval_max_s": 5.032,
+        "rss_peak_bytes": 92962816,
+        "rss_first_window_median_bytes": 92897280.0,
+        "rss_last_60s_median_bytes": 92897280.0,
+        "threads_min_max": [
+          12,
+          14
+        ],
+        "fds_min_max": [
+          52,
+          52
+        ]
+      }
+    },
+    "deterministic_launch_reproduction": {
+      "status": "FAIL",
+      "elapsed_s": 25.059,
+      "exit_code": -9,
+      "watchdog_timeout": true,
+      "idle_timeout": false,
+      "observed_surviving_children": 0,
+      "artifact_sha256": {
+        "process-launch-regression": "c564252800f59a385cf9fb1deacbefb64f1774372bd5a85bfaa883ab79b095b4",
+        "libcommunicationdriver_native.dylib": "01a27c0e68bc391aefab304ede8e653ee79872709d4a47be1bcbe1f8a54acb91"
+      },
+      "raw_log_sha256": "4be249a105eae367faf30f156151dd70d1b0e59443a4afa7ba3833fc943dfaf6",
+      "sample_count": 25,
+      "counts": {}
+    },
+    "launches_before_stall": 107,
+    "launches_expected": 800
+  },
+  "fix": {
+    "file": "CMakeLists.txt",
+    "scope": "POSIX communicationdriver compile definitions",
+    "definition": "BOOST_PROCESS_V2_DISABLE_NOTIFY_FORK",
+    "failure": "Forked child inherited an Asio signal-state mutex locked by another runtime; fork_child notification blocked before exec while parent waited on the exec-error pipe, preventing the runtime from processing operation deadlines.",
+    "reason": "Children immediately exec and never run inherited Asio contexts. Skip the optional fork notifications; retain asynchronous IO, child waiting and ownership.",
+    "regression": "Eight independent Driver instances completed 8000 OneShot children after the fix; the same pre-fix class of load stalled at 107/800.",
+    "upstream_constraint": "https://www.boost.org/doc/libs/latest/doc/html/boost_asio/reference/io_context/notify_fork.html",
+    "upstream_switch": "https://github.com/boostorg/process/blob/boost-1.92.0/include/boost/process/v2/posix/default_launcher.hpp"
+  },
+  "source_sha256": {
+    "CMakeLists.txt": "7392360be650526475e0c08ae94dbbe2d2eaf623c193d7487ee769a9f7e78435",
+    "tests/adb_hardware_tests.cpp": "086f439ed2f082c2c4a1dcc7db35d618011e063e315c18f0ff4258c44fec9cbe",
+    "tests/process_launch_tests.cpp": "3698bed39fe934dc82b23b2baf57996b7a0a220d36a151988523665db2a0ca55",
+    "tests/dotnet/AdbHardware/Program.cs": "e66cfde45fdfbd9f1fbb26830276ff94aed4d8d894c35d49d0489c7a22e9b3f5",
+    "scripts/test_adb_hardware.py": "612232148f9da294f62802f07e169e642cc5ea0fad3906a4260f9717c62e3404"
+  },
+  "root_followup": {
+    "user_authorized": true,
+    "transition": [
+      {
+        "device": 1,
+        "original_uid": "2000",
+        "root_exit": 0,
+        "root_message": "restarting adbd as root",
+        "test_uid": "0",
+        "dmesg_exit": 0,
+        "dmesg_error": ""
+      },
+      {
+        "device": 2,
+        "original_uid": "2000",
+        "root_exit": 0,
+        "root_message": "restarting adbd as root",
+        "test_uid": "0",
+        "dmesg_exit": 0,
+        "dmesg_error": ""
+      }
+    ],
+    "restored": [
+      {
+        "device": 1,
+        "original_uid": "2000",
+        "restored_uid": "2000"
+      },
+      {
+        "device": 2,
+        "original_uid": "2000",
+        "restored_uid": "2000"
+      }
+    ]
+  },
+  "remote_process_cleanup": [
+    {
+      "device": 1,
+      "ps_exit": 0,
+      "matched_test_stream_processes": 0,
+      "remaining_test_directories": 0,
+      "matched_kernel_follow_processes": 0
+    },
+    {
+      "device": 2,
+      "ps_exit": 0,
+      "matched_test_stream_processes": 0,
+      "remaining_test_directories": 0,
+      "matched_kernel_follow_processes": 0
+    }
+  ],
+  "failed_run_directory_cleanup": [
+    {
+      "slot": 1,
+      "identified_by_fixture_sha256": true,
+      "removed": true
+    }
+  ],
+  "ctest": {
+    "release": {
+      "passed": 6,
+      "failed": 0
+    },
+    "address_sanitizer": {
+      "passed": 6,
+      "failed": 0
+    }
+  },
+  "asan_options": "detect_leaks=0:halt_on_error=1; macOS LeakSanitizer unavailable; separate macOS leaks scans recorded",
+  "leaks_scans": [
+    {
+      "file": "leaks-active-1.log",
+      "leaks": 0,
+      "bytes": 0
+    },
+    {
+      "file": "leaks-active-2.log",
+      "leaks": 0,
+      "bytes": 0
+    }
+  ],
+  "measurement_scope": "Native high-load counts are correctness workload sizes, not throughput comparisons. CTest, three managed runs and a 60-second ASan high-load run overlapped parts of the native run. Latency is for a short-command pair (printf plus getprop), not a single request.",
+  "limitations": [
+    "No deliberate USB unplug, device reboot/remount, package installation or overnight testing",
+    "Physical-device results apply to these two Android 10 userdebug devices and this macOS ARM64 host",
+    "The POSIX build fix has local macOS validation; no new Linux/Windows CI was triggered in this task",
+    "Process cleanup covers observed identities and explicitly matched test stream commands; brief children may fall between samples"
+  ],
+  "raw_evidence_directory": "artifacts/adb-real/"
+}
