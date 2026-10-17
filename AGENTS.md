@@ -20,7 +20,7 @@ Commands configure, build, test, install native files, and compile managed bindi
 
 ## Coding Style & Architecture
 
-Match existing one-space indentation in native and C# sources. Use `cd_` names for C exports, `snake_case` for native functions, and `PascalCase` with `Async` suffixes for C# asynchronous methods. Keep shared behavior in the native core and wrappers thin. Preserve actual asynchronous I/O, handle ownership, and C ABI layout; never pass STL objects or exceptions across the ABI. Keep changes focused and run `git diff --check`.
+Use four-space indentation and expand functions, control flow, and declarations onto readable lines. Separate methods and logical phases with blank lines; keep related assignments together. Follow `.clang-format` for C/C++, `.editorconfig` for C#, `pyproject.toml` for Python, and `.cmake-format.py` for CMake. Use `cd_` names for C exports, `snake_case` for native functions, and `PascalCase` with `Async` suffixes for C# asynchronous methods. Keep shared behavior in the native core and wrappers thin. Preserve actual asynchronous I/O, handle ownership, and C ABI layout; never pass STL objects or exceptions across the ABI. Keep changes focused and run `git diff --check`.
 
 ## Testing Guidelines
 

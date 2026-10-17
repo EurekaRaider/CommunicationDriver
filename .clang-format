@@ -1,0 +1,29 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+LineEnding: LF
+ColumnLimit: 100
+MaxEmptyLinesToKeep: 1
+BreakBeforeBraces: Allman
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: None
+AllowShortLoopsOnASingleLine: false
+NamespaceIndentation: All
+IndentCaseLabels: true
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+SortIncludes: Never
+SortUsingDeclarations: Never
+IncludeBlocks: Preserve
+FixNamespaceComments: false
+ReflowComments: Never
+BreakStringLiterals: false
+InsertBraces: false
+SeparateDefinitionBlocks: Always
+StatementMacros:
+  - LIFETIME

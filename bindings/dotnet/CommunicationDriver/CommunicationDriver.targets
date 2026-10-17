@@ -1,12 +1,13 @@
 <Project>
-  <PropertyGroup>
-    <CommunicationDriverRid Condition="'$(CommunicationDriverRid)' == '' and '$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</CommunicationDriverRid>
-    <CommunicationDriverRid Condition="'$(CommunicationDriverRid)' == '' and '$(OS)' == 'Windows_NT' and '$(PlatformTarget)' == 'x86'">win-x86</CommunicationDriverRid>
-    <CommunicationDriverRid Condition="'$(CommunicationDriverRid)' == '' and '$(OS)' == 'Windows_NT'">win-x64</CommunicationDriverRid>
-  </PropertyGroup>
-  <ItemGroup Condition="'$(CommunicationDriverRid)' != ''">
-    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\$(CommunicationDriverRid)\native\*">
-      <Link>%(Filename)%(Extension)</Link><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+    <PropertyGroup>
+        <CommunicationDriverRid Condition="'$(CommunicationDriverRid)' == '' and '$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</CommunicationDriverRid>
+        <CommunicationDriverRid Condition="'$(CommunicationDriverRid)' == '' and '$(OS)' == 'Windows_NT' and '$(PlatformTarget)' == 'x86'">win-x86</CommunicationDriverRid>
+        <CommunicationDriverRid Condition="'$(CommunicationDriverRid)' == '' and '$(OS)' == 'Windows_NT'">win-x64</CommunicationDriverRid>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(CommunicationDriverRid)' != ''">
+        <Content Include="$(MSBuildThisFileDirectory)..\runtimes\$(CommunicationDriverRid)\native\*">
+            <Link>%(Filename)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
 </Project>

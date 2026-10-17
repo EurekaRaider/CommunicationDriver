@@ -411,6 +411,8 @@ SSH 使用真实回环 AsyncSSH 2.22.0、独立临时密钥和严格 SHA256 主�
 
 随后用户重新接入第二台设备，追加双 ADB 600 秒：每台仍为 4 Driver、43 个并发任务，两台共 86 个。当前 SSH 修复版运行库上重新通过双机功能和跨设备绑定/Batch 检查，混合阶段完成 228,314 次命令、4,036 次文件传输、16,882,368,512 字节比对及 9,396 次取消恢复，396,963 项断言通过。两台真实 dmesg 分别收到 1,267,565 / 761,850 字节；压测、修复后的资源采样器均退出 0，无 watchdog 或已观测子进程残留。两台均恢复 uid 2000，设备与主机的独立清理检查通过。该结果是双机 10 分钟，单独记录在 [dual-adb-10min-windows-x64.json](evidence/dual-adb-10min-windows-x64.json)，不改写先前单机 30 分钟的范围。
 
+双机压测结束后，按用户要求对 45 个源码与项目配置文件进行排版：统一四空格、展开语句和长参数列表，并按逻辑阶段补齐空行。C/C++ 有效词法单元、C# 语法结构和 token、Python AST、CMake 参数及 XML 结构均与排版前一致；新增格式配置并保留逻辑分组。排版后的原生测试/消费者构建、5 项 CTest、net48/net10 绑定和消费者、托管取消/关闭回归全部通过。构建有 NuGet 漏洞数据源不可达的 NU1900 警告，编译为零错误。用户随后拔掉两台设备，因此排版后的额外真机功能前置因无在线设备未执行；不将先前双机 10 分钟改记为排版后二进制的重新测量。
+
 ## 既有平台与制品验收
 
 [最终软件提交 `3da0d8c`](https://github.com/EurekaRaider/CommunicationDriver/commit/3da0d8cab143ae1ea1d2c3e2f0a6e4e7b2150177) 的 [Platform CI #38397256682](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/38397256682) 六平台任务与合并 NuGet 任务均已终态成功。本机仅 macOS ARM64；其他平台结论来自对应真实 CI runner 上的实际程序执行。
