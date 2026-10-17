@@ -50,5 +50,5 @@ static class Program {
    Console.WriteLine("PASS "+label+" managed ADB, active push/pull cancellation, SHA256 and concurrent lifecycle");
   } finally {await c.CloseAsync();var cleanup=await observer.ExecuteAsync("rm -rf "+Q(remote)+"; test ! -e "+Q(remote));Expect(cleanup.ExitCode==0,"managed temporary directory cleanup");}
  }
- static async Task<int> Main(string[] args){try{if(args.Length<4)throw new Exception("Use: <adb> <local-root> <serial> <serial>...");await Task.WhenAll(args.Skip(2).Select((serial,n)=>Device(args[0],serial,args[1],"device-"+(n+1))));Console.WriteLine("PASS managed assertions="+assertions);return 0;}catch(Exception e){Console.Error.WriteLine("FAIL "+e);return 1;}}
+ static async Task<int> Main(string[] args){try{var serials=args.Skip(2).Where(x=>x!="--allow-single-device").ToArray();if(serials.Length<(args.Contains("--allow-single-device")?1:2))throw new Exception("Use: <adb> <local-root> <serial>... [--allow-single-device]");await Task.WhenAll(serials.Select((serial,n)=>Device(args[0],serial,args[1],"device-"+(n+1))));Console.WriteLine("PASS managed assertions="+assertions);return 0;}catch(Exception e){Console.Error.WriteLine("FAIL "+e);return 1;}}
 }

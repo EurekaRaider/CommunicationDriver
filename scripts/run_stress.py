@@ -32,6 +32,21 @@ survivors = []
 observed = set()
 if args.process_tree:
     import psutil
+
+def wait_children(children, timeout=5):
+    if os.name != 'nt':
+        return psutil.wait_procs(list(children), timeout=timeout)[1]
+    # Windows wait handles can deny access after exit or PID reuse. is_running
+    # checks PID and creation time without acquiring a SYNCHRONIZE handle.
+    deadline = time.monotonic() + timeout
+    alive = list(children)
+    while alive:
+        alive = [child for child in alive if child.is_running()]
+        if not alive or time.monotonic() >= deadline:
+            break
+        time.sleep(0.05)
+    return alive
+
 binary = Path(shutil.which(command[0]) or command[0]).resolve()
 hashes = {str(binary): hashlib.sha256(binary.read_bytes()).hexdigest()}
 environment = os.environ.copy()
@@ -124,14 +139,14 @@ with log.open('w') as output:
                 os.killpg(process.pid, signal.SIGKILL)
         process.wait()
         if root is not None:
-            _, alive = psutil.wait_procs(list(observed), timeout=5)
+            alive = wait_children(observed)
             survivors = [{'pid': child.pid, 'created': child.create_time()} for child in alive]
             for child in alive:
                 try:
                     child.kill()
                 except psutil.NoSuchProcess:
                     pass
-            psutil.wait_procs(alive, timeout=5)
+            wait_children(alive)
 result = {'command': command, 'platform': platform.platform(), 'exit_code': process.returncode,
           'timed_out': timed_out, 'elapsed_s': round(time.monotonic() - started, 3),
           'idle_timed_out': idle_timed_out, 'surviving_observed_children': survivors,

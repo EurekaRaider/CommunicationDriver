@@ -18,6 +18,8 @@ def main():
     parser.add_argument('--output', type=Path, default=Path('artifacts/adb-real'))
     parser.add_argument('--seconds', type=int, default=600)
     parser.add_argument('--soak-only', action='store_true', help='skip functional cases; retain binding and mixed-load checks')
+    parser.add_argument('--allow-single-device', action='store_true', help='run one remaining device; does not validate cross-device isolation')
+    parser.add_argument('--offline-device', help='expect this separately bound device to be unavailable')
     parser.add_argument('--command-workers', type=int, default=8)
     parser.add_argument('--transfer-workers', type=int, default=1)
     parser.add_argument('--cancel-workers', type=int, default=1)
@@ -42,8 +44,8 @@ def main():
 
     devices_text = subprocess.check_output([str(adb), 'devices'], text=True)
     serials = [line.split()[0] for line in devices_text.splitlines()[1:] if re.search(r'\sdevice$', line)]
-    if len(serials) < 2:
-        raise SystemExit('Two online physical Android devices are required')
+    if len(serials) < (1 if args.allow_single_device else 2):
+        raise SystemExit('Insufficient online physical Android devices')
     remote = '/data/local/tmp/cd-hardware-' + uuid.uuid4().hex
     metadata = {'started_at': time.strftime('%Y-%m-%dT%H:%M:%S%z'), 'git_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(),
                 'adb_version': subprocess.check_output([str(adb), 'version'], text=True), 'devices': [], 'duration_requested_s': args.seconds,
@@ -69,6 +71,10 @@ def main():
     command += ['--', str(executable), str(adb), str(output / 'files' / uuid.uuid4().hex), remote, str(args.seconds), *serials]
     if args.soak_only:
         command.append('--soak-only')
+    if args.allow_single_device:
+        command.append('--allow-single-device')
+    if args.offline_device:
+        command += ['--offline-device', args.offline_device]
     for name in ('command_workers', 'transfer_workers', 'cancel_workers', 'drivers_per_slot'):
         command += ['--' + name.replace('_', '-'), str(getattr(args, name))]
     if sys.platform == 'darwin' and shutil.which('caffeinate'):

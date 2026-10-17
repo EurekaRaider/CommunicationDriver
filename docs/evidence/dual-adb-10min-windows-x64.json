@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-17",
+  "platform": "Windows 11 x64 10.0.26300",
+  "passed": true,
+  "scope": "Two physical USB Android 10 devices; 600-second mixed phase after native functional and cross-device binding/Batch checks. Each slot has four Drivers, 32 short-command workers, four push/pull workers, real logcat, real dmesg, controlled output and four cancel/reopen workers, for 43 tasks per slot / 86 total.",
+  "duration_mixed_s": 600,
+  "elapsed_total_s": 624.484,
+  "exit_code": 0,
+  "watchdog_timeout": false,
+  "idle_timeout": false,
+  "observed_survivors": 0,
+  "started_at": "2026-10-17T20:51:57+0800",
+  "finished_at": "2026-10-17T21:02:32+0800",
+  "native_library_sha256": "8bb8d8de0f5911838768565d3ed5676b73e50e325a26e0fbde50c1a8f34e6183",
+  "sampler_source_sha256": "7dcb187645502748cc358ce428ea584b90fd9e63cc360c6f9670ea88cb8683b3",
+  "source_sha256": {
+    "CMakeLists.txt": "543b08318e303d5eaccab9edae4dc2cf0a5211820e8f3c538e9568ecb0d79611",
+    "cmake/Dependencies.cmake": "d336df869996e0a17f3679ee5aacdd000149ab46ad0d65c4f1d888614eadbff4",
+    "cmake/PatchLibssh2.cmake": "63e0f579417a1efa8853558ede9bbc6c3a666712f43a0779420b7aa021d42cb0",
+    "src/core.cpp": "5d9fe4fb217f277f7e6f06d385f28066937b65ec745272b76af190d8625434da",
+    "src/core.hpp": "606d5cd219b581da664dbc6c3cd361c029270dd98fbd4ba1176e68ba64f624a3",
+    "src/ssh.cpp": "dc239171f174802996897ccc09a30bcc73983130ca6d9acc4f312bfcbdf8fffe",
+    "tests/adb_hardware_tests.cpp": "bd05c94610064a2b191498ed4da0a45b6bdcb3239a8cd6d64e8f5fb9ca4bba5e",
+    "tests/transport_soak_tests.cpp": "399655a2495e8b5d2cbc4211db8fdedc39244bf2ab3290203299052abafbaa54",
+    "tests/dotnet/AdbHardware/Program.cs": "3fc9140f9ea8fdfea66ae4c0e59f2960aee72cbcf6b2d48345caf09fb273e2bb",
+    "scripts/test_adb_hardware.py": "35a2d612bf81a6941fa9775f5641fba0423a07d37014bef83a389ae77248d2e4",
+    "scripts/run_stress.py": "7dcb187645502748cc358ce428ea584b90fd9e63cc360c6f9670ea88cb8683b3"
+  },
+  "summary": [
+    "DMESG_STREAM device-1 bytes=1267565 reads=692",
+    "DMESG_STREAM device-2 bytes=761850 reads=715",
+    "LATENCY count=51757 p50_us=369277 p95_us=499886 p99_us=578668 max_us=1038481",
+    "SLOT_SUMMARY device-1 commands=103514 transfers=1954 transfer_bytes=8195670016 stream_reads=17897 stream_bytes=1752247 recoveries=4623",
+    "LATENCY count=55084 p50_us=343853 p95_us=485660 p99_us=556843 max_us=993443",
+    "SLOT_SUMMARY device-2 commands=110168 transfers=2054 transfer_bytes=8615100416 stream_reads=17950 stream_bytes=1159096 recoveries=4763",
+    "SUMMARY assertions=396963 commands=228314 transfers=4036 transfer_bytes=16882368512 stream_reads=35847 stream_bytes=2911343 recoveries=9396 exit=0"
+  ],
+  "pass_events": [
+    "PASS device-1 functional",
+    "PASS device-2 functional",
+    "PASS cross-device binding and Batch",
+    "PASS mixed-soak seconds=600"
+  ],
+  "slot_process_peaks": [
+    {
+      "adb_clients": 48,
+      "logcat": 1,
+      "dmesg": 1,
+      "push": 4,
+      "pull": 3
+    },
+    {
+      "adb_clients": 48,
+      "logcat": 1,
+      "dmesg": 1,
+      "push": 4,
+      "pull": 3
+    }
+  ],
+  "restoration": [
+    {
+      "slot": 1,
+      "original_uid": "2000",
+      "final_uid": "2000",
+      "restored": true
+    },
+    {
+      "slot": 2,
+      "original_uid": "2000",
+      "final_uid": "2000",
+      "restored": true
+    }
+  ],
+  "temporary_directories_removed": true,
+  "external_cleanup": {
+    "uids": [
+      "2000",
+      "2000"
+    ],
+    "device_test_processes": 0,
+    "saved_identity_survivors": 0
+  },
+  "limitations": "This is a 10-minute two-device Windows run, separate from the earlier 30-minute one-device run. No deliberate USB unplug during active I/O. Subsequent source formatting is separately verified.",
+  "raw_evidence_directory": "artifacts/adb-real/windows-20261017/dual-adb-10min/"
+}

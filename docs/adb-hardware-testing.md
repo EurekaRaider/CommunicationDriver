@@ -34,6 +34,10 @@ For process-tree resource sampling, use a Python environment with `psutil==7.0.0
 
 A connection serializes its own transactions. Keep a long-running stream on a separate connection from short commands and transfers. Multiple connections still bind to the same device. The mixed load checks output identity and file content; it does not only count successful process launches.
 
+When the owner explicitly continues after removing one device, add `--allow-single-device`. The remaining slot keeps the same worker counts and full requested duration. This mode reports single-device binding and does not establish cross-device isolation. Add `--offline-device <removed-serial>` to assert that opening a separately bound removed device returns `DeviceUnavailable`; keep that serial in private local commands and evidence only. The managed executable accepts `--allow-single-device` after its serial arguments as well.
+
+On Windows, the hardware test uses CRLF for the official adb shell output and line-reader configuration. The library preserves the bytes emitted by adb. Local Unicode fixture names are constructed and passed to the API as UTF8.
+
 The dmesg worker probes existing permissions. If reading is permitted, it opens a real `dmesg -w` session, consumes kernel-log bytes and cancels any outstanding read at the end. Otherwise it checks independent stderr and exit status while the other workers continue. The test never changes device privileges itself. Use `--soak-only` to repeat mixed load without repeating functional cases, for example after a separately authorized device-permission change. A separate continuous shell output stream does not substitute for successful dmesg acceptance.
 
 ## Managed interface and active transfer cancellation

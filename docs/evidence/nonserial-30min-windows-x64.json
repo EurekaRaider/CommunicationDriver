@@ -1,0 +1,448 @@
+{
+  "date": "2026-10-17",
+  "platform": "Windows 11 x64 10.0.26300",
+  "compiler": "MSVC 19.51.36256.0",
+  "dotnet_sdk": "10.0.400",
+  "adb": "37.0.0-14910828; LIBUSB",
+  "passed": true,
+  "acceptance_basis": "All six core workloads completed 1800 seconds. The original CLI and ADB samplers failed only during finalization. Following owner instruction, only the repaired sampler paths were rerun for 10/15 seconds, followed by five CTests and external cleanup verification. Original failure records remain unchanged; this is combined evidence, not a new clean 30-minute run of the repaired sampler.",
+  "initial_orchestrator_exit_code": 1,
+  "scope": "TCP/UDP loopback; Git Bash CLI and default Windows CMD mixed Batch; actual loopback AsyncSSH 2.22.0 SSH/SFTP with strict host-key trust; one USB Android 10 device. Serial excluded. Two-device functional checks preceded owner removal of one device; no two-device Windows 30-minute or in-flight unplug validation.",
+  "git_head": "36d68ade9ee83dca72354983869edcc764990bf4",
+  "source_sha256_during_30min": {
+    "CMakeLists.txt": "543b08318e303d5eaccab9edae4dc2cf0a5211820e8f3c538e9568ecb0d79611",
+    "cmake/Dependencies.cmake": "d336df869996e0a17f3679ee5aacdd000149ab46ad0d65c4f1d888614eadbff4",
+    "cmake/PatchLibssh2.cmake": "63e0f579417a1efa8853558ede9bbc6c3a666712f43a0779420b7aa021d42cb0",
+    "src/core.cpp": "5d9fe4fb217f277f7e6f06d385f28066937b65ec745272b76af190d8625434da",
+    "src/core.hpp": "606d5cd219b581da664dbc6c3cd361c029270dd98fbd4ba1176e68ba64f624a3",
+    "src/ssh.cpp": "dc239171f174802996897ccc09a30bcc73983130ca6d9acc4f312bfcbdf8fffe",
+    "tests/adb_hardware_tests.cpp": "bd05c94610064a2b191498ed4da0a45b6bdcb3239a8cd6d64e8f5fb9ca4bba5e",
+    "tests/transport_soak_tests.cpp": "399655a2495e8b5d2cbc4211db8fdedc39244bf2ab3290203299052abafbaa54",
+    "tests/dotnet/AdbHardware/Program.cs": "3fc9140f9ea8fdfea66ae4c0e59f2960aee72cbcf6b2d48345caf09fb273e2bb",
+    "scripts/test_adb_hardware.py": "35a2d612bf81a6941fa9775f5641fba0423a07d37014bef83a389ae77248d2e4",
+    "scripts/run_stress.py": "5d573a08d83a7e87af425390d3878cccd4cf109dfdfda23e25c91c4fc9616607"
+  },
+  "source_sha256_after_sampler_repair": {
+    "CMakeLists.txt": "543b08318e303d5eaccab9edae4dc2cf0a5211820e8f3c538e9568ecb0d79611",
+    "cmake/Dependencies.cmake": "d336df869996e0a17f3679ee5aacdd000149ab46ad0d65c4f1d888614eadbff4",
+    "cmake/PatchLibssh2.cmake": "63e0f579417a1efa8853558ede9bbc6c3a666712f43a0779420b7aa021d42cb0",
+    "src/core.cpp": "5d9fe4fb217f277f7e6f06d385f28066937b65ec745272b76af190d8625434da",
+    "src/core.hpp": "606d5cd219b581da664dbc6c3cd361c029270dd98fbd4ba1176e68ba64f624a3",
+    "src/ssh.cpp": "dc239171f174802996897ccc09a30bcc73983130ca6d9acc4f312bfcbdf8fffe",
+    "tests/adb_hardware_tests.cpp": "bd05c94610064a2b191498ed4da0a45b6bdcb3239a8cd6d64e8f5fb9ca4bba5e",
+    "tests/transport_soak_tests.cpp": "399655a2495e8b5d2cbc4211db8fdedc39244bf2ab3290203299052abafbaa54",
+    "tests/dotnet/AdbHardware/Program.cs": "3fc9140f9ea8fdfea66ae4c0e59f2960aee72cbcf6b2d48345caf09fb273e2bb",
+    "scripts/test_adb_hardware.py": "35a2d612bf81a6941fa9775f5641fba0423a07d37014bef83a389ae77248d2e4",
+    "scripts/run_stress.py": "7dcb187645502748cc358ce428ea584b90fd9e63cc360c6f9670ea88cb8683b3"
+  },
+  "binary_sha256": {
+    "communicationdriver_native.dll": "8bb8d8de0f5911838768565d3ed5676b73e50e325a26e0fbde50c1a8f34e6183",
+    "cd_adb_hardware_tests.exe": "570e39f2aa8d98c0ecf69af6f6083171d699fec39c1410d3c121e863193cd9a1",
+    "cd_transport_soak_tests.exe": "6e3d2b4f27a30193005f713359013872d94a81259dbffabebc47b985cea29311",
+    "cd_tests.exe": "1516ef4f4383ba1c33b1dd962b258a95ab5d1d7020ca0f2f5da4c9adafa66808"
+  },
+  "started_at": "2026-10-17T20:03:47+0800",
+  "core_suite_finished_at": "2026-10-17T20:34:52+0800",
+  "workloads": {
+    "tcp": {
+      "duration_mixed_s": 1800,
+      "pass_events": [
+        "PASS tcp full-duration mixed IO"
+      ],
+      "summary": [
+        "SUMMARY protocol=tcp seconds=1800 workers=38 commands=14451484 bulk=57924 transfers=0 bytes=90588825391 streams=0 cancels=60111 timeouts=60109 reopens=120220 checks=14629667 unknown_exit=0 max_command_pair_us=890505"
+      ],
+      "sampler_report_complete": true,
+      "exit_code": 0,
+      "elapsed_total_s": 1803.563,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "observed_survivors": 0,
+      "resources": {
+        "rss_mib": {
+          "first_after_warmup": 24.02,
+          "last_recorded": 24.309,
+          "minimum": 21.961,
+          "maximum": 26.57
+        },
+        "private_mib": {
+          "first_after_warmup": 19.16,
+          "last_recorded": 19.207,
+          "minimum": 16.645,
+          "maximum": 21.371
+        },
+        "threads": {
+          "first_after_warmup": 61,
+          "last_recorded": 61,
+          "minimum": 61,
+          "maximum": 63
+        },
+        "handles": {
+          "first_after_warmup": 301,
+          "last_recorded": 302,
+          "minimum": 297,
+          "maximum": 303
+        }
+      },
+      "last_resource_sample_s": 1797.516
+    },
+    "udp": {
+      "duration_mixed_s": 1800,
+      "pass_events": [
+        "PASS udp full-duration mixed IO"
+      ],
+      "summary": [
+        "SUMMARY protocol=udp seconds=1800 workers=38 commands=23588202 bulk=1323087 transfers=0 bytes=59564728529 streams=0 cancels=67355 timeouts=67355 reopens=134710 checks=25046038 unknown_exit=0 max_command_pair_us=775989"
+      ],
+      "sampler_report_complete": true,
+      "exit_code": 0,
+      "elapsed_total_s": 1803.407,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "observed_survivors": 0,
+      "resources": {
+        "rss_mib": {
+          "first_after_warmup": 19.578,
+          "last_recorded": 20.055,
+          "minimum": 19.379,
+          "maximum": 20.055
+        },
+        "private_mib": {
+          "first_after_warmup": 13.57,
+          "last_recorded": 13.914,
+          "minimum": 13.543,
+          "maximum": 13.914
+        },
+        "threads": {
+          "first_after_warmup": 61,
+          "last_recorded": 61,
+          "minimum": 61,
+          "maximum": 63
+        },
+        "handles": {
+          "first_after_warmup": 299,
+          "last_recorded": 301,
+          "minimum": 297,
+          "maximum": 301
+        }
+      },
+      "last_resource_sample_s": 1798.922
+    },
+    "cli_bash": {
+      "duration_mixed_s": 1800,
+      "pass_events": [
+        "PASS cli full-duration mixed IO"
+      ],
+      "summary": [
+        "SUMMARY protocol=cli seconds=1800 workers=38 commands=90797 bulk=0 transfers=0 bytes=0 streams=8086 cancels=4707 timeouts=4704 reopens=9411 checks=120399 unknown_exit=0 max_command_pair_us=0"
+      ],
+      "sampler_report_complete": false,
+      "sampler_exit_code": 1,
+      "cleanup_error": "psutil.AccessDenied in wait_procs/OpenProcess after full core workload completion",
+      "core_exit_code": null,
+      "core_exit_evidence": "CLI PASS footer; process return code was not serialized after sampler exception",
+      "resources": {
+        "rss_mib": {
+          "first_after_warmup": 15.574,
+          "last_recorded": 16.027,
+          "minimum": 15.309,
+          "maximum": 16.336
+        },
+        "private_mib": {
+          "first_after_warmup": 8.562,
+          "last_recorded": 8.914,
+          "minimum": 8.152,
+          "maximum": 9.355
+        },
+        "threads": {
+          "first_after_warmup": 57,
+          "last_recorded": 57,
+          "minimum": 57,
+          "maximum": 58
+        },
+        "handles": {
+          "first_after_warmup": 361,
+          "last_recorded": 364,
+          "minimum": 344,
+          "maximum": 369
+        }
+      },
+      "last_resource_sample_s": 1761.563
+    },
+    "ssh_sftp": {
+      "duration_mixed_s": 1800,
+      "pass_events": [
+        "PASS ssh full-duration mixed IO"
+      ],
+      "summary": [
+        "SUMMARY protocol=ssh seconds=1800 workers=42 commands=61254 bulk=0 transfers=13542 bytes=14199816192 streams=5428 cancels=1058 timeouts=1055 reopens=2113 checks=79507 unknown_exit=192 max_command_pair_us=0"
+      ],
+      "sampler_report_complete": true,
+      "exit_code": 0,
+      "elapsed_total_s": 1803.969,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "observed_survivors": 0,
+      "resources": {
+        "rss_mib": {
+          "first_after_warmup": 23.316,
+          "last_recorded": 26.012,
+          "minimum": 23.316,
+          "maximum": 28.035
+        },
+        "private_mib": {
+          "first_after_warmup": 16.289,
+          "last_recorded": 18.824,
+          "minimum": 16.254,
+          "maximum": 21.316
+        },
+        "threads": {
+          "first_after_warmup": 63,
+          "last_recorded": 63,
+          "minimum": 63,
+          "maximum": 65
+        },
+        "handles": {
+          "first_after_warmup": 232,
+          "last_recorded": 233,
+          "minimum": 230,
+          "maximum": 233
+        }
+      },
+      "last_resource_sample_s": 1799.813
+    },
+    "adb_one_remaining_device": {
+      "duration_mixed_s": 1800,
+      "pass_events": [
+        "PASS disconnected device returns DeviceUnavailable",
+        "PASS single-device binding and Batch",
+        "PASS mixed-soak seconds=1800"
+      ],
+      "summary": [
+        "DMESG_STREAM device-1 bytes=1684157 reads=1792",
+        "LATENCY count=54217 p50_us=833764 p95_us=2539575 p99_us=3411036 max_us=8545467",
+        "SLOT_SUMMARY device-1 commands=108434 transfers=1736 transfer_bytes=7281311744 stream_reads=46762 stream_bytes=2680247 recoveries=3040",
+        "SUMMARY assertions=225429 commands=114487 transfers=1736 transfer_bytes=7281311744 stream_reads=46762 stream_bytes=2680247 recoveries=3040 exit=0"
+      ],
+      "sampler_report_complete": false,
+      "sampler_exit_code": 1,
+      "cleanup_error": "psutil.AccessDenied in wait_procs/OpenProcess after full core workload completion",
+      "core_exit_code": 0,
+      "core_exit_evidence": "ADB SUMMARY exit=0",
+      "resources": {
+        "rss_mib": {
+          "first_after_warmup": 30.637,
+          "last_recorded": 33.641,
+          "minimum": 30.637,
+          "maximum": 42.305
+        },
+        "private_mib": {
+          "first_after_warmup": 31.16,
+          "last_recorded": 34.594,
+          "minimum": 31.145,
+          "maximum": 45.0
+        },
+        "threads": {
+          "first_after_warmup": 67,
+          "last_recorded": 67,
+          "minimum": 66,
+          "maximum": 67
+        },
+        "handles": {
+          "first_after_warmup": 407,
+          "last_recorded": 406,
+          "minimum": 390,
+          "maximum": 413
+        }
+      },
+      "last_resource_sample_s": 1755.422
+    },
+    "windows_cmd_mixed_batch": {
+      "duration_mixed_s": 1800,
+      "pass_events": [
+        "PASS checks=1343"
+      ],
+      "summary": [
+        "METRIC mixed_connections=32 batches=639 operations=20448 elapsed_ms=1800314"
+      ],
+      "sampler_report_complete": true,
+      "exit_code": 0,
+      "elapsed_total_s": 1803.469,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "observed_survivors": 0,
+      "resources": {
+        "rss_mib": {
+          "first_after_warmup": 12.336,
+          "last_recorded": 13.281,
+          "minimum": 12.324,
+          "maximum": 13.309
+        },
+        "private_mib": {
+          "first_after_warmup": 4.238,
+          "last_recorded": 5.438,
+          "minimum": 4.223,
+          "maximum": 5.438
+        },
+        "threads": {
+          "first_after_warmup": 10,
+          "last_recorded": 10,
+          "minimum": 9,
+          "maximum": 10
+        },
+        "handles": {
+          "first_after_warmup": 232,
+          "last_recorded": 248,
+          "minimum": 228,
+          "maximum": 266
+        }
+      },
+      "last_resource_sample_s": 1798.36
+    }
+  },
+  "sampler_repair_verification": {
+    "cli_bash": {
+      "duration_mixed_s": 10,
+      "pass_events": [
+        "PASS cli full-duration mixed IO"
+      ],
+      "summary": [
+        "SUMMARY protocol=cli seconds=10 workers=38 commands=5347 bulk=0 transfers=0 bytes=0 streams=336 cancels=155 timeouts=154 reopens=309 checks=6482 unknown_exit=0 max_command_pair_us=0"
+      ],
+      "sampler_report_complete": true,
+      "exit_code": 0,
+      "elapsed_total_s": 10.312,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "observed_survivors": 0,
+      "resources": {},
+      "last_resource_sample_s": 10.203
+    },
+    "adb": {
+      "duration_mixed_s": 15,
+      "pass_events": [
+        "PASS disconnected device returns DeviceUnavailable",
+        "PASS single-device binding and Batch",
+        "PASS mixed-soak seconds=15"
+      ],
+      "summary": [
+        "DMESG_STREAM device-1 bytes=1045487 reads=170",
+        "LATENCY count=1652 p50_us=292336 p95_us=386275 p99_us=424766 max_us=459217",
+        "SLOT_SUMMARY device-1 commands=3304 transfers=68 transfer_bytes=285212672 stream_reads=585 stream_bytes=1149407 recoveries=181",
+        "SUMMARY assertions=6274 commands=3562 transfers=68 transfer_bytes=285212672 stream_reads=585 stream_bytes=1149407 recoveries=181 exit=0"
+      ],
+      "sampler_report_complete": true,
+      "exit_code": 0,
+      "elapsed_total_s": 16.531,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "observed_survivors": 0,
+      "resources": {},
+      "last_resource_sample_s": 15.093
+    }
+  },
+  "functional": {
+    "native_one_device": {
+      "duration_mixed_s": null,
+      "pass_events": [
+        "PASS disconnected device returns DeviceUnavailable",
+        "PASS device-1 functional",
+        "PASS single-device binding and Batch"
+      ],
+      "summary": [
+        "SUMMARY assertions=137 commands=85 transfers=14 transfer_bytes=35799040 stream_reads=0 stream_bytes=0 recoveries=5 exit=0"
+      ],
+      "sampler_report_complete": true,
+      "exit_code": 0,
+      "elapsed_total_s": 8.719,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "observed_survivors": 0,
+      "resources": {},
+      "last_resource_sample_s": 5.047
+    },
+    "managed_one_device": {
+      "duration_mixed_s": null,
+      "pass_events": [
+        "PASS device-1 managed ADB, active push/pull cancellation, SHA256 and concurrent lifecycle",
+        "PASS managed assertions=80"
+      ],
+      "summary": [],
+      "sampler_report_complete": true,
+      "exit_code": 0,
+      "elapsed_total_s": 7.141,
+      "watchdog_timeout": false,
+      "idle_timeout": false,
+      "observed_survivors": 0,
+      "resources": {},
+      "last_resource_sample_s": 5.063
+    },
+    "two_device_before_removal": {
+      "native_assertions": 270,
+      "managed_assertions": 160,
+      "cross_device_binding_and_batch": true,
+      "provenance": "attempt-4-adb-functional; prior binary before SSH-only dependency repairs"
+    }
+  },
+  "ctest_before": {
+    "passed": 5,
+    "failed": 0
+  },
+  "ctest_followup": {
+    "passed": 5,
+    "failed": 0
+  },
+  "device_restoration": [
+    {
+      "slot": 1,
+      "original_uid": "2000",
+      "final_uid": "2000",
+      "restored": true
+    }
+  ],
+  "followup_device_restoration": {
+    "original_uid": "2000",
+    "final_uid": "2000",
+    "restored": true
+  },
+  "temporary_directories_removed": true,
+  "external_cleanup_verification": {
+    "owned_snapshot_survivors": [],
+    "ssh_listeners": [],
+    "device_uids": [
+      {
+        "slot": 1,
+        "uid": "2000"
+      }
+    ],
+    "device_test_processes": [],
+    "native_library_unchanged": true
+  },
+  "adb_slot_observed_process_peaks": {
+    "adb_clients": 48,
+    "logcat": 1,
+    "dmesg": 1,
+    "push": 4,
+    "pull": 4
+  },
+  "ssh_service_priority": "above-normal; shell children normal",
+  "fix_validation": {
+    "signature_algorithm_heap_overflow": "MSVC ASan reproduced write beyond a 34-byte allocation with repeated server RSA algorithm names; filtered-list allocation now follows server-list length.",
+    "wincng_dh": "Backport f216bbe3aa5ec02033de53ed0809a2461fc062c7; normalize leading-zero DH public values and shared secrets before mpint encoding.",
+    "independent_ssh_connections": 100,
+    "asan_ssh_sftp": {
+      "seconds": 30,
+      "workers": 42,
+      "checks": 8306,
+      "transfers": 154,
+      "exit": 0
+    },
+    "sampler": "Windows child waiting polls psutil PID plus creation-time identity rather than opening SYNCHRONIZE handles for exited/reused process IDs."
+  },
+  "excluded_runs": [
+    "final-30min-1 failed SFTP timeout; test-server scheduling corrected before accepted core run.",
+    "final-30min-3 deliberately aborted per owner request to avoid another full 30-minute run."
+  ],
+  "resource_limit": "Finite concurrent correctness workload; not a leak-proof or throughput comparison. CLI/ADB original sampler reports are incomplete and their persisted resource samples stop before finalization. ADB test retains latency samples.",
+  "raw_evidence_directory": "artifacts/adb-real/windows-20261017/"
+}

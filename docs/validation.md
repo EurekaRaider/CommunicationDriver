@@ -388,6 +388,29 @@ C# 双机回归在增强负载下连续三轮通过，各 160 项断言。其 pu
 
 以上记录本机压力测试结束时尚未提交的工作区代码，原生库 SHA256 为 `a33a3a901135b2812b71dac3e654e1eda2ae107dcda4daec063886da389c2f5a`。本机压力测试阶段未提交、推送、发布或重新运行远端 CI；后续提交与平台回归以对应 GitHub Actions 记录为准。此处真机结果不扩展为实体串口、其他 Android/主机平台或隔夜验收。
 
+## 第九轮：Windows 非串口 30 分钟与收尾补验（2026-10-17）
+
+Windows 11 x64（10.0.26300）、MSVC 19.51、.NET SDK 10.0.400 上，同时运行 TCP、UDP、CLI、SSH/SFTP、ADB，以及默认 Windows CMD 的混合 Batch。各核心负载就绪后均完成 1,800 秒，使用同一份 Release 原生库。ADB 使用官方 37.0.0 与 LIBUSB 后端；用户中途移除第二台设备后，正式 30 分钟覆盖剩余一台。双机功能前置此前已通过原生 270 项、托管 160 项断言。匿名统计、源码/程序指纹及补验依据见 [nonserial-30min-windows-x64.json](evidence/nonserial-30min-windows-x64.json)。
+
+| 核心负载 | 混合阶段 s | 命令或操作次数 | 文件传输次数 | 核心日志结果 |
+| --- | ---: | ---: | ---: | --- |
+| TCP | 1800 | 14,451,484 | 0 | PASS |
+| UDP | 1800 | 23,588,202 | 0 | PASS |
+| CLI / Git Bash | 1800 | 90,797 | 0 | PASS |
+| SSH/SFTP | 1800 | 61,254 | 13,542 | PASS |
+| 单 ADB | 1800 | 114,487 | 1,736 | PASS |
+| 默认 CMD 混合 Batch | 1800 | 20,448 | 0 | PASS |
+
+原轮次的 CLI/ADB 核心日志均已报告完整时长及 PASS，但资源采样器随后在 `psutil.wait_procs` 的 Windows `OpenProcess` 收尾路径抛出 `AccessDenied`，因此原控制器退出码为 1，两个最终采样 JSON 未生成。保留这些失败及已落盘资源样本，不将原控制器改记为成功。修复仅改为按 PID 和创建时间确认子进程身份并轮询退出；SDK 运行库未变化。按用户要求停止多余整轮复跑，仅补验同配置 CLI 10 秒、单 ADB 15 秒：两者采样器均退出 0、无已观测子进程残留；随后 5 项 CTest 全部通过。这是完整核心负载加定向收尾补验的合并验收，不是修复后采样器重新跑满 30 分钟。
+
+SSH 使用真实回环 AsyncSSH 2.22.0、独立临时密钥和严格 SHA256 主机信任，命令由实际 Git shell 执行，SFTP 为真实文件收发；未修改系统 SSH 服务或账号。最早联合负载曾因测试服务调度出现 SFTP 超时，调整服务进程优先级、保持 shell 子进程普通优先级后重新完成上述 30 分钟；SDK 超时与并发未放宽。该失败轮次不计通过。
+
+本轮还定位并修复固定 libssh2 的两处问题：服务端重复签名算法名使筛选缓冲越界（Windows ASan 捕获 34 字节分配后的非法写）；WinCNG 固定宽度 DH 值的前导零导致交换哈希不一致（回移上游规范化修复）。修复后独立 100 次 SSH 连接通过，同源 ASan 的 42 任务 SSH/SFTP 30 秒通过 8,306 项检查、154 次文件传输。前者取决于服务端算法列表；后者属于 Windows WinCNG 路径，既有 macOS OpenSSL/OpenSSH 组合未覆盖这些触发条件。
+
+单 ADB 混合阶段实测真实 `dmesg -w` 收到 1,684,157 字节，push/pull 比对 7,281,311,744 字节；同时观测到 logcat、dmesg 和四路传输。临时目录已删除，设备恢复原始 uid 2000。独立检查确认已保存身份的主机进程无残留、测试 SSH 监听已停止、设备上无本轮持续输出/logcat/dmesg 进程。资源样本仅描述有限负载；CLI/ADB 原始采样末尾不完整，不据此宣称无泄漏。
+
+随后用户重新接入第二台设备，追加双 ADB 600 秒：每台仍为 4 Driver、43 个并发任务，两台共 86 个。当前 SSH 修复版运行库上重新通过双机功能和跨设备绑定/Batch 检查，混合阶段完成 228,314 次命令、4,036 次文件传输、16,882,368,512 字节比对及 9,396 次取消恢复，396,963 项断言通过。两台真实 dmesg 分别收到 1,267,565 / 761,850 字节；压测、修复后的资源采样器均退出 0，无 watchdog 或已观测子进程残留。两台均恢复 uid 2000，设备与主机的独立清理检查通过。该结果是双机 10 分钟，单独记录在 [dual-adb-10min-windows-x64.json](evidence/dual-adb-10min-windows-x64.json)，不改写先前单机 30 分钟的范围。
+
 ## 既有平台与制品验收
 
 [最终软件提交 `3da0d8c`](https://github.com/EurekaRaider/CommunicationDriver/commit/3da0d8cab143ae1ea1d2c3e2f0a6e4e7b2150177) 的 [Platform CI #38397256682](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/38397256682) 六平台任务与合并 NuGet 任务均已终态成功。本机仅 macOS ARM64；其他平台结论来自对应真实 CI runner 上的实际程序执行。

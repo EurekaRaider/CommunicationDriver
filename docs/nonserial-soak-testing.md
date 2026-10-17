@@ -49,6 +49,8 @@ python scripts/test_ssh_local.py --build build-locked --user-server \
 
 原始日志可能含设备标识、用户名、测试密钥指纹和本机路径，禁止提交。公开报告仅保留匿名 slot、统计数字和文件指纹。各项同时施压，所得操作数与延迟是本轮正确性压力证据，不用于吞吐性能对比。Mac 结果不扩展为其他主机系统、Android 版本、实体串口或隔夜运行结论。
 
+Windows 的实际结果另见 [验收记录](validation.md#第九轮windows-非串口-30-分钟与收尾补验2026-10-17) 与 [匿名 JSON](evidence/nonserial-30min-windows-x64.json)。上面的整套入口仍针对 macOS；Windows 复用原生压力程序，CLI 的 POSIX 命令负载使用 Git Bash，需将 Git `usr/bin` 加入 `PATH` 并设置 `CD_TEST_SH` 为 `sh.exe` 的绝对路径；默认 CMD 另由混合 Batch 负载覆盖。`CD_SSH_REMOTE_ROOT` 可指定真实 SFTP 服务的远端目录；仍需显式主机信任。Windows 采样器按 PID 和创建时间等待子进程，避免已退出或复用 PID 的同步句柄访问错误；失败原始记录与定向补验分开保留。
+
 ## 本轮修复与补充验证
 
 - SSH 关闭时先取消并 shutdown socket，保留 FD 所有权到 libssh2 对象清理完成，最后 close，防止清理写入被其他 Driver 复用的 FD。

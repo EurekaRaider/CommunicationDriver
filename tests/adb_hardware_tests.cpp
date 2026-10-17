@@ -10,6 +10,11 @@
 using namespace std::chrono_literals;
 namespace fs=std::filesystem;
 using Clock=std::chrono::steady_clock;
+#ifdef _WIN32
+static const std::string adb_new_line="\r\n";
+#else
+static const std::string adb_new_line="\n";
+#endif
 static std::mutex output_mutex;
 static std::atomic<uint64_t> assertions{},commands{},transfers{},transfer_bytes{},stream_bytes{},stream_reads{},recoveries{};
 static void event(const std::string& kind,const std::string& detail){std::lock_guard lock(output_mutex);std::cout<<kind<<" "<<detail<<std::endl;}
@@ -18,6 +23,7 @@ static std::string quote(const std::string& s){std::string r="'";for(char c:s)r+
 static comm::CallOptions timeout(int ms){comm::CallOptions o;o.timeout=comm::Duration(ms);return o;}
 static comm::Connection connect(comm::Driver& d,const std::string& adb,const std::string& serial,bool once=false,std::string session={}){
  comm::AdbOptions o;o.executable_path=adb;o.device_serial=serial;o.execution_mode=once?comm::ExecutionMode::OneShot:comm::ExecutionMode::Persistent;o.session_command=std::move(session);o.max_response_bytes=8*1024*1024;
+ o.new_line=adb_new_line;
  auto c=d.create_adb(o);c.open();return c;
 }
 static auto execute(const comm::Connection& c,const std::string& cmd){auto r=c.execute(cmd,{},timeout(10000));++commands;return r;}
@@ -31,7 +37,7 @@ static void functional(comm::Driver& d,const std::string& adb,const std::string&
  event("STAGE",label+" functional");
  for(bool once:{false,true}){
   auto s=connect(d,adb,serial,once);
-  exact(s,"printf READY","READY");exact(s,"printf 'line1\\nline2\\n'","line1\nline2\n");exact(s,"true","");exact(s,"false","",1);
+  exact(s,"printf READY","READY");exact(s,"printf 'line1\\nline2\\n'","line1"+adb_new_line+"line2"+adb_new_line);exact(s,"true","");exact(s,"false","",1);
   exact(s,"printf '引号 空格'; printf 'ERR' >&2; (exit 7)","引号 空格",7);
   auto err=execute(s,"printf OUT; printf ERR >&2; (exit 9)");expect(err.response=="OUT"&&err.standard_error=="ERR"&&err.exit_code==9,"stdout/stderr/exit isolation");
   auto version=execute(s,"getprop ro.build.version.release; getprop ro.build.version.sdk; getprop ro.build.version.incremental");expect(version.exit_code==0&&!version.response.empty(),"software version query");
@@ -47,8 +53,8 @@ static void functional(comm::Driver& d,const std::string& adb,const std::string&
  for(int n=0;n<32;++n)queued.push_back(c.execute_async("printf Q"+std::to_string(n)));
  for(int n=0;n<32;++n){expect(queued[n].get().response=="Q"+std::to_string(n),"same connection FIFO result ownership");++commands;}
  for(size_t size:{size_t(0),size_t(1),size_t(4095),size_t(65536),size_t(1048576),size_t(16777216)}){
-  auto src=local/("source "+std::to_string(size)+" 引号'.bin"),dst=local/("pull "+std::to_string(size)+".bin");make_file(src,size);auto path=remote+"/file "+std::to_string(size)+" 引号'.bin";
-  auto up=c.upload(src.string(),path),down=c.download(path,dst.string());transfers+=2;transfer_bytes+=size*2;
+  auto name="source "+std::to_string(size)+" 引号'.bin";auto src=local/fs::path(std::u8string(name.begin(),name.end())),dst=local/("pull "+std::to_string(size)+".bin");make_file(src,size);auto path=remote+"/file "+std::to_string(size)+" 引号'.bin";
+  auto source=src.u8string();auto up=c.upload(std::string(source.begin(),source.end()),path),down=c.download(path,dst.string());transfers+=2;transfer_bytes+=size*2;
   expect(up.bytes_transferred==size&&down.bytes_transferred==size,"confirmed transfer length");expect(read_file(src)==read_file(dst),"push/pull byte-for-byte equality");
  }
  {auto once=connect(d,adb,serial,true);once.write_string("printf RAW; sleep 0.1; printf LATE\n");exact(once,"printf OUT","OUT");expect(once.read_exactly_string(7)=="RAWLATE","real ADB OneShot and raw IO isolation");once.close();}
@@ -115,8 +121,8 @@ static void soak(const std::string& adb,const std::vector<std::string>& devices,
 int main(int argc,char** argv){
  if(argc<6){std::cerr<<"Use: cd_adb_hardware_tests <adb> <local-root> <remote-root> <seconds> <serial> <serial>...\n";return 2;}
  std::string checked_root=argv[3];std::string prefix="/data/local/tmp/cd-hardware-";if(!checked_root.starts_with(prefix)||checked_root.size()==prefix.size()||!std::all_of(checked_root.begin()+prefix.size(),checked_root.end(),[](char c){return (c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='-';})){std::cerr<<"Invalid remote test root\n";return 2;}
- comm::Driver driver;bool soak_only=false;Load load;std::vector<std::string> devices;for(int n=5;n<argc;++n){auto arg=std::string(argv[n]);if(arg=="--soak-only")soak_only=true;else if(arg.starts_with("--")&&n+1<argc){int value=std::stoi(argv[++n]);if(value<1)throw std::runtime_error("worker count must be positive");if(arg=="--command-workers")load.command_workers=value;else if(arg=="--transfer-workers")load.transfer_workers=value;else if(arg=="--cancel-workers")load.cancel_workers=value;else if(arg=="--drivers-per-slot")load.drivers_per_slot=value;else throw std::runtime_error("unknown load option");}else devices.push_back(argv[n]);}auto local=fs::absolute(argv[2]);std::string remote=argv[3];int rc=0;
- try{expect(devices.size()>=2,"two physical devices required");for(size_t n=0;n<devices.size();++n){auto c=connect(driver,argv[1],devices[n]);execute(c,"mkdir -p "+quote(remote+"/device-"+std::to_string(n+1))+"; printf device-"+std::to_string(n+1)+" > "+quote(remote+"/binding"));c.close();}if(!soak_only)for(size_t n=0;n<devices.size();++n)functional(driver,argv[1],devices[n],"device-"+std::to_string(n+1),local/("device-"+std::to_string(n+1)),remote+"/device-"+std::to_string(n+1));std::vector<comm::Connection> batch_connections;std::vector<comm::BatchItem> items;for(size_t n=0;n<devices.size();++n){batch_connections.push_back(connect(driver,argv[1],devices[n]));auto label="device-"+std::to_string(n+1);exact(batch_connections.back(),"cat "+quote(remote+"/binding"),label);items.push_back(comm::BatchItem::execute(label,batch_connections.back(),"cat "+quote(remote+"/binding"),comm::Check::equals(label)));}auto batch=comm::Batch::run(items);expect(batch.all_succeeded&&batch.items.size()==devices.size(),"cross-device batch binding");commands+=items.size();for(auto& c:batch_connections)c.close();event("PASS","cross-device binding and Batch");int seconds=std::stoi(argv[4]);if(seconds>0)soak(argv[1],devices,local,remote,seconds,load);}
+ comm::Driver driver;bool soak_only=false,allow_single=false;std::string offline_device;Load load;std::vector<std::string> devices;for(int n=5;n<argc;++n){auto arg=std::string(argv[n]);if(arg=="--soak-only")soak_only=true;else if(arg=="--allow-single-device")allow_single=true;else if(arg=="--offline-device"&&n+1<argc)offline_device=argv[++n];else if(arg.starts_with("--")&&n+1<argc){int value=std::stoi(argv[++n]);if(value<1)throw std::runtime_error("worker count must be positive");if(arg=="--command-workers")load.command_workers=value;else if(arg=="--transfer-workers")load.transfer_workers=value;else if(arg=="--cancel-workers")load.cancel_workers=value;else if(arg=="--drivers-per-slot")load.drivers_per_slot=value;else throw std::runtime_error("unknown load option");}else devices.push_back(argv[n]);}auto local=fs::absolute(argv[2]);std::string remote=argv[3];int rc=0;
+ try{expect(devices.size()>=(allow_single?1:2),"required physical devices online");if(!offline_device.empty()){error([&]{auto c=connect(driver,argv[1],offline_device);c.close();},CD_DEVICE_UNAVAILABLE);event("PASS","disconnected device returns DeviceUnavailable");}for(size_t n=0;n<devices.size();++n){auto c=connect(driver,argv[1],devices[n]);execute(c,"mkdir -p "+quote(remote+"/device-"+std::to_string(n+1))+"; printf device-"+std::to_string(n+1)+" > "+quote(remote+"/binding"));c.close();}if(!soak_only)for(size_t n=0;n<devices.size();++n)functional(driver,argv[1],devices[n],"device-"+std::to_string(n+1),local/("device-"+std::to_string(n+1)),remote+"/device-"+std::to_string(n+1));std::vector<comm::Connection> batch_connections;std::vector<comm::BatchItem> items;for(size_t n=0;n<devices.size();++n){batch_connections.push_back(connect(driver,argv[1],devices[n]));auto label="device-"+std::to_string(n+1);exact(batch_connections.back(),"cat "+quote(remote+"/binding"),label);items.push_back(comm::BatchItem::execute(label,batch_connections.back(),"cat "+quote(remote+"/binding"),comm::Check::equals(label)));}auto batch=comm::Batch::run(items);expect(batch.all_succeeded&&batch.items.size()==devices.size(),"bound-device batch binding");commands+=items.size();for(auto& c:batch_connections)c.close();event("PASS",devices.size()>1?"cross-device binding and Batch":"single-device binding and Batch");int seconds=std::stoi(argv[4]);if(seconds>0)soak(argv[1],devices,local,remote,seconds,load);}
  catch(const comm::CommunicationError& e){event("FAIL","native-status="+std::to_string(e.info.code)+" "+e.what());rc=1;}catch(const std::exception& e){event("FAIL",e.what());rc=1;}
  for(auto& serial:devices){try{auto c=connect(driver,argv[1],serial);execute(c,"rm -rf "+quote(remote));c.close();}catch(const std::exception& e){event("CLEANUP_FAIL",e.what());rc=1;}}
  driver.close();event("SUMMARY","assertions="+std::to_string(assertions)+" commands="+std::to_string(commands)+" transfers="+std::to_string(transfers)+" transfer_bytes="+std::to_string(transfer_bytes)+" stream_reads="+std::to_string(stream_reads)+" stream_bytes="+std::to_string(stream_bytes)+" recoveries="+std::to_string(recoveries)+" exit="+std::to_string(rc));return rc;
