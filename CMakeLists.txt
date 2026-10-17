@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 
 project(
     CommunicationDriver
-    VERSION 0.1.0
+    VERSION 0.1.1
     LANGUAGES C CXX
 )
 if(MSVC)
@@ -138,6 +138,9 @@ install(
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(DIRECTORY skills/communicationdriver
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/communicationdriver/skills
+)
 install(
     EXPORT CommunicationDriverTargets
     NAMESPACE CommunicationDriver::

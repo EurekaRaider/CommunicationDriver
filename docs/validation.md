@@ -1,6 +1,16 @@
-# 验证报告（0.1.0）
+# 验证报告
 
 软件验收与真实硬件分别记录。以下 PASS 仅对应明确列出的测试范围，不把编译或模拟称作设备通过。
+
+## 0.1.1 Skill 交付验证（2026-10-17）
+
+在 `7d1e40c` 基础上新增通用 agent skill，并将其加入原生包、NuGet、CMake 安装及带版本的独立 ZIP。CMake、托管包和消费者引用同步升为 `0.1.1`，公开 API/ABI 未改变。
+
+- macOS ARM64 锁定依赖 Release 构建成功，6 项 CTest 全部通过；构建仍有既有第三方 Clang 扩展和 CMake 弃用警告。
+- 从 skill 的 Markdown 直接提取 C、C++23、C# 示例及辅助函数：全部编译成功，三个 CLI 示例均实际输出 `READY` 并退出 0。TCP、二进制、批次及传输辅助函数在此轮验证签名和编译，未作为新的网络/硬件验收。
+- `net48` / `net10.0` 绑定编译和 `CommunicationDriver.0.1.1.nupkg` 打包成功；C# 示例通过该本地 NuGet 包还原、编译和实际运行，0 warning / 0 error，原生库由包自动部署加载。本机不运行 net48。
+- 独立 ZIP、macOS 原生包、NuGet 包和 CMake 安装目录中的 skill 六个文件均与源码逐字节一致；缺文件和内容过期的归档均被校验器拒绝。Skill 格式、相对链接、工作流 YAML 和 `git diff --check` 通过。
+- CI 配置新增独立 skill 产物，并在各 RID 原生包、单 RID NuGet 和合并 NuGet 交付前检查 skill 完整性。本轮记录是本机结果，新增 CI 步骤的远端执行结果应以对应提交为准；既有最新六平台基线为 [`7d1e40c` 的成功 CI](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/39036699365)。
 
 ## 本机已执行
 

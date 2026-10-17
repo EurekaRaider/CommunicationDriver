@@ -1,0 +1,4 @@
+interface:
+  display_name: "CommunicationDriver"
+  short_description: "Write correct C, C++ and C# library consumers"
+  default_prompt: "Use $communicationdriver to write a consumer with explicit response boundaries and correct resource ownership."

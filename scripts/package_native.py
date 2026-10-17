@@ -123,6 +123,11 @@ licenses = out / "licenses"
 licenses.mkdir(exist_ok=True)
 shutil.copy2(root / "LICENSE", licenses / "CommunicationDriver-MIT.txt")
 shutil.copytree(root / "include", out / "include", dirs_exist_ok=True)
+shutil.copytree(
+    root / "skills" / "communicationdriver",
+    out / "skills" / "communicationdriver",
+    dirs_exist_ok=True,
+)
 
 if (root / "third_party/licenses").exists():
     for license in (root / "third_party/licenses").iterdir():

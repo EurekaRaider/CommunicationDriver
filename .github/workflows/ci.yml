@@ -6,6 +6,18 @@ on:
 permissions:
   contents: read
 jobs:
+  skill:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Package versioned agent skill
+        run: |
+          python scripts/package_skill.py
+          python scripts/test_skill_package.py artifacts/skills
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: CommunicationDriver-Skill
+          path: artifacts/skills/*.zip
   native:
     strategy:
       fail-fast: false
@@ -94,6 +106,8 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Pack dual target NuGet
         run: dotnet pack bindings/dotnet/CommunicationDriver -c Release -p:Platform=AnyCPU -p:NativePackageRoot=${{ github.workspace }}/artifacts/package -o artifacts/feed
+      - name: Verify bundled agent skill
+        run: python scripts/test_skill_package.py artifacts/package artifacts/feed
       - name: PackageReference consumers build
         run: |
           dotnet restore examples/dotnet/PackageConsumer -p:Platform=AnyCPU -p:PlatformTarget=${{ matrix.arch == 'x86' && 'x86' || 'AnyCPU' }} -p:CommunicationDriverRid=${{ matrix.rid }} --configfile examples/dotnet/NuGet.config
@@ -158,7 +172,7 @@ jobs:
           name: native-${{ matrix.rid }}
           path: artifacts/package/
   nuget:
-    needs: native
+    needs: [native, skill]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -176,6 +190,7 @@ jobs:
           cp -r collected/native-*/runtimes/* artifacts/package/runtimes/
           cp -r collected/native-linux-x64/licenses/* artifacts/package/licenses/
           dotnet pack bindings/dotnet/CommunicationDriver -c Release -p:NativePackageRoot="$PWD/artifacts/package" -o artifacts/nuget
+          python scripts/test_skill_package.py artifacts/nuget
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: CommunicationDriver-NuGet

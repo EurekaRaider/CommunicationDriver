@@ -7,12 +7,12 @@
 One core. Every connection.
 
 [![Platform CI](https://img.shields.io/github/actions/workflow/status/EurekaRaider/CommunicationDriver/ci.yml?branch=main&style=flat-square&label=Platform%20CI&labelColor=1e293b)](https://github.com/EurekaRaider/CommunicationDriver/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/Version-0.1.0-38bdf8?style=flat-square&labelColor=1e293b)](CMakeLists.txt)
+[![Version](https://img.shields.io/badge/Version-0.1.1-38bdf8?style=flat-square&labelColor=1e293b)](CMakeLists.txt)
 [![C++23](https://img.shields.io/badge/C%2B%2B-23-38bdf8?style=flat-square&labelColor=1e293b)](include/communicationdriver/communicationdriver.hpp)
 [![.NET](https://img.shields.io/badge/.NET-net48%20%7C%20net10-38bdf8?style=flat-square&labelColor=1e293b)](bindings/dotnet/CommunicationDriver)
 [![License: MIT](https://img.shields.io/badge/License-MIT-38bdf8?style=flat-square&labelColor=1e293b)](LICENSE)
 
-[Quick Start](#quick-start) · [Build & Integration](#build) · [Platform Validation](#validation) · [Documentation](#docs)
+[Quick Start](#quick-start) · [Build & Integration](#build) · [Agent Skill](#agent-skill) · [Platform Validation](#validation) · [Documentation](#docs)
 
 </div>
 
@@ -22,7 +22,7 @@ CommunicationDriver is a cross-platform communication library for device control
 
 From a local shell command to parallel batches across devices, the workflow stays consistent: create a connection, open resources, perform an operation, check the response, and close the connection.
 
-> **Current version: 0.1.0.** Software acceptance results are available for six runtime identifiers (RIDs), and NuGet packages are distributed through CI artifacts. The current local macOS build has passed 30-minute concurrent TCP/UDP/CLI/SSH/SFTP tests and per-slot USB tests on two Android 10 devices; physical serial ports and broader hardware coverage remain pending. See the [validation report](docs/validation.md) for the exact scope.
+> **Current version: 0.1.1.** Native and NuGet packages include an agent skill with C, C++23, and C# usage guidance. Six-platform software acceptance and macOS / Windows device tests are recorded separately in the [validation report](docs/validation.md); physical serial ports and broader hardware coverage remain pending.
 
 ## Why CommunicationDriver
 
@@ -220,9 +220,9 @@ Set `CMAKE_PREFIX_PATH` to the `install` directory when configuring the consumer
 
 ### C# and NuGet
 
-Download the **`CommunicationDriver-NuGet`** artifact from a successful [Platform CI](https://github.com/EurekaRaider/CommunicationDriver/actions/workflows/ci.yml) run. Place its `.nupkg` in a local NuGet feed, then install **`CommunicationDriver` 0.1.0** using `PackageReference`. The package has not been published to nuget.org.
+Download the **`CommunicationDriver-NuGet`** artifact from a successful [Platform CI](https://github.com/EurekaRaider/CommunicationDriver/actions/workflows/ci.yml) run for the version you need. Place its `.nupkg` in a local NuGet feed, then reference **`CommunicationDriver` 0.1.1** using `PackageReference`. Distribution currently uses CI artifacts; the version in your project must match the downloaded package.
 
-The merged package includes `net48 / net10.0`, native libraries for six RIDs, and third-party licenses. Windows selects `win-x86 / win-x64` according to `PlatformTarget`. On Unix, set `RuntimeIdentifier` or `CommunicationDriverRid` as needed. Native library architecture must match the process.
+The merged package includes `net48 / net10.0`, native libraries for six RIDs, third-party licenses, and `skills/communicationdriver/`. Windows selects `win-x86 / win-x64` according to `PlatformTarget`. On Unix, set `RuntimeIdentifier` or `CommunicationDriverRid` as needed. Native library architecture must match the process.
 
 The `dotnet build` command above produces the managed bindings; running an application also requires the matching native library. See the [PackageReference example](examples/dotnet/PackageConsumer) and the [packages.config example](examples/dotnet/LegacyConsumer) for package-based integration.
 
@@ -234,11 +234,30 @@ The `dotnet build` command above produces the managed bindings; running an appli
 
 Native packages also include headers, required companion runtime libraries, and the Windows import library. [test_native_package.py](scripts/test_native_package.py) validates independent C / C++ linking and execution against a package.
 
+<a id="agent-skill"></a>
+
+## Agent Skill
+
+The [CommunicationDriver skill](skills/communicationdriver/SKILL.md) helps agents write consumers using the actual public APIs. It covers all six connection types, response framing, text and binary operations, execution checks, cancellation and recovery, file transfers, batching, and resource ownership. Language-specific references are loaded as needed.
+
+The same skill source is delivered with each library build:
+
+| Delivery | Skill location |
+| --- | --- |
+| Source checkout | `skills/communicationdriver/` |
+| Native RID package or NuGet package | `skills/communicationdriver/` inside the package |
+| CMake installation | `<prefix>/share/communicationdriver/skills/communicationdriver/` with the default data directory |
+| **`CommunicationDriver-Skill`** CI artifact | `CommunicationDriver-Skill-0.1.1.zip`, containing `skills/communicationdriver/` |
+
+Copy the whole `communicationdriver` folder into your agent's skills directory, preserving `SKILL.md` and its references. Use the skill from the same library version. Agents that load Markdown instructions directly can read `SKILL.md` without installing it. For example: “Use the CommunicationDriver skill to write a C# TCP consumer with a protocol delimiter, response checking, and cancellation.” The skill is independent of any specific agent product.
+
+CI checks that the standalone archive, every native package, and NuGet packages contain the complete skill with the same contents as the source checkout. To build the standalone archive locally, run `python3 scripts/package_skill.py`.
+
 <a id="validation"></a>
 
 ## Platform Validation & Acceptance Scope
 
-The following software acceptance results are recorded in the [0.1.0 validation report](docs/validation.md) for commit [`3da0d8c`](https://github.com/EurekaRaider/CommunicationDriver/commit/3da0d8cab143ae1ea1d2c3e2f0a6e4e7b2150177) and its [Platform CI run](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/38397256682).
+The latest completed six-platform baseline before the 0.1.1 packaging changes is commit [`7d1e40c`](https://github.com/EurekaRaider/CommunicationDriver/commit/7d1e40c08bc43f947099a6a6aa18b2343acb063c), with a successful [Platform CI run](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/39036699365). The table records that CI coverage; device and longer stress runs below apply to their own identified builds. See the [validation report](docs/validation.md) for the evidence and limits.
 
 | Platform / RID | Native · C · C++ | .NET 10 | .NET Framework 4.8 | OpenSSH / SFTP |
 | --- | :---: | :---: | :---: | :---: |
@@ -253,13 +272,13 @@ Windows x86 validation runs a 32-bit process on an x64 runner. The Linux binary 
 
 Existing validation covers native behavior, standalone consumers, TCP fragmentation, UDP messages and encoding, virtual serial ports, simulated ADB, real local OpenSSH / SFTP, 32-connection batches, GC / cancellation / partial results, and AddressSanitizer regressions.
 
-**Soak-test record:** on macOS ARM64, 32 mixed connections (eight each of TCP, UDP, persistent CLI, and virtual serial) completed a one-hour test totaling **250,092,544 operations**. This record applies to the historical binary identified in the report; later fixes have separate CI and local regression results. See the [machine-readable summary](docs/evidence/soak-macos-arm64.json).
+**Hour-long stress:** Windows x64 and Linux x64 completed concurrent native cancellation/close, mixed-connection, and C# disposal workloads. Linux also completed hour-long ASan/UBSan workloads. These runs apply to the historical binaries identified in the [Windows / Linux evidence](docs/evidence/soak-hour-windows-linux.json), with resource measurements and limitations explained in the validation report.
 
-**Current local stress acceptance:** TCP, UDP, CLI, real loopback SSH/SFTP, and two physical USB Android 10 devices each passed a full **30-minute** mixed phase on the same repaired macOS ARM64 build: **242 load workers**, including **43 per ADB slot**. Functional checks, ASan mixed stress, resource snapshots and cleanup passed. See the [anonymous evidence](docs/evidence/nonserial-30min-macos-arm64.json) and [reproduction guide](docs/nonserial-soak-testing.md). This local stress evidence is recorded separately from platform CI results. **Still pending:** physical serial ports, broader Android/host coverage and overnight hardware tests.
+**macOS ARM64:** TCP, UDP, CLI, real loopback SSH/SFTP, and two USB Android 10 devices completed **30-minute** mixed phases on the same repaired native build: **242 load workers**, including **43 per ADB slot**. Functional checks, ASan mixed stress, resource snapshots, and cleanup passed. See the [anonymous evidence](docs/evidence/nonserial-30min-macos-arm64.json) and [reproduction guide](docs/nonserial-soak-testing.md).
 
-## v1 Scope
+**Windows x64:** TCP, UDP, CLI, real loopback SSH/SFTP, one USB Android device, and a default CMD batch completed **30-minute core workloads**. CLI/ADB resource-sampler finalization initially failed; targeted checks passed after the sampler fix, without repeating the entire 30-minute run. A subsequent **10-minute dual-ADB** run completed with the corrected sampler. See the [Windows evidence](docs/evidence/nonserial-30min-windows-x64.json) and [dual-device evidence](docs/evidence/dual-adb-10min-windows-x64.json). Windows SSH/SFTP was exercised locally with AsyncSSH; the platform CI table above refers to its separate OpenSSH coverage.
 
-The current scope includes the six backends above, synchronous and asynchronous I/O, execution and checks, single-file transfers, and batch operations. Full PTY / TUI support, TCP servers, recursive transfers, automatic retries, and reliable UDP are outside v1. Query a connection's `Capabilities` for supported backend operations.
+Physical serial ports, broader Android/host combinations, and overnight device tests remain unverified. Query each connection's `Capabilities` for supported operations. TCP provides client connections; transfers operate on single files. Full PTY/TUI emulation, TCP servers, recursive transfers, automatic retries, and UDP delivery guarantees are not provided.
 
 <a id="docs"></a>
 
@@ -267,6 +286,7 @@ The current scope includes the six backends above, synchronous and asynchronous 
 
 | Document / example | Contents |
 | --- | --- |
+| [Agent skill](skills/communicationdriver/SKILL.md) | Portable consumer-writing guidance with C, C++23, C#, and integration references |
 | [API and runtime semantics](docs/api.md) | Lifecycle, completion boundaries, cancellation, recovery, batches, and handle ownership |
 | [Validation report](docs/validation.md) | Local tests, platform CI, package consumption, soak-test evidence, and hardware acceptance scope |
 | [Dependencies, toolchain, and licensing](docs/dependencies.md) | Pinned versions, system dependencies, distribution requirements, and compatibility baselines |
