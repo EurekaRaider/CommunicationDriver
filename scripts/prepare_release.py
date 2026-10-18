@@ -9,6 +9,43 @@ import shutil
 import xml.etree.ElementTree as ET
 import zipfile
 
+RIDS = ["linux-x64", "linux-arm64", "osx-x64", "osx-arm64", "win-x64", "win-x86"]
+
+
+def library_version(root):
+    match = re.search(
+        r"project\(\s*CommunicationDriver\s+VERSION\s+(\d+\.\d+\.\d+)\s",
+        (root / "CMakeLists.txt").read_text(),
+    )
+    if not match:
+        raise SystemExit("Library version must use major.minor.patch")
+    return match.group(1)
+
+
+def release_asset_names(version):
+    return {
+        *(f"CommunicationDriver-{version}-{rid}.zip" for rid in RIDS),
+        f"CommunicationDriver.{version}.nupkg",
+        f"CommunicationDriver-Skill-{version}.zip",
+        "SHA256SUMS",
+    }
+
+
+def verify_ci(run, commit):
+    expected = {
+        "status": "completed",
+        "conclusion": "success",
+        "path": ".github/workflows/ci.yml",
+        "event": "push",
+        "head_branch": "main",
+        "head_sha": commit,
+    }
+    for key, value in expected.items():
+        if run.get(key) != value:
+            raise SystemExit(f"Release requires {key}={value}; got {run.get(key)}")
+    if run["head_repository"]["full_name"] != run["repository"]["full_name"]:
+        raise SystemExit("Release CI must belong to the source repository")
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -20,31 +57,20 @@ def main():
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     run = json.loads(args.ci_run.read_text())
-    expected = {
-        "status": "completed",
-        "conclusion": "success",
-        "path": ".github/workflows/ci.yml",
-        "event": "push",
-        "head_branch": "main",
-        "head_sha": args.commit,
-    }
-    for key, value in expected.items():
-        if run.get(key) != value:
-            raise SystemExit(f"Release requires {key}={value}; got {run.get(key)}")
-    if run["head_repository"]["full_name"] != run["repository"]["full_name"]:
-        raise SystemExit("Release CI must belong to the source repository")
+    verify_ci(run, args.commit)
     if args.verify_only:
         print(f"PASS Platform CI {run['id']} for {args.commit}")
         return
 
-    version = re.search(
-        r"project\(\s*CommunicationDriver\s+VERSION\s+([0-9.]+)",
-        (root / "CMakeLists.txt").read_text(),
-    ).group(1)
-    notes = (root / "docs/releases" / f"{version}.md").read_text()
-    rids = ["linux-x64", "linux-arm64", "osx-x64", "osx-arm64", "win-x64", "win-x86"]
+    version = library_version(root)
+    notes_path = root / "docs/releases" / f"{version}.md"
+    notes = (
+        notes_path.read_text()
+        if notes_path.exists()
+        else f"CommunicationDriver {version}\n\nSix-platform native, NuGet, and agent skill packages.\n"
+    )
     sources = []
-    for rid in rids:
+    for rid in RIDS:
         package = args.input / f"native-{rid}"
         metadata = json.loads((package / "native-build.json").read_text())
         if metadata["rid"] != rid:
@@ -78,7 +104,7 @@ def main():
         if spec.findtext("{*}metadata/{*}version") != version:
             raise SystemExit("NuGet version differs from release source")
         actual_rids = {p.split("/")[1] for p in names if p.startswith("runtimes/")}
-        if actual_rids != set(rids) or not all(
+        if actual_rids != set(RIDS) or not all(
             f"lib/{target}/CommunicationDriver.dll" in names for target in ["net48", "net10.0"]
         ):
             raise SystemExit("NuGet must contain all six native RIDs and both managed targets")

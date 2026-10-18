@@ -242,7 +242,9 @@ Native packages also include headers, required companion runtime libraries, and 
 
 ### Releases
 
-[GitHub Releases](https://github.com/EurekaRaider/CommunicationDriver/releases) provide six native ZIPs, the merged NuGet package, the standalone agent skill, and `SHA256SUMS`. The [Release workflow](.github/workflows/release.yml) accepts a successful Platform CI run for its exact `main` commit, verifies the source headers and package contents, and publishes the assets against that commit. Run Platform CI first, then dispatch Release with that run's ID. Existing published versions are preserved; a new library version requires a new tag.
+[GitHub Releases](https://github.com/EurekaRaider/CommunicationDriver/releases) provide six native ZIPs, the merged NuGet package, the standalone agent skill, and `SHA256SUMS`. The [Release workflow](.github/workflows/release.yml) runs automatically after all Platform CI checks pass for a push to `main`. Update the library version in CMake, managed packaging, and consumers together; the first successful CI for that unpublished version creates its `v<version>` tag and Release using that exact commit and its verified artifacts. Optional release notes belong in `docs/releases/<version>.md`; a basic note is generated when absent.
+
+Published versions are checked and skipped without modifying their assets. An interrupted draft can resume from its original commit by rerunning CI; a mismatched draft or tag fails explicitly. Releases for different versions use separate concurrency groups. Manual dispatch with a successful CI run ID remains available for recovery on the current main commit.
 
 <a id="agent-skill"></a>
 
