@@ -4,7 +4,8 @@
 #include "core/connection.hpp"
 
 // These objects are only visible inside the implementation; the ABI stays opaque.
-template <class T> struct CdHandle
+template <class T>
+struct CdHandle
 {
     std::atomic<uint32_t> refs{1};
     std::shared_ptr<T> value;

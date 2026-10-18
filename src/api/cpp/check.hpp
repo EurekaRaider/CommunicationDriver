@@ -19,7 +19,7 @@ namespace comm
         {
         }
 
-      public:
+    public:
         static Check contains(std::string_view s)
         {
             return {CD_CHECK_CONTAINS, s};
@@ -47,8 +47,8 @@ namespace comm
 
         cd_check_t native() const
         {
-            return {sizeof(cd_check_t),       kind_, text_, 0, detail::view(text_value_),
-                    detail::view(byte_value_)};
+            return {sizeof(cd_check_t), kind_, text_, 0, detail::view(text_value_),
+                detail::view(byte_value_)};
         }
     };
 
@@ -62,7 +62,7 @@ namespace comm
         {
         }
 
-      public:
+    public:
         ReceiveUntil()
         {
             rule_.struct_size = sizeof(rule_);

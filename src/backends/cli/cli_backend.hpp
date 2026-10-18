@@ -9,7 +9,7 @@ namespace cd
     {
         std::shared_ptr<ProcessChannel> process;
 
-      public:
+    public:
         CliBackend(std::shared_ptr<Runtime> r, BackendConfig<CliConfig> c);
 
         void bind();

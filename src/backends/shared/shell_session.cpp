@@ -86,8 +86,8 @@ namespace cd
         return true;
     }
 
-    std::string frame_shell_command(const std::string& command, const std::string& marker,
-                                    int shell)
+    std::string frame_shell_command(
+        const std::string& command, const std::string& marker, int shell)
     {
         if (shell == CD_SHELL_CMD)
             return command + "\r\nset \"__cd_exit=%errorlevel%\"\r\necho " + marker +

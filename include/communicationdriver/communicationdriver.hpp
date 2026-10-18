@@ -496,10 +496,10 @@ extern "C"
     CD_API cd_check_t CD_CALL cd_check_regex(cd_string_view_t pattern);
     CD_API cd_receive_until_t CD_CALL cd_receive_until_bytes(uint64_t count);
     CD_API cd_receive_until_t CD_CALL cd_receive_until_characters(uint64_t count);
-    CD_API cd_receive_until_t CD_CALL cd_receive_until_delimiter_string(cd_string_view_t delimiter,
-                                                                        int32_t include);
-    CD_API cd_receive_until_t CD_CALL cd_receive_until_delimiter_bytes(cd_bytes_view_t delimiter,
-                                                                       int32_t include);
+    CD_API cd_receive_until_t CD_CALL cd_receive_until_delimiter_string(
+        cd_string_view_t delimiter, int32_t include);
+    CD_API cd_receive_until_t CD_CALL cd_receive_until_delimiter_bytes(
+        cd_bytes_view_t delimiter, int32_t include);
     CD_API cd_receive_until_t CD_CALL cd_receive_until_line(cd_string_view_t new_line);
     CD_API cd_receive_until_t CD_CALL cd_receive_until_pattern(cd_string_view_t regex);
     CD_API cd_receive_until_t CD_CALL cd_receive_until_idle(uint64_t interval_ms);
@@ -508,8 +508,8 @@ extern "C"
 
     CD_API cd_status_t CD_CALL cd_driver_create(cd_driver_t** driver);
 #define CD_DECLARE_CREATE(name)                                                                    \
-    CD_API cd_status_t CD_CALL cd_create_##name(cd_driver_t*, const cd_##name##_options_t*,        \
-                                                cd_connection_t**, cd_result_t** error)
+    CD_API cd_status_t CD_CALL cd_create_##name(                                                   \
+        cd_driver_t*, const cd_##name##_options_t*, cd_connection_t**, cd_result_t** error)
     CD_DECLARE_CREATE(tcp);
     CD_DECLARE_CREATE(udp);
     CD_DECLARE_CREATE(serial);
@@ -520,14 +520,14 @@ extern "C"
     CD_API cd_state_t CD_CALL cd_connection_get_state(cd_connection_t*);
     CD_API cd_capabilities_t CD_CALL cd_connection_get_capabilities(cd_connection_t*);
     CD_API cd_status_t CD_CALL cd_driver_close(cd_driver_t*, cd_result_t**);
-    CD_API cd_status_t CD_CALL cd_driver_close_async(cd_driver_t*, cd_completion_fn, void*,
-                                                     cd_operation_t**);
+    CD_API cd_status_t CD_CALL cd_driver_close_async(
+        cd_driver_t*, cd_completion_fn, void*, cd_operation_t**);
 
 #define CD_DECLARE_SIMPLE(name)                                                                    \
-    CD_API cd_status_t CD_CALL cd_##name(cd_connection_t*, const cd_call_options_t*,               \
-                                         cd_result_t**);                                           \
-    CD_API cd_status_t CD_CALL cd_##name##_async(cd_connection_t*, const cd_call_options_t*,       \
-                                                 cd_completion_fn, void*, cd_operation_t**)
+    CD_API cd_status_t CD_CALL cd_##name(                                                          \
+        cd_connection_t*, const cd_call_options_t*, cd_result_t**);                                \
+    CD_API cd_status_t CD_CALL cd_##name##_async(                                                  \
+        cd_connection_t*, const cd_call_options_t*, cd_completion_fn, void*, cd_operation_t**)
     CD_DECLARE_SIMPLE(open);
     CD_DECLARE_SIMPLE(close);
     CD_DECLARE_SIMPLE(close_input);
@@ -536,38 +536,35 @@ extern "C"
     CD_DECLARE_SIMPLE(read_line);
 #undef CD_DECLARE_SIMPLE
 #define CD_DECLARE_EXACT(name)                                                                     \
-    CD_API cd_status_t CD_CALL cd_##name(cd_connection_t*, uint64_t count,                         \
-                                         const cd_call_options_t*, cd_result_t**);                 \
+    CD_API cd_status_t CD_CALL cd_##name(                                                          \
+        cd_connection_t*, uint64_t count, const cd_call_options_t*, cd_result_t**);                \
     CD_API cd_status_t CD_CALL cd_##name##_async(cd_connection_t*, uint64_t count,                 \
-                                                 const cd_call_options_t*, cd_completion_fn,       \
-                                                 void*, cd_operation_t**)
+        const cd_call_options_t*, cd_completion_fn, void*, cd_operation_t**)
     CD_DECLARE_EXACT(read_exactly_bytes);
     CD_DECLARE_EXACT(read_exactly_string);
 #undef CD_DECLARE_EXACT
 #define CD_DECLARE_UNTIL(name)                                                                     \
-    CD_API cd_status_t CD_CALL cd_##name(cd_connection_t*, const cd_receive_until_t*,              \
-                                         const cd_call_options_t*, cd_result_t**);                 \
+    CD_API cd_status_t CD_CALL cd_##name(                                                          \
+        cd_connection_t*, const cd_receive_until_t*, const cd_call_options_t*, cd_result_t**);     \
     CD_API cd_status_t CD_CALL cd_##name##_async(cd_connection_t*, const cd_receive_until_t*,      \
-                                                 const cd_call_options_t*, cd_completion_fn,       \
-                                                 void*, cd_operation_t**)
+        const cd_call_options_t*, cd_completion_fn, void*, cd_operation_t**)
     CD_DECLARE_UNTIL(read_until_bytes);
     CD_DECLARE_UNTIL(read_until_string);
 #undef CD_DECLARE_UNTIL
 #define CD_DECLARE_WRITE(name, type)                                                               \
-    CD_API cd_status_t CD_CALL cd_##name(cd_connection_t*, type, const cd_call_options_t*,         \
-                                         cd_result_t**);                                           \
+    CD_API cd_status_t CD_CALL cd_##name(                                                          \
+        cd_connection_t*, type, const cd_call_options_t*, cd_result_t**);                          \
     CD_API cd_status_t CD_CALL cd_##name##_async(cd_connection_t*, type, const cd_call_options_t*, \
-                                                 cd_completion_fn, void*, cd_operation_t**)
+        cd_completion_fn, void*, cd_operation_t**)
     CD_DECLARE_WRITE(write_bytes, cd_bytes_view_t);
     CD_DECLARE_WRITE(write_string, cd_string_view_t);
     CD_DECLARE_WRITE(write_line, cd_string_view_t);
 #undef CD_DECLARE_WRITE
 #define CD_DECLARE_EXEC(name, type)                                                                \
-    CD_API cd_status_t CD_CALL cd_##name(cd_connection_t*, type, const cd_check_t*,                \
-                                         const cd_call_options_t*, cd_result_t**);                 \
+    CD_API cd_status_t CD_CALL cd_##name(                                                          \
+        cd_connection_t*, type, const cd_check_t*, const cd_call_options_t*, cd_result_t**);       \
     CD_API cd_status_t CD_CALL cd_##name##_async(cd_connection_t*, type, const cd_check_t*,        \
-                                                 const cd_call_options_t*, cd_completion_fn,       \
-                                                 void*, cd_operation_t**)
+        const cd_call_options_t*, cd_completion_fn, void*, cd_operation_t**)
     CD_DECLARE_EXEC(execute_string, cd_string_view_t);
     CD_DECLARE_EXEC(execute_bytes, cd_bytes_view_t);
     CD_DECLARE_EXEC(execute_until_string, cd_string_view_t);
@@ -575,29 +572,26 @@ extern "C"
 #undef CD_DECLARE_EXEC
 #define CD_DECLARE_TRANSFER(name)                                                                  \
     CD_API cd_status_t CD_CALL cd_##name(cd_connection_t*, cd_string_view_t source,                \
-                                         cd_string_view_t destination,                             \
-                                         const cd_transfer_options_t*, cd_result_t**);             \
-    CD_API cd_status_t CD_CALL cd_##name##_async(                                                  \
-        cd_connection_t*, cd_string_view_t source, cd_string_view_t destination,                   \
-        const cd_transfer_options_t*, cd_completion_fn, void*, cd_operation_t**)
+        cd_string_view_t destination, const cd_transfer_options_t*, cd_result_t**);                \
+    CD_API cd_status_t CD_CALL cd_##name##_async(cd_connection_t*, cd_string_view_t source,        \
+        cd_string_view_t destination, const cd_transfer_options_t*, cd_completion_fn, void*,       \
+        cd_operation_t**)
     CD_DECLARE_TRANSFER(upload);
     CD_DECLARE_TRANSFER(download);
 #undef CD_DECLARE_TRANSFER
     CD_API cd_status_t CD_CALL cd_batch_run(cd_driver_t*, const cd_batch_item_t*, uint64_t count,
-                                            const cd_batch_options_t*, cd_result_t**);
+        const cd_batch_options_t*, cd_result_t**);
     CD_API cd_status_t CD_CALL cd_batch_run_async(cd_driver_t*, const cd_batch_item_t*,
-                                                  uint64_t count, const cd_batch_options_t*,
-                                                  cd_completion_fn, void*, cd_operation_t**);
-    CD_API cd_status_t CD_CALL cd_response_checker_is_match_string(cd_string_view_t,
-                                                                   const cd_check_t*,
-                                                                   cd_result_t**);
-    CD_API cd_status_t CD_CALL cd_response_checker_is_match_bytes(cd_bytes_view_t,
-                                                                  const cd_check_t*, cd_result_t**);
+        uint64_t count, const cd_batch_options_t*, cd_completion_fn, void*, cd_operation_t**);
+    CD_API cd_status_t CD_CALL cd_response_checker_is_match_string(
+        cd_string_view_t, const cd_check_t*, cd_result_t**);
+    CD_API cd_status_t CD_CALL cd_response_checker_is_match_bytes(
+        cd_bytes_view_t, const cd_check_t*, cd_result_t**);
 
     CD_API int32_t CD_CALL cd_operation_is_completed(cd_operation_t*);
     /* On success, wait returns a retained result; observer timeout does not cancel. */
-    CD_API cd_status_t CD_CALL cd_operation_wait(cd_operation_t*, uint64_t timeout_ms,
-                                                 cd_result_t**);
+    CD_API cd_status_t CD_CALL cd_operation_wait(
+        cd_operation_t*, uint64_t timeout_ms, cd_result_t**);
     CD_API void CD_CALL cd_operation_cancel(cd_operation_t*);
     CD_API cd_status_t CD_CALL cd_cancel_source_create(cd_cancel_source_t**);
     CD_API void CD_CALL cd_cancel_source_request(cd_cancel_source_t*);
@@ -614,18 +608,18 @@ extern "C"
     CD_API cd_status_t CD_CALL cd_result_get_status(const cd_result_t*);
     CD_API cd_result_kind_t CD_CALL cd_result_get_kind(const cd_result_t*);
     CD_API cd_status_t CD_CALL cd_result_get_error(const cd_result_t*, cd_error_info_t*);
-    CD_API cd_status_t CD_CALL cd_result_get_text(const cd_result_t*, cd_stream_t,
-                                                  cd_string_view_t*);
-    CD_API cd_status_t CD_CALL cd_result_get_bytes(const cd_result_t*, cd_stream_t,
-                                                   cd_bytes_view_t*);
+    CD_API cd_status_t CD_CALL cd_result_get_text(
+        const cd_result_t*, cd_stream_t, cd_string_view_t*);
+    CD_API cd_status_t CD_CALL cd_result_get_bytes(
+        const cd_result_t*, cd_stream_t, cd_bytes_view_t*);
     CD_API cd_status_t CD_CALL cd_result_get_check(const cd_result_t*, cd_check_result_t*);
-    CD_API cd_status_t CD_CALL cd_result_get_execution_info(const cd_result_t*,
-                                                            cd_execution_info_t*);
+    CD_API cd_status_t CD_CALL cd_result_get_execution_info(
+        const cd_result_t*, cd_execution_info_t*);
     CD_API cd_status_t CD_CALL cd_result_get_transfer(const cd_result_t*, cd_transfer_result_t*);
     CD_API cd_status_t CD_CALL cd_result_get_batch_info(const cd_result_t*, cd_batch_info_t*);
     /* item.result is borrowed, retain it to outlive the batch result. */
-    CD_API cd_status_t CD_CALL cd_result_get_batch_item(const cd_result_t*, uint64_t index,
-                                                        cd_batch_item_result_t*);
+    CD_API cd_status_t CD_CALL cd_result_get_batch_item(
+        const cd_result_t*, uint64_t index, cd_batch_item_result_t*);
 #ifdef __cplusplus
 }
 #endif
@@ -731,7 +725,7 @@ namespace comm
 
     class CommunicationError : public std::runtime_error
     {
-      public:
+    public:
         ErrorInfo info;
 
         explicit CommunicationError(ErrorInfo e) : std::runtime_error(e.message), info(std::move(e))
@@ -764,7 +758,8 @@ namespace comm
             return {begin, begin + b.size};
         }
 
-        template <class T> T sized()
+        template <class T>
+        T sized()
         {
             T t{};
             t.struct_size = sizeof(T);
@@ -776,15 +771,11 @@ namespace comm
             auto e = sized<cd_error_info_t>();
             cd_result_get_error(r, &e);
 
-            return {r ? e.code : status,
-                    r ? string(e.message) : cd_status_name(status),
-                    string(e.backend),
-                    string(e.partial_text),
-                    string(e.partial_file),
-                    e.native_code,
-                    bytes(e.partial_bytes),
-                    e.has_confirmed_progress ? std::optional<uint64_t>(e.confirmed_progress)
-                                             : std::nullopt};
+            return {r ? e.code : status, r ? string(e.message) : cd_status_name(status),
+                string(e.backend), string(e.partial_text), string(e.partial_file), e.native_code,
+                bytes(e.partial_bytes),
+                e.has_confirmed_progress ? std::optional<uint64_t>(e.confirmed_progress)
+                                         : std::nullopt};
         }
 
         inline void checked(cd_status_t s, cd_result_t* r = nullptr)
@@ -831,7 +822,7 @@ namespace comm
         {
         }
 
-      public:
+    public:
         static Check contains(std::string_view s)
         {
             return {CD_CHECK_CONTAINS, s};
@@ -859,8 +850,8 @@ namespace comm
 
         cd_check_t native() const
         {
-            return {sizeof(cd_check_t),       kind_, text_, 0, detail::view(text_value_),
-                    detail::view(byte_value_)};
+            return {sizeof(cd_check_t), kind_, text_, 0, detail::view(text_value_),
+                detail::view(byte_value_)};
         }
     };
 
@@ -874,7 +865,7 @@ namespace comm
         {
         }
 
-      public:
+    public:
         ReceiveUntil()
         {
             rule_.struct_size = sizeof(rule_);
@@ -1120,7 +1111,8 @@ namespace comm
         std::string failure_reason;
     };
 
-    template <class T> struct ExecutionResult
+    template <class T>
+    struct ExecutionResult
     {
         T response{}, standard_error{};
         std::optional<CheckResult> check;
@@ -1163,7 +1155,8 @@ namespace comm
             return r;
         }
 
-        template <class T> T response(cd_result_t* h, int stream)
+        template <class T>
+        T response(cd_result_t* h, int stream)
         {
             if constexpr (std::is_same_v<T, std::string>)
             {
@@ -1179,7 +1172,8 @@ namespace comm
             }
         }
 
-        template <class T> T convert(cd_result_t* h)
+        template <class T>
+        T convert(cd_result_t* h)
         {
             checked(cd_result_get_status(h), h);
 
@@ -1192,9 +1186,9 @@ namespace comm
                 auto i = sized<cd_transfer_result_t>();
                 checked(cd_result_get_transfer(h, &i));
                 return {string(i.source), string(i.destination),
-                        i.has_bytes_transferred ? std::optional<uint64_t>(i.bytes_transferred)
-                                                : std::nullopt,
-                        std::chrono::nanoseconds(i.elapsed_ns)};
+                    i.has_bytes_transferred ? std::optional<uint64_t>(i.bytes_transferred)
+                                            : std::nullopt,
+                    std::chrono::nanoseconds(i.elapsed_ns)};
             }
             else
             {
@@ -1203,12 +1197,10 @@ namespace comm
                 auto info = sized<cd_execution_info_t>();
                 checked(cd_result_get_execution_info(h, &info));
 
-                return {response<R>(h, 0),
-                        response<R>(h, 1),
-                        check_result(h),
-                        info.has_exit_code ? std::optional<int>(info.exit_code) : std::nullopt,
-                        static_cast<CompletionReason>(info.completion_reason),
-                        std::chrono::nanoseconds(info.elapsed_ns)};
+                return {response<R>(h, 0), response<R>(h, 1), check_result(h),
+                    info.has_exit_code ? std::optional<int>(info.exit_code) : std::nullopt,
+                    static_cast<CompletionReason>(info.completion_reason),
+                    std::chrono::nanoseconds(info.elapsed_ns)};
             }
         }
 
@@ -1236,18 +1228,18 @@ namespace comm
 
 namespace comm
 {
-    template <class T> class Operation
+    template <class T>
+    class Operation
     {
         std::shared_ptr<detail::OperationControl> control_;
 
-      public:
+    public:
         explicit Operation(cd_operation_t* h, std::stop_token stop = {}, int stream = 0)
             : control_(std::make_shared<detail::OperationControl>(h, stream))
         {
             if (stop.stop_possible())
                 control_->cancellation =
-                    std::make_unique<std::stop_callback<std::function<void()>>>(
-                        stop,
+                    std::make_unique<std::stop_callback<std::function<void()>>>(stop,
                         [h]
                         {
                             cd_operation_cancel(h);
@@ -1337,7 +1329,8 @@ namespace comm
             return Operation<T>(op, stop, stream);
         }
 
-        template <class T, class F> T complete(F&& call, std::stop_token stop, int stream = 0) const
+        template <class T, class F>
+        T complete(F&& call, std::stop_token stop, int stream = 0) const
         {
             cd_cancel_source_t* cancellation = nullptr;
 
@@ -1350,10 +1343,10 @@ namespace comm
 
             if (cancellation)
                 callback.emplace(stop,
-                                 [cancellation]
-                                 {
-                                     cd_cancel_source_request(cancellation);
-                                 });
+                    [cancellation]
+                    {
+                        cd_cancel_source_request(cancellation);
+                    });
 
             cd_result_t* h = nullptr;
             auto status = call(handle_.get(), cancellation, &h);
@@ -1366,7 +1359,7 @@ namespace comm
                 return detail::convert<T>(h);
         }
 
-      public:
+    public:
         State state() const
         {
             return static_cast<State>(cd_connection_get_state(handle_.get()));
@@ -1400,8 +1393,8 @@ namespace comm
                 stop);
         }
 
-        Operation<void> close_async(const CallOptions& options = {},
-                                    std::stop_token stop = {}) const
+        Operation<void> close_async(
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<void>(
@@ -1424,8 +1417,8 @@ namespace comm
                 stop);
         }
 
-        Operation<void> close_input_async(const CallOptions& options = {},
-                                          std::stop_token stop = {}) const
+        Operation<void> close_input_async(
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<void>(
@@ -1448,8 +1441,8 @@ namespace comm
                 stop);
         }
 
-        Operation<Bytes> read_bytes_async(const CallOptions& options = {},
-                                          std::stop_token stop = {}) const
+        Operation<Bytes> read_bytes_async(
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<Bytes>(
@@ -1472,8 +1465,8 @@ namespace comm
                 stop, static_cast<int>(options.read_stream));
         }
 
-        Operation<std::string> read_string_async(const CallOptions& options = {},
-                                                 std::stop_token stop = {}) const
+        Operation<std::string> read_string_async(
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<std::string>(
@@ -1496,8 +1489,8 @@ namespace comm
                 stop, static_cast<int>(options.read_stream));
         }
 
-        Operation<std::string> read_line_async(const CallOptions& options = {},
-                                               std::stop_token stop = {}) const
+        Operation<std::string> read_line_async(
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<std::string>(
@@ -1520,8 +1513,8 @@ namespace comm
                 stop, static_cast<int>(options.read_stream));
         }
 
-        Operation<Bytes> read_exactly_bytes_async(uint64_t count, const CallOptions& options = {},
-                                                  std::stop_token stop = {}) const
+        Operation<Bytes> read_exactly_bytes_async(
+            uint64_t count, const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<Bytes>(
@@ -1532,8 +1525,8 @@ namespace comm
                 stop, static_cast<int>(options.read_stream));
         }
 
-        Bytes read_exactly_bytes(uint64_t count, const CallOptions& options = {},
-                                 std::stop_token stop = {}) const
+        Bytes read_exactly_bytes(
+            uint64_t count, const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return complete<Bytes>(
@@ -1545,9 +1538,8 @@ namespace comm
                 stop, static_cast<int>(options.read_stream));
         }
 
-        Operation<std::string> read_exactly_string_async(uint64_t count,
-                                                         const CallOptions& options = {},
-                                                         std::stop_token stop = {}) const
+        Operation<std::string> read_exactly_string_async(
+            uint64_t count, const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<std::string>(
@@ -1558,8 +1550,8 @@ namespace comm
                 stop, static_cast<int>(options.read_stream));
         }
 
-        std::string read_exactly_string(uint64_t count, const CallOptions& options = {},
-                                        std::stop_token stop = {}) const
+        std::string read_exactly_string(
+            uint64_t count, const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return complete<std::string>(
@@ -1572,8 +1564,7 @@ namespace comm
         }
 
         Operation<Bytes> read_until_bytes_async(const ReceiveUntil& until,
-                                                const CallOptions& options = {},
-                                                std::stop_token stop = {}) const
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto u = until.native();
@@ -1586,7 +1577,7 @@ namespace comm
         }
 
         Bytes read_until_bytes(const ReceiveUntil& until, const CallOptions& options = {},
-                               std::stop_token stop = {}) const
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto u = until.native();
@@ -1600,8 +1591,7 @@ namespace comm
         }
 
         Operation<std::string> read_until_string_async(const ReceiveUntil& until,
-                                                       const CallOptions& options = {},
-                                                       std::stop_token stop = {}) const
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto u = until.native();
@@ -1614,7 +1604,7 @@ namespace comm
         }
 
         std::string read_until_string(const ReceiveUntil& until, const CallOptions& options = {},
-                                      std::stop_token stop = {}) const
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto u = until.native();
@@ -1628,8 +1618,7 @@ namespace comm
         }
 
         Operation<void> write_bytes_async(std::span<const std::byte> input,
-                                          const CallOptions& options = {},
-                                          std::stop_token stop = {}) const
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<void>(
@@ -1641,7 +1630,7 @@ namespace comm
         }
 
         void write_bytes(std::span<const std::byte> input, const CallOptions& options = {},
-                         std::stop_token stop = {}) const
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             return complete<void>(
@@ -1654,7 +1643,7 @@ namespace comm
         }
 
         Operation<void> write_string_async(std::string_view input, const CallOptions& options = {},
-                                           std::stop_token stop = {}) const
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<void>(
@@ -1666,7 +1655,7 @@ namespace comm
         }
 
         void write_string(std::string_view input, const CallOptions& options = {},
-                          std::stop_token stop = {}) const
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             return complete<void>(
@@ -1679,7 +1668,7 @@ namespace comm
         }
 
         Operation<void> write_line_async(std::string_view input, const CallOptions& options = {},
-                                         std::stop_token stop = {}) const
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<void>(
@@ -1691,7 +1680,7 @@ namespace comm
         }
 
         void write_line(std::string_view input, const CallOptions& options = {},
-                        std::stop_token stop = {}) const
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             return complete<void>(
@@ -1703,25 +1692,24 @@ namespace comm
                 stop);
         }
 
-        Operation<ExecutionResult<std::string>>
-        execute_async(std::string_view command, const std::optional<Check>& check = {},
-                      const CallOptions& options = {}, std::stop_token stop = {}) const
+        Operation<ExecutionResult<std::string>> execute_async(std::string_view command,
+            const std::optional<Check>& check = {}, const CallOptions& options = {},
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = check ? check->native() : cd_check_t{};
             return begin<ExecutionResult<std::string>>(
                 [&](auto* c, auto** op)
                 {
-                    return cd_execute_string_async(c, detail::view(command), check ? &ch : nullptr,
-                                                   &o, nullptr, nullptr, op);
+                    return cd_execute_string_async(
+                        c, detail::view(command), check ? &ch : nullptr, &o, nullptr, nullptr, op);
                 },
                 stop);
         }
 
         ExecutionResult<std::string> execute(std::string_view command,
-                                             const std::optional<Check>& check = {},
-                                             const CallOptions& options = {},
-                                             std::stop_token stop = {}) const
+            const std::optional<Check>& check = {}, const CallOptions& options = {},
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = check ? check->native() : cd_check_t{};
@@ -1729,31 +1717,28 @@ namespace comm
                 [&](auto* c, auto* cancellation, auto** result)
                 {
                     o.cancellation = cancellation;
-                    return cd_execute_string(c, detail::view(command), check ? &ch : nullptr, &o,
-                                             result);
+                    return cd_execute_string(
+                        c, detail::view(command), check ? &ch : nullptr, &o, result);
                 },
                 stop);
         }
 
         Operation<ExecutionResult<std::string>> execute_until_async(std::string_view command,
-                                                                    const Check& match,
-                                                                    const CallOptions& options = {},
-                                                                    std::stop_token stop = {}) const
+            const Check& match, const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = match.native();
             return begin<ExecutionResult<std::string>>(
                 [&](auto* c, auto** op)
                 {
-                    return cd_execute_until_string_async(c, detail::view(command), &ch, &o, nullptr,
-                                                         nullptr, op);
+                    return cd_execute_until_string_async(
+                        c, detail::view(command), &ch, &o, nullptr, nullptr, op);
                 },
                 stop);
         }
 
         ExecutionResult<std::string> execute_until(std::string_view command, const Check& match,
-                                                   const CallOptions& options = {},
-                                                   std::stop_token stop = {}) const
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = match.native();
@@ -1767,25 +1752,23 @@ namespace comm
         }
 
         Operation<ExecutionResult<Bytes>> execute_async(std::span<const std::byte> command,
-                                                        const std::optional<Check>& check = {},
-                                                        const CallOptions& options = {},
-                                                        std::stop_token stop = {}) const
+            const std::optional<Check>& check = {}, const CallOptions& options = {},
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = check ? check->native() : cd_check_t{};
             return begin<ExecutionResult<Bytes>>(
                 [&](auto* c, auto** op)
                 {
-                    return cd_execute_bytes_async(c, detail::view(command), check ? &ch : nullptr,
-                                                  &o, nullptr, nullptr, op);
+                    return cd_execute_bytes_async(
+                        c, detail::view(command), check ? &ch : nullptr, &o, nullptr, nullptr, op);
                 },
                 stop);
         }
 
         ExecutionResult<Bytes> execute(std::span<const std::byte> command,
-                                       const std::optional<Check>& check = {},
-                                       const CallOptions& options = {},
-                                       std::stop_token stop = {}) const
+            const std::optional<Check>& check = {}, const CallOptions& options = {},
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = check ? check->native() : cd_check_t{};
@@ -1793,31 +1776,28 @@ namespace comm
                 [&](auto* c, auto* cancellation, auto** result)
                 {
                     o.cancellation = cancellation;
-                    return cd_execute_bytes(c, detail::view(command), check ? &ch : nullptr, &o,
-                                            result);
+                    return cd_execute_bytes(
+                        c, detail::view(command), check ? &ch : nullptr, &o, result);
                 },
                 stop);
         }
 
         Operation<ExecutionResult<Bytes>> execute_until_async(std::span<const std::byte> command,
-                                                              const Check& match,
-                                                              const CallOptions& options = {},
-                                                              std::stop_token stop = {}) const
+            const Check& match, const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = match.native();
             return begin<ExecutionResult<Bytes>>(
                 [&](auto* c, auto** op)
                 {
-                    return cd_execute_until_bytes_async(c, detail::view(command), &ch, &o, nullptr,
-                                                        nullptr, op);
+                    return cd_execute_until_bytes_async(
+                        c, detail::view(command), &ch, &o, nullptr, nullptr, op);
                 },
                 stop);
         }
 
         ExecutionResult<Bytes> execute_until(std::span<const std::byte> command, const Check& match,
-                                             const CallOptions& options = {},
-                                             std::stop_token stop = {}) const
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = match.native();
@@ -1831,60 +1811,57 @@ namespace comm
         }
 
         Operation<TransferResult> upload_async(std::string_view source,
-                                               std::string_view destination,
-                                               const TransferOptions& options = {},
-                                               std::stop_token stop = {}) const
+            std::string_view destination, const TransferOptions& options = {},
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<TransferResult>(
                 [&](auto* c, auto** op)
                 {
                     return cd_upload_async(c, detail::view(source), detail::view(destination), &o,
-                                           nullptr, nullptr, op);
+                        nullptr, nullptr, op);
                 },
                 stop);
         }
 
         TransferResult upload(std::string_view source, std::string_view destination,
-                              const TransferOptions& options = {}, std::stop_token stop = {}) const
+            const TransferOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return complete<TransferResult>(
                 [&](auto* c, auto* cancellation, auto** result)
                 {
                     o.cancellation = cancellation;
-                    return cd_upload(c, detail::view(source), detail::view(destination), &o,
-                                     result);
+                    return cd_upload(
+                        c, detail::view(source), detail::view(destination), &o, result);
                 },
                 stop);
         }
 
         Operation<TransferResult> download_async(std::string_view source,
-                                                 std::string_view destination,
-                                                 const TransferOptions& options = {},
-                                                 std::stop_token stop = {}) const
+            std::string_view destination, const TransferOptions& options = {},
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<TransferResult>(
                 [&](auto* c, auto** op)
                 {
                     return cd_download_async(c, detail::view(source), detail::view(destination), &o,
-                                             nullptr, nullptr, op);
+                        nullptr, nullptr, op);
                 },
                 stop);
         }
 
         TransferResult download(std::string_view source, std::string_view destination,
-                                const TransferOptions& options = {},
-                                std::stop_token stop = {}) const
+            const TransferOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return complete<TransferResult>(
                 [&](auto* c, auto* cancellation, auto** result)
                 {
                     o.cancellation = cancellation;
-                    return cd_download(c, detail::view(source), detail::view(destination), &o,
-                                       result);
+                    return cd_download(
+                        c, detail::view(source), detail::view(destination), &o, result);
                 },
                 stop);
         }
@@ -1899,7 +1876,8 @@ namespace comm
     {
         std::shared_ptr<cd_driver_t> handle_;
 
-        template <class F> Connection create(F&& f)
+        template <class F>
+        Connection create(F&& f)
         {
             cd_connection_t* c = nullptr;
             cd_result_t* e = nullptr;
@@ -1910,7 +1888,7 @@ namespace comm
             return Connection(c, handle_);
         }
 
-      public:
+    public:
         Driver()
         {
             cd_driver_t* h = nullptr;
@@ -2073,7 +2051,7 @@ namespace comm
 {
     class ResponseChecker
     {
-      public:
+    public:
         static bool is_match(std::string_view response, const Check& check)
         {
             auto c = check.native();
@@ -2138,74 +2116,49 @@ namespace comm
         TransferOptions transfer_options;
 
         static BatchItem execute(std::string key, Connection c, std::string_view command,
-                                 std::optional<Check> check = {}, CallOptions options = {})
+            std::optional<Check> check = {}, CallOptions options = {})
         {
-            return {std::move(key),
-                    std::move(c),
-                    CD_BATCH_EXECUTE_STRING,
-                    std::string(command),
-                    {},
-                    {},
-                    {},
-                    std::move(check),
-                    std::move(options),
-                    {}};
+            return {std::move(key), std::move(c), CD_BATCH_EXECUTE_STRING, std::string(command), {},
+                {}, {}, std::move(check), std::move(options), {}};
         }
 
         static BatchItem execute(std::string key, Connection c, std::span<const std::byte> command,
-                                 std::optional<Check> check = {}, CallOptions options = {})
+            std::optional<Check> check = {}, CallOptions options = {})
         {
-            return {std::move(key),
-                    std::move(c),
-                    CD_BATCH_EXECUTE_BYTES,
-                    {},
-                    {},
-                    {},
-                    {command.begin(), command.end()},
-                    std::move(check),
-                    std::move(options),
-                    {}};
+            return {std::move(key), std::move(c), CD_BATCH_EXECUTE_BYTES, {}, {}, {},
+                {command.begin(), command.end()}, std::move(check), std::move(options), {}};
         }
 
         static BatchItem execute_until(std::string key, Connection c, std::string_view command,
-                                       Check match, CallOptions options = {})
+            Check match, CallOptions options = {})
         {
-            auto item = execute(std::move(key), std::move(c), command, std::move(match),
-                                std::move(options));
+            auto item = execute(
+                std::move(key), std::move(c), command, std::move(match), std::move(options));
             item.kind = CD_BATCH_EXECUTE_UNTIL_STRING;
             return item;
         }
 
         static BatchItem execute_until(std::string key, Connection c,
-                                       std::span<const std::byte> command, Check match,
-                                       CallOptions options = {})
+            std::span<const std::byte> command, Check match, CallOptions options = {})
         {
-            auto item = execute(std::move(key), std::move(c), command, std::move(match),
-                                std::move(options));
+            auto item = execute(
+                std::move(key), std::move(c), command, std::move(match), std::move(options));
             item.kind = CD_BATCH_EXECUTE_UNTIL_BYTES;
             return item;
         }
 
         static BatchItem upload(std::string key, Connection c, std::string source,
-                                std::string destination, TransferOptions options = {})
+            std::string destination, TransferOptions options = {})
         {
-            return {std::move(key),
-                    std::move(c),
-                    CD_BATCH_UPLOAD,
-                    {},
-                    std::move(source),
-                    std::move(destination),
-                    {},
-                    {},
-                    {},
-                    std::move(options)};
+            return {std::move(key), std::move(c), CD_BATCH_UPLOAD, {}, std::move(source),
+                std::move(destination), {}, {}, {}, std::move(options)};
         }
 
         static BatchItem download(std::string key, Connection c, std::string source,
-                                  std::string destination, TransferOptions options = {})
+            std::string destination, TransferOptions options = {})
         {
             auto item = upload(std::move(key), std::move(c), std::move(source),
-                               std::move(destination), std::move(options));
+                std::move(destination), std::move(options));
             item.kind = CD_BATCH_DOWNLOAD;
             return item;
         }
@@ -2213,7 +2166,8 @@ namespace comm
 
     namespace detail
     {
-        template <> inline BatchResult convert<BatchResult>(cd_result_t* h)
+        template <>
+        inline BatchResult convert<BatchResult>(cd_result_t* h)
         {
             checked(cd_result_get_status(h), h);
 
@@ -2261,10 +2215,9 @@ namespace comm
 
     class Batch
     {
-      public:
+    public:
         static Operation<BatchResult> run_async(std::span<const BatchItem> items,
-                                                const BatchOptions& options = {},
-                                                std::stop_token stop = {})
+            const BatchOptions& options = {}, std::stop_token stop = {})
         {
             if (items.empty())
                 throw std::invalid_argument("Batch requires at least one item");
@@ -2305,13 +2258,13 @@ namespace comm
 
             cd_operation_t* op = nullptr;
             detail::checked(cd_batch_run_async(items[0].connection.driver_.get(), native.data(),
-                                               native.size(), &o, nullptr, nullptr, &op));
+                native.size(), &o, nullptr, nullptr, &op));
 
             return Operation<BatchResult>(op, stop);
         }
 
         static BatchResult run(std::span<const BatchItem> items, const BatchOptions& options = {},
-                               std::stop_token stop = {})
+            std::stop_token stop = {})
         {
             return run_async(items, options, stop).get();
         }

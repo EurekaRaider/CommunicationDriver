@@ -17,8 +17,7 @@ int main(int argc, char** argv)
         std::vector<std::future<void>> jobs;
 
         for (int n = 0; n < workers; ++n)
-            jobs.push_back(std::async(
-                std::launch::async,
+            jobs.push_back(std::async(std::launch::async,
                 [&]
                 {
                     comm::Driver driver;

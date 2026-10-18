@@ -10,7 +10,8 @@ namespace cd
         std::string session_command;
     };
 
-    template <class T> struct BackendConfig : T
+    template <class T>
+    struct BackendConfig : T
     {
         Defaults defaults;
 

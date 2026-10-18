@@ -10,8 +10,7 @@ namespace cd
     void UdpBackend::open(Completion cb)
     {
         auto self = std::static_pointer_cast<UdpBackend>(shared_from_this());
-        udp_resolver.async_resolve(
-            config.host, std::to_string(config.port),
+        udp_resolver.async_resolve(config.host, std::to_string(config.port),
             [self, cb](ErrorCode ec, asio::ip::udp::resolver::results_type eps)
             {
                 if (self->stopped)
@@ -31,8 +30,8 @@ namespace cd
                 {
                     auto address = self->config.local_host.empty()
                                        ? (endpoint.address().is_v4()
-                                              ? asio::ip::address(asio::ip::address_v4::any())
-                                              : asio::ip::address(asio::ip::address_v6::any()))
+                                                 ? asio::ip::address(asio::ip::address_v4::any())
+                                                 : asio::ip::address(asio::ip::address_v6::any()))
                                        : asio::ip::make_address(self->config.local_host, e);
                     if (!e)
                         self->udp.bind({address, self->config.local_port}, e);

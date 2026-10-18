@@ -5,9 +5,8 @@ using namespace cd::abi;
 
 extern "C"
 {
-    cd_status_t CD_CALL cd_response_checker_is_match_string(cd_string_view_t response,
-                                                            const cd_check_t* check,
-                                                            cd_result_t** out)
+    cd_status_t CD_CALL cd_response_checker_is_match_string(
+        cd_string_view_t response, const cd_check_t* check, cd_result_t** out)
     {
         if (out)
 
@@ -30,9 +29,8 @@ extern "C"
         }
     }
 
-    cd_status_t CD_CALL cd_response_checker_is_match_bytes(cd_bytes_view_t response,
-                                                           const cd_check_t* check,
-                                                           cd_result_t** out)
+    cd_status_t CD_CALL cd_response_checker_is_match_bytes(
+        cd_bytes_view_t response, const cd_check_t* check, cd_result_t** out)
     {
         return cd_response_checker_is_match_string(
             {reinterpret_cast<const char*>(response.data), response.size}, check, out);

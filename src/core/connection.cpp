@@ -79,11 +79,11 @@ namespace cd
             {
                 if (auto c = weak.lock())
                     asio::post(c->runtime->state->io,
-                               [c, w]
-                               {
-                                   if (auto r = w.lock())
-                                       c->abort(r, CD_CANCELLED, "Operation cancelled");
-                               });
+                        [c, w]
+                        {
+                            if (auto r = w.lock())
+                                c->abort(r, CD_CANCELLED, "Operation cancelled");
+                        });
             };
         }
 
@@ -91,45 +91,44 @@ namespace cd
             request->options.cancellation->subscribe(op);
 
         asio::post(runtime->state->io,
-                   [self, request]
-                   {
-                       request->deadline =
-                           std::make_shared<asio::steady_timer>(self->runtime->state->io);
-                       request->deadline->expires_at(
-                           request->started + std::chrono::milliseconds(request->options.timeout));
-                       request->deadline->async_wait(
-                           [weak = self->weak_from_this(),
-                            w = std::weak_ptr<Request>(request)](ErrorCode e)
-                           {
-                               if (!e)
-                                   if (auto c = weak.lock())
-                                       if (auto r = w.lock())
-                                           c->abort(r, CD_TIMEOUT, "Operation timed out");
-                           });
+            [self, request]
+            {
+                request->deadline = std::make_shared<asio::steady_timer>(self->runtime->state->io);
+                request->deadline->expires_at(
+                    request->started + std::chrono::milliseconds(request->options.timeout));
+                request->deadline->async_wait(
+                    [weak = self->weak_from_this(), w = std::weak_ptr<Request>(request)](
+                        ErrorCode e)
+                    {
+                        if (!e)
+                            if (auto c = weak.lock())
+                                if (auto r = w.lock())
+                                    c->abort(r, CD_TIMEOUT, "Operation timed out");
+                    });
 
-                       if (request->action == Action::Close)
-                       {
-                           self->force_close();
-                           ++self->closing_count;
-                           self->runtime->after_files(
-                               [self, request]
-                               {
-                                   --self->closing_count;
-                                   self->finish_close(request);
-                                   self->next();
-                               });
+                if (request->action == Action::Close)
+                {
+                    self->force_close();
+                    ++self->closing_count;
+                    self->runtime->after_files(
+                        [self, request]
+                        {
+                            --self->closing_count;
+                            self->finish_close(request);
+                            self->next();
+                        });
 
-                           return;
-                       }
+                    return;
+                }
 
-                       request->queue_position = self->queue.insert(self->queue.end(), request);
-                       request->queued = true;
+                request->queue_position = self->queue.insert(self->queue.end(), request);
+                request->queued = true;
 
-                       if (request->operation->cancelled)
-                           self->abort(request, CD_CANCELLED, "Operation cancelled");
+                if (request->operation->cancelled)
+                    self->abort(request, CD_CANCELLED, "Operation cancelled");
 
-                       self->next();
-                   });
+                self->next();
+            });
     }
 
     void Connection::next()
@@ -243,7 +242,7 @@ namespace cd
             finish(state == CD_STATE_NEEDS_RECOVERY ? CD_NEEDS_RECOVERY
                    : state == CD_STATE_CLOSED       ? CD_CLOSED
                                                     : CD_NOT_OPEN,
-                   "Connection is not ready");
+                "Connection is not ready");
             return;
         }
 
@@ -286,10 +285,10 @@ namespace cd
         if (r->action == Action::Execute && !managed &&
             !(config.traits.commands && config.traits.mode == CD_ONE_SHOT) &&
             (r->options.rule.kind == CD_RECEIVE_NONE ||
-             r->options.rule.kind == CD_RECEIVE_AVAILABLE))
+                r->options.rule.kind == CD_RECEIVE_AVAILABLE))
         {
             finish(CD_INVALID_ARGUMENT,
-                   "Execute requires a reliable ReceiveUntil rule before sending");
+                "Execute requires a reliable ReceiveUntil rule before sending");
             return;
         }
 
@@ -302,7 +301,7 @@ namespace cd
 
         if (exec && !(config.traits.commands && config.traits.mode == CD_ONE_SHOT) &&
             (!pending[0].empty() || !pending[1].empty() || !messages[0].empty() ||
-             !messages[1].empty()))
+                !messages[1].empty()))
         {
             state = CD_STATE_NEEDS_RECOVERY;
             finish(CD_NEEDS_RECOVERY, "Unattributed output exists; close/reopen before executing");
@@ -377,16 +376,16 @@ namespace cd
             r->sent = true;
             r->writing = true;
             one_shot->command(r->input,
-                              [self, r](cd_status_t s, std::string m, int64_t n)
-                              {
-                                  if (self->active != r)
-                                      return;
-                                  r->writing = false;
-                                  if (s != CD_OK)
-                                      self->finish(s, m, n);
-                                  else
-                                      self->process_data();
-                              });
+                [self, r](cd_status_t s, std::string m, int64_t n)
+                {
+                    if (self->active != r)
+                        return;
+                    r->writing = false;
+                    if (s != CD_OK)
+                        self->finish(s, m, n);
+                    else
+                        self->process_data();
+                });
 
             return;
         }
@@ -433,8 +432,7 @@ namespace cd
 
                 r->sent = true;
                 r->writing = true;
-                self->persistent->write(
-                    std::move(data),
+                self->persistent->write(std::move(data),
                     [self, r, exec](cd_status_t status, std::string message, int64_t native)
                     {
                         if (self->active != r)
@@ -625,8 +623,8 @@ namespace cd
 
                         if (end != std::string::npos)
                         {
-                            auto exit_text = data.substr(pos + r->marker.size() + 1,
-                                                         end - pos - r->marker.size() - 1);
+                            auto exit_text = data.substr(
+                                pos + r->marker.size() + 1, end - pos - r->marker.size() - 1);
 
                             if (!exit_text.empty() && exit_text.back() == '\r')
                                 exit_text.pop_back();
@@ -636,8 +634,8 @@ namespace cd
                                 exit_text.data(), exit_text.data() + exit_text.size(), code);
 
                             if (parsed.ec != std::errc())
-                                throw Fault(CD_PROTOCOL_ERROR,
-                                            "Invalid internal completion marker");
+                                throw Fault(
+                                    CD_PROTOCOL_ERROR, "Invalid internal completion marker");
 
                             r->result->raw[stream] += data.substr(0, pos);
                             data.erase(0, end + 1);
@@ -727,9 +725,9 @@ namespace cd
                     {
                         const auto& delimiter = r->delimiter;
                         for (size_t n = 1; n < delimiter.size() && n <= r->result->raw[0].size();
-                             ++n)
-                            if (r->result->raw[0].compare(r->result->raw[0].size() - n, n,
-                                                          delimiter, 0, n) == 0)
+                            ++n)
+                            if (r->result->raw[0].compare(
+                                    r->result->raw[0].size() - n, n, delimiter, 0, n) == 0)
                                 visible_size = r->result->raw[0].size() - n;
                     }
                 }
@@ -762,16 +760,16 @@ namespace cd
                     bool cleanup = !r->marker.empty() ||
                                    (config.traits.commands && config.traits.mode == CD_ONE_SHOT) ||
                                    (raw_until && r->options.rule.kind != CD_RECEIVE_NONE &&
-                                    r->options.rule.kind != CD_RECEIVE_AVAILABLE &&
-                                    r->options.rule.kind != CD_RECEIVE_IDLE);
+                                       r->options.rule.kind != CD_RECEIVE_AVAILABLE &&
+                                       r->options.rule.kind != CD_RECEIVE_IDLE);
 
                     if (cleanup && !command_done && !raw_done)
                     {
                         auto delivered = std::make_shared<Result>(*r->result);
                         delivered->raw[0].resize(visible_size);
                         delivered->elapsed_ns =
-                            std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() -
-                                                                                 r->started)
+                            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                Clock::now() - r->started)
                                 .count();
 
                         if (r->text)
@@ -890,7 +888,7 @@ namespace cd
 
             if (input_ended && !command_done &&
                 !(config.traits.commands &&
-                  (config.traits.mode == CD_ONE_SHOT || config.managed())))
+                    (config.traits.mode == CD_ONE_SHOT || config.managed())))
             {
                 r->result->raw[0] += std::exchange(pending[0], {});
                 r->result->raw[1] += std::exchange(pending[1], {});
@@ -985,15 +983,15 @@ namespace cd
         {
             auto self = shared_from_this();
             asio::post(runtime->state->io,
-                       [self]
-                       {
-                           self->next();
-                       });
+                [self]
+                {
+                    self->next();
+                });
         }
     }
 
-    void Connection::abort(const std::shared_ptr<Request>& r, cd_status_t status,
-                           std::string message)
+    void Connection::abort(
+        const std::shared_ptr<Request>& r, cd_status_t status, std::string message)
     {
         if (r->action == Action::Close)
         {
@@ -1005,7 +1003,7 @@ namespace cd
         if (r == active)
         {
             if (r->sent && (r->action == Action::Execute || r->action == Action::ExecuteUntil ||
-                            r->action == Action::Write))
+                               r->action == Action::Write))
                 state = CD_STATE_NEEDS_RECOVERY;
 
             r->result->raw[0] += std::exchange(pending[0], {});
@@ -1053,8 +1051,8 @@ namespace cd
         }
     }
 
-    void Connection::finish_close(const std::shared_ptr<Request>& r, cd_status_t status,
-                                  std::string message)
+    void Connection::finish_close(
+        const std::shared_ptr<Request>& r, cd_status_t status, std::string message)
     {
         if (r->operation->completed())
             return;

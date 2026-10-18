@@ -31,11 +31,11 @@ namespace cd
                 if (listeners.size() >= cleanup_at)
                 {
                     std::erase_if(listeners,
-                                  [](auto& entry)
-                                  {
-                                      auto op = entry.lock();
-                                      return !op || op->completed();
-                                  });
+                        [](auto& entry)
+                        {
+                            auto op = entry.lock();
+                            return !op || op->completed();
+                        });
                     cleanup_at = std::max<size_t>(64, listeners.size() * 2);
                 }
 

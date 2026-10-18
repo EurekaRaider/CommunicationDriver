@@ -160,7 +160,7 @@ static Connection cli(Driver& d, bool oneshot = false)
 }
 
 static void execute(Connection& c, const std::string& command, Result& r,
-                    const cd_check_t* check = nullptr, const cd_call_options_t* opts = nullptr)
+    const cd_check_t* check = nullptr, const cd_call_options_t* opts = nullptr)
 {
     ok(cd_execute_string(c.handle, sv(command), check, opts, &r.handle), r, "execute");
 }
@@ -194,48 +194,46 @@ struct Peers
         {
             auto self = shared_from_this();
             socket.async_read_some(asio::buffer(buffer),
-                                   [self](auto e, size_t n)
-                                   {
-                                       if (e)
-                                           return;
+                [self](auto e, size_t n)
+                {
+                    if (e)
+                        return;
 
-                                       std::string command(self->buffer.data(), n);
-                                       ++self->owner.requests;
+                    std::string command(self->buffer.data(), n);
+                    ++self->owner.requests;
 
-                                       if (command == "UTF")
-                                           self->send_chunks({"A\xf0\x9f", "\x98\x84"});
-                                       else if (command.rfind("BULK:", 0) == 0)
-                                       {
-                                           self->socket.set_option(asio::ip::tcp::no_delay(true));
-                                           self->send_bulk(std::stoull(command.substr(5)));
-                                       }
-                                       else if (command == "BAD")
-                                           self->send_chunks({std::string("A\xff", 2)});
-                                       else if (command == "EOF")
-                                       {
-                                           auto bytes = std::make_shared<std::string>("PART");
-                                           asio::async_write(
-                                               self->socket, asio::buffer(*bytes),
-                                               [self, bytes](auto error, size_t)
-                                               {
-                                                   if (!error)
-                                                   {
-                                                       boost::system::error_code ignored;
-                                                       self->socket.shutdown(
-                                                           asio::ip::tcp::socket::shutdown_send,
-                                                           ignored);
-                                                   }
-                                               });
-                                       }
-                                       else if (command == "LATE")
-                                           self->send_chunks({"BUSY", "READY"}, 150);
-                                       else if (command == "FRAME")
-                                           self->send_chunks({"NOT", "\n"});
-                                       else
-                                           self->send_chunks({command});
+                    if (command == "UTF")
+                        self->send_chunks({"A\xf0\x9f", "\x98\x84"});
+                    else if (command.rfind("BULK:", 0) == 0)
+                    {
+                        self->socket.set_option(asio::ip::tcp::no_delay(true));
+                        self->send_bulk(std::stoull(command.substr(5)));
+                    }
+                    else if (command == "BAD")
+                        self->send_chunks({std::string("A\xff", 2)});
+                    else if (command == "EOF")
+                    {
+                        auto bytes = std::make_shared<std::string>("PART");
+                        asio::async_write(self->socket, asio::buffer(*bytes),
+                            [self, bytes](auto error, size_t)
+                            {
+                                if (!error)
+                                {
+                                    boost::system::error_code ignored;
+                                    self->socket.shutdown(
+                                        asio::ip::tcp::socket::shutdown_send, ignored);
+                                }
+                            });
+                    }
+                    else if (command == "LATE")
+                        self->send_chunks({"BUSY", "READY"}, 150);
+                    else if (command == "FRAME")
+                        self->send_chunks({"NOT", "\n"});
+                    else
+                        self->send_chunks({command});
 
-                                       self->read();
-                                   });
+                    self->read();
+                });
         }
 
         void send_bulk(size_t remaining)
@@ -248,11 +246,11 @@ struct Peers
 
                 *bytes = "\r\nTAIL\r\n";
             asio::async_write(socket, asio::buffer(*bytes),
-                              [self, bytes, remaining](auto e, size_t)
-                              {
-                                  if (!e && remaining)
-                                      self->send_bulk(remaining - bytes->size());
-                              });
+                [self, bytes, remaining](auto e, size_t)
+                {
+                    if (!e && remaining)
+                        self->send_bulk(remaining - bytes->size());
+                });
         }
 
         void send_chunks(std::vector<std::string> data, int delay = 5)
@@ -269,9 +267,9 @@ struct Peers
                     {
                         if (!e)
                             asio::async_write(self->socket, asio::buffer(*bytes),
-                                              [self, bytes](auto, size_t)
-                                              {
-                                              });
+                                [self, bytes](auto, size_t)
+                                {
+                                });
                     });
             }
         }
@@ -310,8 +308,7 @@ struct Peers
 
     void receive()
     {
-        udp.async_receive_from(
-            asio::buffer(udp_buffer), sender,
+        udp.async_receive_from(asio::buffer(udp_buffer), sender,
             [this](auto e, size_t n)
             {
                 if (e)
@@ -333,8 +330,8 @@ struct Peers
 
                 if (command == "GBSCALAR")
                     chunks = {"A\xc4", "\xe3\x81", "\x30\x81",
-                              "\x30"
-                              "B"};
+                        "\x30"
+                        "B"};
 
                 if (command == "TEXTBAD")
                     chunks = {"A", std::string(1, char(0xff))};
@@ -361,9 +358,9 @@ struct Peers
                         {
                             if (!error)
                                 udp.async_send_to(asio::buffer(*bytes), destination,
-                                                  [bytes](auto, size_t)
-                                                  {
-                                                  });
+                                    [bytes](auto, size_t)
+                                    {
+                                    });
                         });
                 }
 
@@ -448,19 +445,18 @@ struct SerialPeer
     void read()
     {
         descriptor->async_read_some(asio::buffer(buffer),
-                                    [this](auto e, size_t n)
-                                    {
-                                        if (e)
-                                            return;
+            [this](auto e, size_t n)
+            {
+                if (e)
+                    return;
 
-                                        auto bytes =
-                                            std::make_shared<std::string>(buffer.data(), n);
-                                        asio::async_write(*descriptor, asio::buffer(*bytes),
-                                                          [bytes](auto, size_t)
-                                                          {
-                                                          });
-                                        read();
-                                    });
+                auto bytes = std::make_shared<std::string>(buffer.data(), n);
+                asio::async_write(*descriptor, asio::buffer(*bytes),
+                    [bytes](auto, size_t)
+                    {
+                    });
+                read();
+            });
     }
 
     Connection connection(Driver& d)
@@ -499,7 +495,7 @@ static void core_tests()
         execute(once, ready, r, &match);
         expect(r.text() == "READY" && r.passed() &&
                    r.info().completion_reason == CD_COMPLETION_COMMAND,
-               "one-shot without newline");
+            "one-shot without newline");
     }
     {
         Result r;
@@ -510,8 +506,8 @@ static void core_tests()
             std::cerr << "Unexpected managed reply [" << r.text() << "]\n";
 
         expect(!r.passed() && r.text() == "NO", "complete response mismatch is normal");
-        expect(Clock::now() - start < std::chrono::seconds(1),
-               "mismatch did not wait total timeout");
+        expect(
+            Clock::now() - start < std::chrono::seconds(1), "mismatch did not wait total timeout");
     }
     {
         Result r;
@@ -554,11 +550,11 @@ static void core_tests()
 
         Result r;
         ok(cd_execute_until_string(shell.handle, sv(command), &match, &options, &r.handle), r,
-           "until");
+            "until");
         expect(r.passed() && r.info().completion_reason == CD_COMPLETION_MATCH,
-               "incremental until match");
+            "incremental until match");
         expect(r.text().find("TAIL") == std::string::npos,
-               "match returns while command is blocked on completion gate");
+            "match returns while command is blocked on completion gate");
         {
             std::ofstream release(fifo);
             release << "release\n";
@@ -574,16 +570,16 @@ static void core_tests()
         cd_call_options_init(&o);
         o.timeout_ms = 40;
         expect(cd_execute_until_string(shell.handle, CD_SV("printf PART; sleep 0.2; printf LATE"),
-                                       &match, &o, &r.handle) == CD_TIMEOUT,
-               "timeout is operation error");
+                   &match, &o, &r.handle) == CD_TIMEOUT,
+            "timeout is operation error");
         expect(r.bytes().find("PART") != std::string::npos, "timeout retains partial output");
         expect(cd_connection_get_state(shell.handle) == CD_STATE_NEEDS_RECOVERY,
-               "timeout needs explicit recovery");
+            "timeout needs explicit recovery");
 
         Result next;
         expect(cd_execute_string(shell.handle, sv(ready), nullptr, nullptr, &next.handle) ==
                    CD_NEEDS_RECOVERY,
-               "late output cannot enter next command");
+            "late output cannot enter next command");
         shell.close();
         shell.open();
 
@@ -594,9 +590,9 @@ static void core_tests()
     {
         cd_operation_t* op = nullptr;
         auto input = std::string("sleep 0.03; printf READY");
-        expect(cd_execute_string_async(shell.handle, sv(input), &match, nullptr, nullptr, nullptr,
-                                       &op) == CD_OK,
-               "submit async");
+        expect(cd_execute_string_async(
+                   shell.handle, sv(input), &match, nullptr, nullptr, nullptr, &op) == CD_OK,
+            "submit async");
         input = "mutated";
 
         Result observer;
@@ -610,8 +606,8 @@ static void core_tests()
     {
         cd_operation_t* op = nullptr;
         expect(cd_execute_string_async(shell.handle, CD_SV("printf PART; sleep 1"), nullptr,
-                                       nullptr, nullptr, nullptr, &op) == CD_OK,
-               "cancel submit");
+                   nullptr, nullptr, nullptr, &op) == CD_OK,
+            "cancel submit");
         cd_operation_cancel(op);
 
         Result r;
@@ -625,16 +621,16 @@ static void core_tests()
         auto invalid = cd_check_regex(CD_SV("["));
         cd_operation_t* op = nullptr;
         expect(cd_execute_string_async(shell.handle, sv(ready), &invalid, nullptr, nullptr, nullptr,
-                                       &op) == CD_INVALID_ARGUMENT &&
+                   &op) == CD_INVALID_ARGUMENT &&
                    !op,
-               "invalid regex rejected before acceptance");
+            "invalid regex rejected before acceptance");
     }
     {
         auto eq = cd_check_equals_string(CD_SV("x"));
         Result r;
         expect(cd_execute_until_string(shell.handle, CD_SV("x"), &eq, nullptr, &r.handle) ==
                    CD_INVALID_ARGUMENT,
-               "until rejects Equals");
+            "until rejects Equals");
     }
     {
         auto regex = cd_check_regex(CD_SV("(REA)(DY)"));
@@ -674,18 +670,18 @@ static void core_tests()
         };
 
         cd_operation_t* op = nullptr;
-        expect(cd_execute_string_async(shell.handle, sv(ready), nullptr, nullptr, callback, &ctx,
-                                       &op) == CD_OK,
-               "callback submit");
+        expect(cd_execute_string_async(
+                   shell.handle, sv(ready), nullptr, nullptr, callback, &ctx, &op) == CD_OK,
+            "callback submit");
         cd_operation_release(op);
 
         std::unique_lock lock(ctx.mutex);
         expect(ctx.cv.wait_for(lock, std::chrono::seconds(5),
-                               [&]
-                               {
-                                   return ctx.called;
-                               }),
-               "callback exactly once despite released operation");
+                   [&]
+                   {
+                       return ctx.called;
+                   }),
+            "callback exactly once despite released operation");
         expect(ctx.status == CD_INVALID_CONTEXT, "callback synchronous close refuses deadlock");
         cd_result_release(ctx.kept);
     }
@@ -699,7 +695,7 @@ static void core_tests()
         int before = peers.requests;
         expect(cd_execute_string(unframed.handle, CD_SV("FRAME"), nullptr, nullptr, &r.handle) ==
                    CD_INVALID_ARGUMENT,
-               "unframed execute rejected");
+            "unframed execute rejected");
         expect(peers.requests == before, "configuration failure sends no bytes");
     }
     {
@@ -713,7 +709,7 @@ static void core_tests()
         expect(cd_execute_until_string(tcp.handle, CD_SV("FRAME"), &newline, nullptr, &r.handle) ==
                        CD_END_OF_STREAM &&
                    r.text() == "NOT" && !r.passed(),
-               "until does not match a stripped protocol delimiter");
+            "until does not match a stripped protocol delimiter");
     }
     {
         auto ending = peers.tcp(d);
@@ -721,28 +717,28 @@ static void core_tests()
         expect(cd_execute_string(ending.handle, CD_SV("EOF"), nullptr, nullptr, &r.handle) ==
                        CD_END_OF_STREAM &&
                    r.text() == "PART",
-               "incomplete protocol EOF preserves partial response");
+            "incomplete protocol EOF preserves partial response");
     }
     {
         Result w;
         ok(cd_write_string(unframed.handle, CD_SV("UTF"), nullptr, &w.handle), w,
-           "write UTF request");
+            "write UTF request");
 
         Result r;
         ok(cd_read_exactly_string(unframed.handle, 2, nullptr, &r.handle), r,
-           "read exact unicode scalars");
+            "read exact unicode scalars");
         expect(r.text() == "A\xf0\x9f\x98\x84", "UTF8 split block and scalar count");
     }
     {
         Result w;
         ok(cd_write_string(unframed.handle, CD_SV("BAD"), nullptr, &w.handle), w,
-           "write malformed UTF request");
+            "write malformed UTF request");
 
         Result r;
-        expect(cd_read_exactly_string(unframed.handle, 2, nullptr, &r.handle) ==
-                       CD_ENCODING_ERROR &&
-                   r.bytes() == std::string("A\xff", 2) && r.text() == "A",
-               "encoding error retains original partial bytes and valid text prefix");
+        expect(
+            cd_read_exactly_string(unframed.handle, 2, nullptr, &r.handle) == CD_ENCODING_ERROR &&
+                r.bytes() == std::string("A\xff", 2) && r.text() == "A",
+            "encoding error retains original partial bytes and valid text prefix");
     }
     {
         uint8_t value = 'A';
@@ -753,13 +749,13 @@ static void core_tests()
 
         cd_operation_t* operation = nullptr;
         expect(cd_execute_until_string_async(unframed.handle, CD_SV("BAD"), &bytes, &frame, nullptr,
-                                             nullptr, &operation) == CD_OK,
-               "accept byte match with text response");
+                   nullptr, &operation) == CD_OK,
+            "accept byte match with text response");
 
         Result result;
         wait(operation, result);
         expect(result.status() == CD_ENCODING_ERROR && result.text() == "A",
-               "failed early text decoding still completes the accepted operation");
+            "failed early text decoding still completes the accepted operation");
         unframed.close();
         unframed.open();
     }
@@ -770,15 +766,15 @@ static void core_tests()
 
         Result r;
         expect(cd_read_string(unframed.handle, &overflow, &r.handle) == CD_INVALID_ARGUMENT,
-               "oversized duration is rejected before IO");
+            "oversized duration is rejected before IO");
     }
 #ifndef _WIN32
     {
         auto isolated = cli(d, true);
         Result w;
-        ok(cd_write_line(isolated.handle, CD_SV("printf RAW; sleep 0.1; printf LATE"), nullptr,
-                         &w.handle),
-           w, "oneshot persistent stdio write");
+        ok(cd_write_line(
+               isolated.handle, CD_SV("printf RAW; sleep 0.1; printf LATE"), nullptr, &w.handle),
+            w, "oneshot persistent stdio write");
 
         Result command;
         execute(isolated, "printf OUT", command);
@@ -786,9 +782,9 @@ static void core_tests()
 
         Result raw;
         ok(cd_read_exactly_string(isolated.handle, 7, nullptr, &raw.handle), raw,
-           "isolated persistent read");
-        expect(raw.text() == "RAWLATE",
-               "CLI persistent raw buffer retained across oneshot command");
+            "isolated persistent read");
+        expect(
+            raw.text() == "RAWLATE", "CLI persistent raw buffer retained across oneshot command");
     }
 #endif
     {
@@ -808,26 +804,26 @@ static void core_tests()
     {
         Result w;
         ok(cd_write_bytes(udp.handle, {nullptr, 0}, nullptr, &w.handle), w,
-           "write empty UDP datagram");
+            "write empty UDP datagram");
 
         auto message = cd_receive_until_message();
         Result r;
         ok(cd_read_until_bytes(udp.handle, &message, nullptr, &r.handle), r,
-           "read empty native message");
+            "read empty native message");
         expect(r.bytes().empty(), "zero-length UDP message retains its boundary");
     }
     {
         auto contains = cd_check_contains_string(CD_SV(""));
         Result r;
         ok(cd_response_checker_is_match_string(CD_SV(""), &contains, &r.handle), r,
-           "empty standalone check");
+            "empty standalone check");
 
         cd_check_result_t check{};
         check.struct_size = sizeof(check);
         cd_result_get_check(r.handle, &check);
         expect(check.passed && check.matched_text.data && check.matched_text.size == 0 &&
                    !check.matched_bytes.data,
-               "empty matched text is applicable and present");
+            "empty matched text is applicable and present");
     }
     {
         Result w;
@@ -847,18 +843,18 @@ static void core_tests()
 
         Result r;
         ok(cd_read_exactly_string(udp.handle, 2, &encoding, &r.handle), r,
-           "GB18030 incremental scalars");
+            "GB18030 incremental scalars");
         expect(r.text() == "\xe4\xbd\xa0\xe5\xa5\xbd", "GB18030 scalars span four datagrams");
     }
     {
         Result r;
         expect(cd_close_input(udp.handle, nullptr, &r.handle) == CD_NOT_SUPPORTED,
-               "UDP input EOF unsupported");
+            "UDP input EOF unsupported");
 
         Result transfer;
         expect(cd_upload(tcp.handle, CD_SV("a"), CD_SV("b"), nullptr, &transfer.handle) ==
                    CD_NOT_SUPPORTED,
-               "TCP upload unsupported");
+            "TCP upload unsupported");
     }
     {
         Result r;
@@ -867,7 +863,7 @@ static void core_tests()
         o.check_stream = CD_STREAM_STDERR;
         expect(cd_execute_string(tcp.handle, CD_SV("FRAME"), &match, &o, &r.handle) ==
                    CD_NOT_SUPPORTED,
-               "stderr config refused before IO");
+            "stderr config refused before IO");
     }
     {
         Result r;
@@ -876,13 +872,13 @@ static void core_tests()
         o.receive_until = cd_receive_until_idle(25);
         execute(unframed, "LATE", r, nullptr, &o);
         expect(r.text() == "BUSY" && r.info().completion_reason == CD_COMPLETION_IDLE,
-               "explicit idle has documented long-gap truncation");
+            "explicit idle has documented long-gap truncation");
 
         Result next;
         expect(cd_connection_get_state(unframed.handle) == CD_STATE_NEEDS_RECOVERY &&
                    cd_execute_string(unframed.handle, CD_SV("NEXT"), nullptr, &o, &next.handle) ==
                        CD_NEEDS_RECOVERY,
-               "idle cannot silently assign delayed output to a new command");
+            "idle cannot silently assign delayed output to a new command");
         unframed.close();
         unframed.open();
     }
@@ -893,8 +889,8 @@ static void core_tests()
         cd_call_options_init(&o);
         o.max_response_bytes = 64;
         expect(cd_execute_string(shell.handle, CD_SV("printf '%0100d' 0"), nullptr, &o,
-                                 &r.handle) == CD_LIMIT_EXCEEDED,
-               "buffer limit is explicit error");
+                   &r.handle) == CD_LIMIT_EXCEEDED,
+            "buffer limit is explicit error");
         shell.close();
         shell.open();
     }
@@ -932,9 +928,9 @@ static void core_tests()
         execute(ending, "printf OUT; exit 7", r);
 #endif
         expect(r.text().find("OUT") == 0 && r.info().has_exit_code && r.info().exit_code == 7,
-               "persistent shell exit reports drained output and real status");
+            "persistent shell exit reports drained output and real status");
         expect(cd_connection_get_state(ending.handle) == CD_STATE_FAULTED,
-               "persistent shell exit is not silently restarted");
+            "persistent shell exit is not silently restarted");
         ending.close();
         ending.open();
 
@@ -952,7 +948,7 @@ static void core_tests()
 
         Result unsupported;
         expect(cd_close_input(port.handle, nullptr, &unsupported.handle) == CD_NOT_SUPPORTED,
-               "serial close input unsupported");
+            "serial close input unsupported");
     }
 #endif
 }
@@ -983,7 +979,7 @@ static void batch_semantics()
     {
         Result result;
         ok(cd_batch_run(driver.handle, items.data(), 2, nullptr, &result.handle), result,
-           "admitted batch");
+            "admitted batch");
 
         cd_batch_item_result_t second{};
         second.struct_size = sizeof(second);
@@ -1002,7 +998,7 @@ static void batch_semantics()
 
         Result result;
         ok(cd_batch_run(driver.handle, items.data(), 2, &options, &result.handle), result,
-           "batch scheduling timeout");
+            "batch scheduling timeout");
 
         cd_batch_info_t info{};
         info.struct_size = sizeof(info);
@@ -1031,13 +1027,13 @@ static void batch_semantics()
 
         Result result;
         ok(cd_batch_run(driver.handle, items.data(), 3, &options, &result.handle), result,
-           "cancelled batch partial report");
+            "cancelled batch partial report");
 
         cd_batch_info_t info{};
         info.struct_size = sizeof(info);
         cd_result_get_batch_info(result.handle, &info);
         expect(info.was_cancelled && !info.all_succeeded && info.item_count == 3,
-               "cancellation returns complete indexed report");
+            "cancellation returns complete indexed report");
 
         cd_batch_item_result_t first{}, second{}, third{};
         first.struct_size = second.struct_size = third.struct_size = sizeof(first);
@@ -1046,7 +1042,7 @@ static void batch_semantics()
         cd_result_get_batch_item(result.handle, 2, &third);
         expect(first.succeeded && second.state == CD_BATCH_CANCELLED &&
                    third.state == CD_BATCH_NOT_STARTED,
-               "completed, admitted and unscheduled items preserved");
+            "completed, admitted and unscheduled items preserved");
         cd_cancel_source_release(cancel);
         shell.close();
         shell.open();
@@ -1121,7 +1117,7 @@ static void mixed_batch(int seconds)
     {
         Result result;
         ok(cd_batch_run(driver.handle, items.data(), items.size(), nullptr, &result.handle), result,
-           "mixed batch");
+            "mixed batch");
 
         cd_batch_info_t info{};
         info.struct_size = sizeof(info);
@@ -1200,9 +1196,9 @@ static void incremental_text()
                            : cd_check_contains_string(CD_SV("\xe4\xbd\xa0\xf0\x9f\x98\x84READY"));
         Result r;
         ok(cd_execute_until_string(c.handle, CD_SV("UTFMATCH"), &check, &o, &r.handle), r,
-           "incremental Unicode match");
+            "incremental Unicode match");
         expect(r.text() == "A\xe4\xbd\xa0\xf0\x9f\x98\x84READY" && r.passed(),
-               "match crosses UTF8 blocks and keeps prefix");
+            "match crosses UTF8 blocks and keeps prefix");
 
         if (regex)
         {
@@ -1214,7 +1210,7 @@ static void incremental_text()
 
         Result tail;
         ok(cd_read_exactly_string(c.handle, 4, nullptr, &tail.handle), tail,
-           "tail after match cleanup");
+            "tail after match cleanup");
         expect(tail.text() == "TAIL", "decoder does not leak into next request");
     }
 
@@ -1226,7 +1222,7 @@ static void incremental_text()
 
         Result w;
         ok(cd_write_string(c.handle, CD_SV("GBSCALAR"), nullptr, &w.handle), w,
-           "GB scalar request");
+            "GB scalar request");
 
         Result r;
         ok(cd_read_exactly_string(c.handle, 3, &o, &r.handle), r, "incremental GB scalars");
@@ -1246,9 +1242,9 @@ static void incremental_text()
         auto check = cd_check_contains_string(CD_SV("\xe4\xbd\xa0\xc2\x80"));
         Result r;
         ok(cd_execute_until_string(c.handle, CD_SV("GBSCALAR"), &check, &o, &r.handle), r,
-           "GB incremental check");
+            "GB incremental check");
         expect(r.text() == "A\xe4\xbd\xa0\xc2\x80" && r.passed(),
-               "GB check and delimiter preserve wire offset");
+            "GB check and delimiter preserve wire offset");
     }
     {
         auto c = peers.datagram(driver);
@@ -1258,13 +1254,13 @@ static void incremental_text()
         auto rule = cd_receive_until_pattern(CD_SV("\xe4\xbd\xa0.*READY"));
         Result r;
         ok(cd_read_until_string(c.handle, &rule, nullptr, &r.handle), r,
-           "incremental pattern boundary");
+            "incremental pattern boundary");
         expect(r.text() == "A\xe4\xbd\xa0\xf0\x9f\x98\x84READY",
-               "pattern keeps prefix and full regex context");
+            "pattern keeps prefix and full regex context");
 
         Result tail;
         ok(cd_read_exactly_string(c.handle, 6, nullptr, &tail.handle), tail,
-           "pattern remaining bytes");
+            "pattern remaining bytes");
         expect(tail.text() == "\r\nTAIL", "pattern boundary preserves remaining frame");
     }
 #ifndef _WIN32
@@ -1276,9 +1272,9 @@ static void incremental_text()
 
         auto check = cd_check_contains_string(CD_SV("READY"));
         Result r;
-        ok(cd_execute_until_string(c.handle, CD_SV("printf OUT; printf AREADY >&2"), &check, &o,
-                                   &r.handle),
-           r, "stderr incremental match");
+        ok(cd_execute_until_string(
+               c.handle, CD_SV("printf OUT; printf AREADY >&2"), &check, &o, &r.handle),
+            r, "stderr incremental match");
         expect(r.passed() && r.text(1) == "AREADY", "check decoder uses selected stderr stream");
     }
 #endif
@@ -1297,20 +1293,19 @@ static void incremental_text()
 
             if (until)
                 status = cd_execute_until_string(c.handle,
-                                                 malformed ? CD_SV("TEXTBAD") : CD_SV("TEXTPART"),
-                                                 &check, &o, &r.handle);
+                    malformed ? CD_SV("TEXTBAD") : CD_SV("TEXTPART"), &check, &o, &r.handle);
             else
             {
                 Result w;
                 ok(cd_write_string(c.handle, malformed ? CD_SV("TEXTBAD") : CD_SV("TEXTPART"),
-                                   nullptr, &w.handle),
-                   w, "partial text request");
+                       nullptr, &w.handle),
+                    w, "partial text request");
                 status = cd_read_exactly_string(c.handle, 2, &o, &r.handle);
             }
 
             expect(status == (malformed ? CD_ENCODING_ERROR : CD_TIMEOUT) && r.text() == "A" &&
                        r.bytes() == std::string("A") + char(malformed ? 0xff : 0xe4),
-                   "incremental failure preserves full raw reply and valid prefix");
+                "incremental failure preserves full raw reply and valid prefix");
         }
 }
 
@@ -1331,10 +1326,10 @@ static void batch_cancel_many(int count, bool close_race = false)
         {
             std::unique_lock lock(mutex);
             if (!cv.wait_for(lock, std::chrono::seconds(10),
-                             [&]
-                             {
-                                 return entered;
-                             }))
+                    [&]
+                    {
+                        return entered;
+                    }))
                 throw std::runtime_error("batch gate watchdog");
         }
 
@@ -1355,10 +1350,10 @@ static void batch_cancel_many(int count, bool close_race = false)
         g.entered = true;
         g.cv.notify_all();
         g.cv.wait(lock,
-                  [&]
-                  {
-                      return g.released;
-                  });
+            [&]
+            {
+                return g.released;
+            });
     };
 
     struct Release
@@ -1375,7 +1370,7 @@ static void batch_cancel_many(int count, bool close_race = false)
 
     cd_operation_t* gate1 = nullptr;
     expect(cd_open_async(control.handle, nullptr, callback, &first, &gate1) == CD_OK,
-           "first gate accepted");
+        "first gate accepted");
     first.wait();
 
     std::vector<cd_batch_item_t> items(count + 3);
@@ -1401,12 +1396,12 @@ static void batch_cancel_many(int count, bool close_race = false)
 
     cd_operation_t* batch = nullptr;
     expect(cd_batch_run_async(driver.handle, items.data(), items.size(), &options, nullptr, nullptr,
-                              &batch) == CD_OK,
-           "large batch accepted");
+               &batch) == CD_OK,
+        "large batch accepted");
 
     cd_operation_t* gate2 = nullptr;
     expect(cd_open_async(control.handle, nullptr, callback, &second, &gate2) == CD_OK,
-           "second gate accepted");
+        "second gate accepted");
     first.release();
     second.wait();
 
@@ -1445,7 +1440,7 @@ static void batch_cancel_many(int count, bool close_race = false)
     info.struct_size = sizeof(info);
     cd_result_get_batch_info(r.handle, &info);
     expect(info.was_cancelled && info.item_count == items.size(),
-           "batch cancellation keeps complete report");
+        "batch cancellation keeps complete report");
 
     for (int i = 0; i < count + 3; ++i)
     {
@@ -1454,8 +1449,8 @@ static void batch_cancel_many(int count, bool close_race = false)
         cd_result_get_batch_item(r.handle, i, &item);
         expect(item.state == (i < count ? CD_BATCH_CANCELLED : CD_BATCH_NOT_STARTED) ||
                    (close_race && i < count && item.state == CD_BATCH_FAILED &&
-                    cd_result_get_status(item.result) == CD_CLOSED),
-               "admitted cancellation and unstarted items preserved");
+                       cd_result_get_status(item.result) == CD_CLOSED),
+            "admitted cancellation and unstarted items preserved");
     }
 
     for (auto operation : closing)
@@ -1493,32 +1488,32 @@ static void delimiter_fragments()
             {
                 Result written;
                 ok(cd_write_string(connection.handle, CD_SV("DELIM"), nullptr, &written.handle),
-                   written, "write fragmented delimiter request");
-                ok(cd_read_until_string(connection.handle, &options.receive_until, &options,
-                                        &result.handle),
-                   result, "read fragmented delimiter");
+                    written, "write fragmented delimiter request");
+                ok(cd_read_until_string(
+                       connection.handle, &options.receive_until, &options, &result.handle),
+                    result, "read fragmented delimiter");
             }
             else if (mode == 1)
                 execute(connection, "DELIM", result, nullptr, &options);
             else
             {
                 auto check = cd_check_contains_string(CD_SV("payload"));
-                ok(cd_execute_until_string(connection.handle, CD_SV("DELIM"), &check, &options,
-                                           &result.handle),
-                   result, "early match before split delimiter");
+                ok(cd_execute_until_string(
+                       connection.handle, CD_SV("DELIM"), &check, &options, &result.handle),
+                    result, "early match before split delimiter");
                 expect(result.passed(), "early match passes");
             }
 
             expect(result.text() ==
                        (include ? (mode == 2 ? "payloadab" : "payloadababac") : "payload"),
-                   "overlapping delimiter spans multiple datagrams");
+                "overlapping delimiter spans multiple datagrams");
 
             Result tail;
-            ok(cd_read_until_string(connection.handle, &options.receive_until, &options,
-                                    &tail.handle),
-               tail, "read frame after split delimiter");
+            ok(cd_read_until_string(
+                   connection.handle, &options.receive_until, &options, &tail.handle),
+                tail, "read frame after split delimiter");
             expect(tail.text() == (include ? "TAILababac" : "TAIL"),
-                   "next request resets search and early cleanup preserves tail");
+                "next request resets search and early cleanup preserves tail");
         }
 
     {
@@ -1534,7 +1529,7 @@ static void delimiter_fragments()
 
         Result tail;
         ok(cd_read_until_string(connection.handle, &options.receive_until, &options, &tail.handle),
-           tail, "encoded delimiter next frame");
+            tail, "encoded delimiter next frame");
         expect(tail.text() == "TAIL", "encoded delimiter spans datagrams");
     }
     {
@@ -1543,16 +1538,16 @@ static void delimiter_fragments()
         auto rule = cd_receive_until_delimiter_bytes({delimiter, 2}, 0);
         Result written;
         ok(cd_write_string(connection.handle, CD_SV("BINARYDELIM"), nullptr, &written.handle),
-           written, "binary delimiter request");
+            written, "binary delimiter request");
 
         Result result;
         ok(cd_read_until_bytes(connection.handle, &rule, nullptr, &result.handle), result,
-           "binary delimiter read");
+            "binary delimiter read");
         expect(result.bytes() == "payload", "NUL delimiter matches across datagrams");
 
         Result tail;
         ok(cd_read_until_bytes(connection.handle, &rule, nullptr, &tail.handle), tail,
-           "binary next frame");
+            "binary next frame");
         expect(tail.bytes() == "TAIL", "binary next frame intact");
     }
 }
@@ -1575,12 +1570,12 @@ static void delimiter_bulk(size_t mebibytes)
 
     auto elapsed =
         std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - begin).count();
-    expect(result.text() == std::string(size, 'x'),
-           "fragmented large delimiter response is intact");
+    expect(
+        result.text() == std::string(size, 'x'), "fragmented large delimiter response is intact");
 
     Result tail;
     ok(cd_read_until_string(connection.handle, &options.receive_until, &options, &tail.handle),
-       tail, "read next buffered delimiter frame");
+        tail, "read next buffered delimiter frame");
     expect(tail.text() == "TAIL", "delimiter search state resets for next request");
     std::cout << "METRIC delimiter_mebibytes=" << mebibytes << " elapsed_us=" << elapsed << "\n";
 }
@@ -1607,9 +1602,9 @@ static void text_work(size_t mebibytes, int mode)
     {
         Result written;
         ok(cd_write_string(connection.handle, sv(command), &options, &written.handle), written,
-           "write");
+            "write");
         ok(cd_read_exactly_string(connection.handle, size, &options, &result.handle), result,
-           "scalar read");
+            "scalar read");
     }
     else
     {
@@ -1617,8 +1612,8 @@ static void text_work(size_t mebibytes, int mode)
         auto check =
             mode == 1 ? cd_check_contains_string(CD_SV("z")) : cd_check_contains_bytes({absent, 1});
         expect(cd_execute_until_string(connection.handle, sv(command), &check, &options,
-                                       &result.handle) == CD_END_OF_STREAM,
-               "nonmatching response boundary");
+                   &result.handle) == CD_END_OF_STREAM,
+            "nonmatching response boundary");
     }
 
     auto us = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - begin).count();
@@ -1664,8 +1659,8 @@ static void callback_release_race()
             auto input = CD_SV("printf READY");
 #endif
             expect(cd_execute_string_async(shell.handle, input, nullptr, nullptr, callback,
-                                           &context, &operation) == CD_OK,
-                   "accept operation before concurrent handle release");
+                       &context, &operation) == CD_OK,
+                "accept operation before concurrent handle release");
 
             if (i % 2 == 0)
                 cd_operation_cancel(operation);
@@ -1676,18 +1671,18 @@ static void callback_release_race()
 
     std::unique_lock lock(context.mutex);
     expect(context.cv.wait_for(lock, std::chrono::seconds(10),
-                               [&]
-                               {
-                                   return context.completed == 100;
-                               }),
-           "accepted callbacks complete despite driver, connection and operation release");
+               [&]
+               {
+                   return context.completed == 100;
+               }),
+        "accepted callbacks complete despite driver, connection and operation release");
     expect(context.noninline && context.retained.size() == 100,
-           "callbacks are non-inline and exactly once");
+        "callbacks are non-inline and exactly once");
 
     for (auto result : context.retained)
     {
         expect(cd_result_get_status(result) != CD_INTERNAL_ERROR,
-               "retained callback result remains valid");
+            "retained callback result remains valid");
         cd_result_release(result);
     }
 }

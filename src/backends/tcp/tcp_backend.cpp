@@ -10,8 +10,7 @@ namespace cd
     void TcpBackend::open(Completion cb)
     {
         auto self = std::static_pointer_cast<TcpBackend>(shared_from_this());
-        tcp_resolver.async_resolve(
-            config.host, std::to_string(config.port),
+        tcp_resolver.async_resolve(config.host, std::to_string(config.port),
             [self, cb](ErrorCode ec, asio::ip::tcp::resolver::results_type endpoints)
             {
                 if (self->stopped)
@@ -24,17 +23,17 @@ namespace cd
                 }
 
                 asio::async_connect(self->tcp, endpoints,
-                                    [self, cb](ErrorCode e, const auto&)
-                                    {
-                                        if (e)
-                                            cb(CD_CONNECTION_FAILED, e.message(), e.value());
-                                        else
-                                        {
-                                            self->tcp.set_option(asio::ip::tcp::no_delay(true));
-                                            cb(CD_OK, {}, 0);
-                                            self->pump();
-                                        }
-                                    });
+                    [self, cb](ErrorCode e, const auto&)
+                    {
+                        if (e)
+                            cb(CD_CONNECTION_FAILED, e.message(), e.value());
+                        else
+                        {
+                            self->tcp.set_option(asio::ip::tcp::no_delay(true));
+                            cb(CD_OK, {}, 0);
+                            self->pump();
+                        }
+                    });
             });
     }
 

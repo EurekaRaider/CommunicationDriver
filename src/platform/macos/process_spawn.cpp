@@ -54,11 +54,10 @@ namespace cd
         };
     }
 
-    std::shared_ptr<process::process>
-    spawn_process_macos(asio::io_context& io, const process::filesystem::path& executable,
-                        std::vector<std::string>& args, std::vector<std::string>& environment,
-                        const std::filesystem::path& directory, asio::writable_pipe& input,
-                        asio::readable_pipe& out, asio::readable_pipe& err)
+    std::shared_ptr<process::process> spawn_process_macos(asio::io_context& io,
+        const process::filesystem::path& executable, std::vector<std::string>& args,
+        std::vector<std::string>& environment, const std::filesystem::path& directory,
+        asio::writable_pipe& input, asio::readable_pipe& out, asio::readable_pipe& err)
     {
         // No user-space fork child: inherited ObjC/allocator hooks are unsafe while
         // independent runtimes launch processes concurrently (including under ASan).
@@ -70,8 +69,8 @@ namespace cd
 
         SpawnSetup setup;
         ChildDescriptors descriptors;
-        std::array<int, 3> sources{child_input.native_handle(), child_output.native_handle(),
-                                   child_error.native_handle()};
+        std::array<int, 3> sources{
+            child_input.native_handle(), child_output.native_handle(), child_error.native_handle()};
 
         for (size_t i = 0; i < sources.size(); ++i)
         {
@@ -83,8 +82,8 @@ namespace cd
 
         for (size_t i = 0; i < descriptors.values.size(); ++i)
         {
-            check_spawn(posix_spawn_file_actions_adddup2(&setup.actions, descriptors.values[i],
-                                                         static_cast<int>(i)));
+            check_spawn(posix_spawn_file_actions_adddup2(
+                &setup.actions, descriptors.values[i], static_cast<int>(i)));
             check_spawn(posix_spawn_file_actions_addclose(&setup.actions, descriptors.values[i]));
         }
 
@@ -109,8 +108,8 @@ namespace cd
         envp.push_back(nullptr);
 
         pid_t pid;
-        check_spawn(posix_spawn(&pid, path.c_str(), &setup.actions, &setup.attributes, argv.data(),
-                                envp.data()));
+        check_spawn(posix_spawn(
+            &pid, path.c_str(), &setup.actions, &setup.attributes, argv.data(), envp.data()));
 
         try
         {

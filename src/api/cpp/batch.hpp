@@ -39,74 +39,49 @@ namespace comm
         TransferOptions transfer_options;
 
         static BatchItem execute(std::string key, Connection c, std::string_view command,
-                                 std::optional<Check> check = {}, CallOptions options = {})
+            std::optional<Check> check = {}, CallOptions options = {})
         {
-            return {std::move(key),
-                    std::move(c),
-                    CD_BATCH_EXECUTE_STRING,
-                    std::string(command),
-                    {},
-                    {},
-                    {},
-                    std::move(check),
-                    std::move(options),
-                    {}};
+            return {std::move(key), std::move(c), CD_BATCH_EXECUTE_STRING, std::string(command), {},
+                {}, {}, std::move(check), std::move(options), {}};
         }
 
         static BatchItem execute(std::string key, Connection c, std::span<const std::byte> command,
-                                 std::optional<Check> check = {}, CallOptions options = {})
+            std::optional<Check> check = {}, CallOptions options = {})
         {
-            return {std::move(key),
-                    std::move(c),
-                    CD_BATCH_EXECUTE_BYTES,
-                    {},
-                    {},
-                    {},
-                    {command.begin(), command.end()},
-                    std::move(check),
-                    std::move(options),
-                    {}};
+            return {std::move(key), std::move(c), CD_BATCH_EXECUTE_BYTES, {}, {}, {},
+                {command.begin(), command.end()}, std::move(check), std::move(options), {}};
         }
 
         static BatchItem execute_until(std::string key, Connection c, std::string_view command,
-                                       Check match, CallOptions options = {})
+            Check match, CallOptions options = {})
         {
-            auto item = execute(std::move(key), std::move(c), command, std::move(match),
-                                std::move(options));
+            auto item = execute(
+                std::move(key), std::move(c), command, std::move(match), std::move(options));
             item.kind = CD_BATCH_EXECUTE_UNTIL_STRING;
             return item;
         }
 
         static BatchItem execute_until(std::string key, Connection c,
-                                       std::span<const std::byte> command, Check match,
-                                       CallOptions options = {})
+            std::span<const std::byte> command, Check match, CallOptions options = {})
         {
-            auto item = execute(std::move(key), std::move(c), command, std::move(match),
-                                std::move(options));
+            auto item = execute(
+                std::move(key), std::move(c), command, std::move(match), std::move(options));
             item.kind = CD_BATCH_EXECUTE_UNTIL_BYTES;
             return item;
         }
 
         static BatchItem upload(std::string key, Connection c, std::string source,
-                                std::string destination, TransferOptions options = {})
+            std::string destination, TransferOptions options = {})
         {
-            return {std::move(key),
-                    std::move(c),
-                    CD_BATCH_UPLOAD,
-                    {},
-                    std::move(source),
-                    std::move(destination),
-                    {},
-                    {},
-                    {},
-                    std::move(options)};
+            return {std::move(key), std::move(c), CD_BATCH_UPLOAD, {}, std::move(source),
+                std::move(destination), {}, {}, {}, std::move(options)};
         }
 
         static BatchItem download(std::string key, Connection c, std::string source,
-                                  std::string destination, TransferOptions options = {})
+            std::string destination, TransferOptions options = {})
         {
             auto item = upload(std::move(key), std::move(c), std::move(source),
-                               std::move(destination), std::move(options));
+                std::move(destination), std::move(options));
             item.kind = CD_BATCH_DOWNLOAD;
             return item;
         }
@@ -114,7 +89,8 @@ namespace comm
 
     namespace detail
     {
-        template <> inline BatchResult convert<BatchResult>(cd_result_t* h)
+        template <>
+        inline BatchResult convert<BatchResult>(cd_result_t* h)
         {
             checked(cd_result_get_status(h), h);
 
@@ -162,10 +138,9 @@ namespace comm
 
     class Batch
     {
-      public:
+    public:
         static Operation<BatchResult> run_async(std::span<const BatchItem> items,
-                                                const BatchOptions& options = {},
-                                                std::stop_token stop = {})
+            const BatchOptions& options = {}, std::stop_token stop = {})
         {
             if (items.empty())
                 throw std::invalid_argument("Batch requires at least one item");
@@ -206,13 +181,13 @@ namespace comm
 
             cd_operation_t* op = nullptr;
             detail::checked(cd_batch_run_async(items[0].connection.driver_.get(), native.data(),
-                                               native.size(), &o, nullptr, nullptr, &op));
+                native.size(), &o, nullptr, nullptr, &op));
 
             return Operation<BatchResult>(op, stop);
         }
 
         static BatchResult run(std::span<const BatchItem> items, const BatchOptions& options = {},
-                               std::stop_token stop = {})
+            std::stop_token stop = {})
         {
             return run_async(items, options, stop).get();
         }

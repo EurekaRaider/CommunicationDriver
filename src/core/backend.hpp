@@ -29,8 +29,8 @@ namespace cd
             cb(CD_NOT_SUPPORTED, "Command channels unavailable", 0);
         }
 
-        virtual void transfer(bool, std::string, std::string, bool, std::function<void(uint64_t)>,
-                              Completion cb)
+        virtual void transfer(
+            bool, std::string, std::string, bool, std::function<void(uint64_t)>, Completion cb)
         {
             cb(CD_NOT_SUPPORTED, "File transfer unavailable", 0);
         }

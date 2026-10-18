@@ -99,7 +99,7 @@ namespace comm
 
     class CommunicationError : public std::runtime_error
     {
-      public:
+    public:
         ErrorInfo info;
 
         explicit CommunicationError(ErrorInfo e) : std::runtime_error(e.message), info(std::move(e))
@@ -132,7 +132,8 @@ namespace comm
             return {begin, begin + b.size};
         }
 
-        template <class T> T sized()
+        template <class T>
+        T sized()
         {
             T t{};
             t.struct_size = sizeof(T);
@@ -144,15 +145,11 @@ namespace comm
             auto e = sized<cd_error_info_t>();
             cd_result_get_error(r, &e);
 
-            return {r ? e.code : status,
-                    r ? string(e.message) : cd_status_name(status),
-                    string(e.backend),
-                    string(e.partial_text),
-                    string(e.partial_file),
-                    e.native_code,
-                    bytes(e.partial_bytes),
-                    e.has_confirmed_progress ? std::optional<uint64_t>(e.confirmed_progress)
-                                             : std::nullopt};
+            return {r ? e.code : status, r ? string(e.message) : cd_status_name(status),
+                string(e.backend), string(e.partial_text), string(e.partial_file), e.native_code,
+                bytes(e.partial_bytes),
+                e.has_confirmed_progress ? std::optional<uint64_t>(e.confirmed_progress)
+                                         : std::nullopt};
         }
 
         inline void checked(cd_status_t s, cd_result_t* r = nullptr)

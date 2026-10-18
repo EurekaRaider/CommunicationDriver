@@ -52,7 +52,7 @@ static comm::CallOptions timeout(int ms)
 }
 
 static comm::Connection connect(comm::Driver& d, const std::string& adb, const std::string& serial,
-                                bool once = false, std::string session = {})
+    bool once = false, std::string session = {})
 {
     comm::AdbOptions o;
     o.executable_path = adb;
@@ -75,8 +75,8 @@ static auto execute(const comm::Connection& c, const std::string& cmd)
     return r;
 }
 
-static void exact(const comm::Connection& c, const std::string& cmd, const std::string& want,
-                  int code = 0)
+static void exact(
+    const comm::Connection& c, const std::string& cmd, const std::string& want, int code = 0)
 {
     auto r = execute(c, cmd);
     expect(r.response == want, "unexpected command output expected=[" + want + "] actual=[" +
@@ -115,7 +115,8 @@ static void make_file(const fs::path& p, size_t size)
     expect(bool(f), "write local fixture");
 }
 
-template <class F> static void error(F&& f, cd_status_t code)
+template <class F>
+static void error(F&& f, cd_status_t code)
 {
     try
     {
@@ -131,7 +132,7 @@ template <class F> static void error(F&& f, cd_status_t code)
 }
 
 static void functional(comm::Driver& d, const std::string& adb, const std::string& serial,
-                       const std::string& label, const fs::path& local, const std::string& remote)
+    const std::string& label, const fs::path& local, const std::string& remote)
 {
     fs::create_directories(local);
 
@@ -150,16 +151,15 @@ static void functional(comm::Driver& d, const std::string& adb, const std::strin
 
         auto err = execute(s, "printf OUT; printf ERR >&2; (exit 9)");
         expect(err.response == "OUT" && err.standard_error == "ERR" && err.exit_code == 9,
-               "stdout/stderr/exit isolation");
+            "stdout/stderr/exit isolation");
 
-        auto version = execute(
-            s,
+        auto version = execute(s,
             "getprop ro.build.version.release; getprop ro.build.version.sdk; getprop ro.build.version.incremental");
         expect(version.exit_code == 0 && !version.response.empty(), "software version query");
 
         for (auto command : {"id", "uname -a", "pwd", "ls /system/bin/sh", "df -k /data/local/tmp",
-                             "pm path android", "dumpsys package android | head -30",
-                             "getprop ro.build.version.release | tr -d '\\n'"})
+                 "pm path android", "dumpsys package android | head -30",
+                 "getprop ro.build.version.release | tr -d '\\n'"})
         {
             auto r = execute(s, command);
             expect(r.exit_code == 0 && !r.response.empty(), "read-only Android command");
@@ -167,19 +167,19 @@ static void functional(comm::Driver& d, const std::string& adb, const std::strin
 
         auto check = s.execute("printf NO", comm::Check::contains("YES"));
         ++commands;
-        expect(check.check && !check.check->passed && check.exit_code == 0,
-               "normal negative check");
+        expect(
+            check.check && !check.check->passed && check.exit_code == 0, "normal negative check");
 
         auto dm = execute(s, "timeout 1 dmesg -w");
         expect(dm.exit_code.has_value(), "dmesg command completion");
-        event("DMESG",
-              label + " exit=" + std::to_string(*dm.exit_code) + " denied=" +
-                  std::to_string(dm.standard_error.find("permitted") != std::string::npos));
+        event(
+            "DMESG", label + " exit=" + std::to_string(*dm.exit_code) + " denied=" +
+                         std::to_string(dm.standard_error.find("permitted") != std::string::npos));
 
         auto bytes = s.execute(std::as_bytes(std::span("printf 'A\\000B'", 15)));
         ++commands;
         expect(bytes.response == comm::Bytes{std::byte{'A'}, std::byte{0}, std::byte{'B'}},
-               "binary output including NUL");
+            "binary output including NUL");
         s.close();
     }
 
@@ -191,7 +191,7 @@ static void functional(comm::Driver& d, const std::string& adb, const std::strin
     ++commands;
     expect(early.completion_reason == comm::CompletionReason::Matched &&
                early.response.find("READY") != std::string::npos,
-           "early match");
+        "early match");
     exact(c, "printf NEXT", "NEXT");
 
     std::vector<comm::Operation<comm::ExecutionResult<std::string>>> queued;
@@ -202,12 +202,12 @@ static void functional(comm::Driver& d, const std::string& adb, const std::strin
     for (int n = 0; n < 32; ++n)
     {
         expect(queued[n].get().response == "Q" + std::to_string(n),
-               "same connection FIFO result ownership");
+            "same connection FIFO result ownership");
         ++commands;
     }
 
     for (size_t size :
-         {size_t(0), size_t(1), size_t(4095), size_t(65536), size_t(1048576), size_t(16777216)})
+        {size_t(0), size_t(1), size_t(4095), size_t(65536), size_t(1048576), size_t(16777216)})
     {
         auto name = "source " + std::to_string(size) + " 引号'.bin";
         auto src = local / fs::path(std::u8string(name.begin(), name.end())),
@@ -221,7 +221,7 @@ static void functional(comm::Driver& d, const std::string& adb, const std::strin
         transfers += 2;
         transfer_bytes += size * 2;
         expect(up.bytes_transferred == size && down.bytes_transferred == size,
-               "confirmed transfer length");
+            "confirmed transfer length");
         expect(read_file(src) == read_file(dst), "push/pull byte-for-byte equality");
     }
 
@@ -238,7 +238,7 @@ static void functional(comm::Driver& d, const std::string& adb, const std::strin
         auto bytes = std::as_bytes(std::span(value));
         direct.write_bytes(bytes);
         expect(direct.read_exactly_bytes(9) == comm::Bytes(bytes.begin(), bytes.end()),
-               "real ADB raw binary session");
+            "real ADB raw binary session");
         direct.close();
     }
     {
@@ -323,7 +323,7 @@ static void functional(comm::Driver& d, const std::string& adb, const std::strin
     catch (const comm::CommunicationError& e)
     {
         expect(e.info.code == CD_TIMEOUT && e.info.partial_text.find("PART") != std::string::npos,
-               "timeout retains partial output");
+            "timeout retains partial output");
     }
 
     recover(c);
@@ -393,7 +393,7 @@ struct Stats
         {
             return latency.empty() ? 0
                                    : latency[std::min(latency.size() - 1,
-                                                      static_cast<size_t>(p * latency.size()))];
+                                         static_cast<size_t>(p * latency.size()))];
         };
 
         event("LATENCY", "count=" + std::to_string(count) + " p50_us=" + std::to_string(at(.5)) +
@@ -414,7 +414,7 @@ struct SlotStats
 };
 
 static void soak(const std::string& adb, const std::vector<std::string>& devices,
-                 const fs::path& local, const std::string& remote, int seconds, const Load& load)
+    const fs::path& local, const std::string& remote, int seconds, const Load& load)
 {
     std::atomic<bool> stop = false, go = false;
     std::atomic<int> ready = 0;
@@ -427,22 +427,22 @@ static void soak(const std::string& adb, const std::vector<std::string>& devices
     auto start_job = [&](std::string label, auto work)
     {
         jobs.push_back(std::async(std::launch::async,
-                                  [&, label, work]
-                                  {
-                                      try
-                                      {
-                                          work();
-                                      }
-                                      catch (const std::exception& e)
-                                      {
-                                          {
-                                              std::lock_guard lock(failures_mutex);
-                                              failures.push_back(label + ": " + e.what());
-                                          }
-                                          stop = true;
-                                          event("FAIL", label + ": " + e.what());
-                                      }
-                                  }));
+            [&, label, work]
+            {
+                try
+                {
+                    work();
+                }
+                catch (const std::exception& e)
+                {
+                    {
+                        std::lock_guard lock(failures_mutex);
+                        failures.push_back(label + ": " + e.what());
+                    }
+                    stop = true;
+                    event("FAIL", label + ": " + e.what());
+                }
+            }));
     };
 
     Clock::time_point begin, deadline;
@@ -475,8 +475,7 @@ static void soak(const std::string& adb, const std::vector<std::string>& devices
         for (int lane = 0; lane < load.command_workers; ++lane)
         {
             auto driver = pool[lane % pool.size()];
-            start_job(
-                label + " command-" + std::to_string(lane),
+            start_job(label + " command-" + std::to_string(lane),
                 [&, serial, label, lane, slot, driver]
                 {
                     auto c = connect(*driver, adb, serial, lane % 4 == 3);
@@ -490,14 +489,13 @@ static void soak(const std::string& adb, const std::vector<std::string>& devices
                             label + "-" + std::to_string(lane) + "-" + std::to_string(n++);
                         exact(c, "printf " + quote(marker), marker);
 
-                        auto version = execute(
-                            c,
+                        auto version = execute(c,
                             "getprop ro.build.version.release; getprop ro.build.version.incremental");
                         expect(version.exit_code == 0 && !version.response.empty(),
-                               "concurrent version query actual=[" + version.response +
-                                   "] stderr=[" + version.standard_error + "] exit=" +
-                                   (version.exit_code ? std::to_string(*version.exit_code)
-                                                      : "unknown"));
+                            "concurrent version query actual=[" + version.response + "] stderr=[" +
+                                version.standard_error + "] exit=" +
+                                (version.exit_code ? std::to_string(*version.exit_code)
+                                                   : "unknown"));
                         slot->commands += 2;
                         slot->latency.add(tick);
                     }
@@ -510,180 +508,179 @@ static void soak(const std::string& adb, const std::vector<std::string>& devices
         {
             auto driver = pool[lane % pool.size()];
             start_job(label + " transfer-" + std::to_string(lane),
-                      [&, serial, label, path, lane, slot, driver]
-                      {
-                          auto c = connect(*driver, adb, serial);
-                          auto name = "soak-" + std::to_string(lane) + ".bin";
-                          auto src = local / label / name, dst = local / label / ("pull-" + name);
-                          make_file(src, 4 * 1024 * 1024);
+                [&, serial, label, path, lane, slot, driver]
+                {
+                    auto c = connect(*driver, adb, serial);
+                    auto name = "soak-" + std::to_string(lane) + ".bin";
+                    auto src = local / label / name, dst = local / label / ("pull-" + name);
+                    make_file(src, 4 * 1024 * 1024);
 
-                          auto content = read_file(src);
-                          wait_start();
+                    auto content = read_file(src);
+                    wait_start();
 
-                          while (!stop && Clock::now() < deadline)
-                          {
-                              auto up = c.upload(src.string(), path + "/" + name),
-                                   down = c.download(path + "/" + name, dst.string());
-                              transfers += 2;
-                              transfer_bytes += content.size() * 2;
-                              expect(up.bytes_transferred == content.size() &&
-                                         down.bytes_transferred == content.size() &&
-                                         read_file(dst) == content,
-                                     "concurrent push/pull content");
-                              slot->transfers += 2;
-                              slot->bytes += content.size() * 2;
-                          }
+                    while (!stop && Clock::now() < deadline)
+                    {
+                        auto up = c.upload(src.string(), path + "/" + name),
+                             down = c.download(path + "/" + name, dst.string());
+                        transfers += 2;
+                        transfer_bytes += content.size() * 2;
+                        expect(up.bytes_transferred == content.size() &&
+                                   down.bytes_transferred == content.size() &&
+                                   read_file(dst) == content,
+                            "concurrent push/pull content");
+                        slot->transfers += 2;
+                        slot->bytes += content.size() * 2;
+                    }
 
-                          c.close();
-                      });
+                    c.close();
+                });
         }
 
         auto stream_driver = pool.front();
         start_job(label + " logcat",
-                  [&, serial, label, slot, stream_driver]
-                  {
-                      auto c = connect(*stream_driver, adb, serial, false,
-                                       "logcat -b main -v raw -s CDHardware:I");
-                      auto producer = connect(*stream_driver, adb, serial);
-                      uint64_t n = 0;
-                      wait_start();
+            [&, serial, label, slot, stream_driver]
+            {
+                auto c = connect(
+                    *stream_driver, adb, serial, false, "logcat -b main -v raw -s CDHardware:I");
+                auto producer = connect(*stream_driver, adb, serial);
+                uint64_t n = 0;
+                wait_start();
 
-                      while (!stop && Clock::now() < deadline)
-                      {
-                          auto token = label + "-" + remote.substr(remote.rfind('-') + 1) +
-                                       "-log-" + std::to_string(n++);
-                          exact(producer, "log -p i -t CDHardware " + quote(token), "");
+                while (!stop && Clock::now() < deadline)
+                {
+                    auto token = label + "-" + remote.substr(remote.rfind('-') + 1) + "-log-" +
+                                 std::to_string(n++);
+                    exact(producer, "log -p i -t CDHardware " + quote(token), "");
 
-                          auto r = c.read_until_string(comm::ReceiveUntil::delimiter(token, true),
-                                                       timeout(5000));
-                          expect(r.find(token) != std::string::npos, "real logcat marker");
-                          stream_bytes += r.size();
-                          ++stream_reads;
-                          slot->stream_bytes += r.size();
-                          ++slot->reads;
-                          std::this_thread::sleep_for(50ms);
-                      }
+                    auto r = c.read_until_string(
+                        comm::ReceiveUntil::delimiter(token, true), timeout(5000));
+                    expect(r.find(token) != std::string::npos, "real logcat marker");
+                    stream_bytes += r.size();
+                    ++stream_reads;
+                    slot->stream_bytes += r.size();
+                    ++slot->reads;
+                    std::this_thread::sleep_for(50ms);
+                }
 
-                      c.close();
-                      producer.close();
-                  });
+                c.close();
+                producer.close();
+            });
         start_job(label + " continuous-output",
-                  [&, serial, label, slot, stream_driver]
-                  {
-                      auto c = connect(*stream_driver, adb, serial, false,
-                                       "while true; do printf 'CD_STREAM_" + label +
-                                           "\\n' || exit; sleep 0.02; done");
-                      wait_start();
+            [&, serial, label, slot, stream_driver]
+            {
+                auto c = connect(*stream_driver, adb, serial, false,
+                    "while true; do printf 'CD_STREAM_" + label + "\\n' || exit; sleep 0.02; done");
+                wait_start();
 
-                      while (!stop && Clock::now() < deadline)
-                      {
-                          auto r = c.read_line(timeout(5000));
-                          expect(r == "CD_STREAM_" + label, "continuous stream binding");
-                          stream_bytes += r.size();
-                          ++stream_reads;
-                          slot->stream_bytes += r.size();
-                          ++slot->reads;
-                      }
+                while (!stop && Clock::now() < deadline)
+                {
+                    auto r = c.read_line(timeout(5000));
+                    expect(r == "CD_STREAM_" + label, "continuous stream binding");
+                    stream_bytes += r.size();
+                    ++stream_reads;
+                    slot->stream_bytes += r.size();
+                    ++slot->reads;
+                }
 
-                      c.close();
-                  });
+                c.close();
+            });
         start_job(label + " dmesg",
-                  [&, serial, label, slot, stream_driver]
-                  {
-                      auto c = connect(*stream_driver, adb, serial);
-                      auto probe = execute(c, "dmesg >/dev/null");
+            [&, serial, label, slot, stream_driver]
+            {
+                auto c = connect(*stream_driver, adb, serial);
+                auto probe = execute(c, "dmesg >/dev/null");
 
-                      if (probe.exit_code == 0)
-                      {
-                          c.close();
-                          c = connect(*stream_driver, adb, serial, false, "dmesg -w");
+                if (probe.exit_code == 0)
+                {
+                    c.close();
+                    c = connect(*stream_driver, adb, serial, false, "dmesg -w");
 
-                          uint64_t bytes = 0, reads = 0;
-                          wait_start();
+                    uint64_t bytes = 0, reads = 0;
+                    wait_start();
 
-                          while (!stop && Clock::now() < deadline)
-                          {
-                              auto pending = c.read_string_async(
-                                  timeout(std::chrono::duration_cast<std::chrono::milliseconds>(
-                                              deadline - Clock::now())
-                                              .count() +
-                                          5000));
+                    while (!stop && Clock::now() < deadline)
+                    {
+                        auto pending = c.read_string_async(
+                            timeout(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                        deadline - Clock::now())
+                                        .count() +
+                                    5000));
 
-                              while (!pending.wait_for(100ms) && !stop && Clock::now() < deadline)
-                              {
-                              }
+                        while (!pending.wait_for(100ms) && !stop && Clock::now() < deadline)
+                        {
+                        }
 
-                              if (pending.is_completed())
-                              {
-                                  auto value = pending.get();
-                                  expect(!value.empty(), "dmesg continuous stream data");
-                                  bytes += value.size();
-                                  ++reads;
-                                  stream_bytes += value.size();
-                                  ++stream_reads;
-                                  slot->stream_bytes += value.size();
-                                  ++slot->reads;
-                              }
-                              else
-                              {
-                                  pending.cancel();
-                                  error(
-                                      [&]
-                                      {
-                                          pending.get();
-                                      },
-                                      CD_CANCELLED);
-                                  break;
-                              }
-                          }
+                        if (pending.is_completed())
+                        {
+                            auto value = pending.get();
+                            expect(!value.empty(), "dmesg continuous stream data");
+                            bytes += value.size();
+                            ++reads;
+                            stream_bytes += value.size();
+                            ++stream_reads;
+                            slot->stream_bytes += value.size();
+                            ++slot->reads;
+                        }
+                        else
+                        {
+                            pending.cancel();
+                            error(
+                                [&]
+                                {
+                                    pending.get();
+                                },
+                                CD_CANCELLED);
+                            break;
+                        }
+                    }
 
-                          expect(bytes > 0, "real kernel log bytes received");
-                          event("DMESG_STREAM", label + " bytes=" + std::to_string(bytes) +
-                                                    " reads=" + std::to_string(reads));
-                      }
-                      else
-                      {
-                          wait_start();
-                          while (!stop && Clock::now() < deadline)
-                          {
-                              auto r = execute(c, "dmesg -w");
-                              expect(r.exit_code && *r.exit_code != 0 && !r.standard_error.empty(),
-                                     "dmesg permission error isolation");
-                              std::this_thread::sleep_for(200ms);
-                          }
-                      }
+                    expect(bytes > 0, "real kernel log bytes received");
+                    event("DMESG_STREAM", label + " bytes=" + std::to_string(bytes) +
+                                              " reads=" + std::to_string(reads));
+                }
+                else
+                {
+                    wait_start();
+                    while (!stop && Clock::now() < deadline)
+                    {
+                        auto r = execute(c, "dmesg -w");
+                        expect(r.exit_code && *r.exit_code != 0 && !r.standard_error.empty(),
+                            "dmesg permission error isolation");
+                        std::this_thread::sleep_for(200ms);
+                    }
+                }
 
-                      c.close();
-                  });
+                c.close();
+            });
 
         for (int lane = 0; lane < load.cancel_workers; ++lane)
         {
             auto driver = pool[lane % pool.size()];
             start_job(label + " cancel-" + std::to_string(lane),
-                      [&, serial, slot, driver]
-                      {
-                          auto c = connect(*driver, adb, serial);
-                          wait_start();
+                [&, serial, slot, driver]
+                {
+                    auto c = connect(*driver, adb, serial);
+                    wait_start();
 
-                          while (!stop && Clock::now() < deadline)
-                          {
-                              auto operation = c.execute_async(
-                                  "printf PART; while IFS= read -r __cd_wait; do :; done", {},
-                                  timeout(5000));
-                              std::this_thread::sleep_for(50ms);
-                              operation.cancel();
-                              error(
-                                  [&]
-                                  {
-                                      operation.get();
-                                  },
-                                  CD_CANCELLED);
-                              recover(c);
-                              ++slot->recoveries;
-                          }
+                    while (!stop && Clock::now() < deadline)
+                    {
+                        auto operation =
+                            c.execute_async("printf PART; while IFS= read -r __cd_wait; do :; done",
+                                {}, timeout(5000));
+                        std::this_thread::sleep_for(50ms);
+                        operation.cancel();
+                        error(
+                            [&]
+                            {
+                                operation.get();
+                            },
+                            CD_CANCELLED);
+                        recover(c);
+                        ++slot->recoveries;
+                    }
 
-                          c.close();
-                      });
+                    c.close();
+                });
         }
     }
 
@@ -705,7 +702,7 @@ static void soak(const std::string& adb, const std::vector<std::string>& devices
     deadline = begin + std::chrono::seconds(seconds);
     go = true;
     event("START",
-          "ADB workers=" + std::to_string(jobs.size()) + " seconds=" + std::to_string(seconds));
+        "ADB workers=" + std::to_string(jobs.size()) + " seconds=" + std::to_string(seconds));
 
     while (!stop && Clock::now() < deadline)
     {
@@ -717,18 +714,17 @@ static void soak(const std::string& adb, const std::vector<std::string>& devices
         if (elapsed % 10 == 0)
         {
             event("PROGRESS",
-                  "seconds=" + std::to_string(elapsed) + " commands=" + std::to_string(commands) +
-                      " transfers=" + std::to_string(transfers) + " stream_reads=" +
-                      std::to_string(stream_reads) + " recoveries=" + std::to_string(recoveries));
+                "seconds=" + std::to_string(elapsed) + " commands=" + std::to_string(commands) +
+                    " transfers=" + std::to_string(transfers) + " stream_reads=" +
+                    std::to_string(stream_reads) + " recoveries=" + std::to_string(recoveries));
 
             for (size_t n = 0; n < slots.size(); ++n)
             {
                 auto& s = *slots[n];
-                event("SLOT_PROGRESS", "device-" + std::to_string(n + 1) +
-                                           " commands=" + std::to_string(s.commands) +
-                                           " transfers=" + std::to_string(s.transfers) +
-                                           " reads=" + std::to_string(s.reads) +
-                                           " recoveries=" + std::to_string(s.recoveries));
+                event("SLOT_PROGRESS",
+                    "device-" + std::to_string(n + 1) + " commands=" + std::to_string(s.commands) +
+                        " transfers=" + std::to_string(s.transfers) + " reads=" +
+                        std::to_string(s.reads) + " recoveries=" + std::to_string(s.recoveries));
             }
         }
     }
@@ -748,11 +744,11 @@ static void soak(const std::string& adb, const std::vector<std::string>& devices
         event("SLOT", "device-" + std::to_string(n + 1));
         s.latency.report();
         event("SLOT_SUMMARY",
-              "device-" + std::to_string(n + 1) + " commands=" + std::to_string(s.commands) +
-                  " transfers=" + std::to_string(s.transfers) + " transfer_bytes=" +
-                  std::to_string(s.bytes) + " stream_reads=" + std::to_string(s.reads) +
-                  " stream_bytes=" + std::to_string(s.stream_bytes) +
-                  " recoveries=" + std::to_string(s.recoveries));
+            "device-" + std::to_string(n + 1) + " commands=" + std::to_string(s.commands) +
+                " transfers=" + std::to_string(s.transfers) + " transfer_bytes=" +
+                std::to_string(s.bytes) + " stream_reads=" + std::to_string(s.reads) +
+                " stream_bytes=" + std::to_string(s.stream_bytes) +
+                " recoveries=" + std::to_string(s.recoveries));
     }
 
     expect(full_duration && failures.empty(), failures.empty()
@@ -775,10 +771,10 @@ int main(int argc, char** argv)
 
     if (!checked_root.starts_with(prefix) || checked_root.size() == prefix.size() ||
         !std::all_of(checked_root.begin() + prefix.size(), checked_root.end(),
-                     [](char c)
-                     {
-                         return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-';
-                     }))
+            [](char c)
+            {
+                return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-';
+            }))
     {
         std::cerr << "Invalid remote test root\n";
         return 2;
@@ -854,8 +850,8 @@ int main(int argc, char** argv)
         if (!soak_only)
             for (size_t n = 0; n < devices.size(); ++n)
                 functional(driver, argv[1], devices[n], "device-" + std::to_string(n + 1),
-                           local / ("device-" + std::to_string(n + 1)),
-                           remote + "/device-" + std::to_string(n + 1));
+                    local / ("device-" + std::to_string(n + 1)),
+                    remote + "/device-" + std::to_string(n + 1));
 
         std::vector<comm::Connection> batch_connections;
         std::vector<comm::BatchItem> items;
@@ -867,13 +863,12 @@ int main(int argc, char** argv)
             auto label = "device-" + std::to_string(n + 1);
             exact(batch_connections.back(), "cat " + quote(remote + "/binding"), label);
             items.push_back(comm::BatchItem::execute(label, batch_connections.back(),
-                                                     "cat " + quote(remote + "/binding"),
-                                                     comm::Check::equals(label)));
+                "cat " + quote(remote + "/binding"), comm::Check::equals(label)));
         }
 
         auto batch = comm::Batch::run(items);
         expect(batch.all_succeeded && batch.items.size() == devices.size(),
-               "bound-device batch binding");
+            "bound-device batch binding");
         commands += items.size();
 
         for (auto& c : batch_connections)
@@ -915,11 +910,11 @@ int main(int argc, char** argv)
 
     driver.close();
     event("SUMMARY",
-          "assertions=" + std::to_string(assertions) + " commands=" + std::to_string(commands) +
-              " transfers=" + std::to_string(transfers) + " transfer_bytes=" +
-              std::to_string(transfer_bytes) + " stream_reads=" + std::to_string(stream_reads) +
-              " stream_bytes=" + std::to_string(stream_bytes) +
-              " recoveries=" + std::to_string(recoveries) + " exit=" + std::to_string(rc));
+        "assertions=" + std::to_string(assertions) + " commands=" + std::to_string(commands) +
+            " transfers=" + std::to_string(transfers) + " transfer_bytes=" +
+            std::to_string(transfer_bytes) + " stream_reads=" + std::to_string(stream_reads) +
+            " stream_bytes=" + std::to_string(stream_bytes) +
+            " recoveries=" + std::to_string(recoveries) + " exit=" + std::to_string(rc));
 
     return rc;
 }

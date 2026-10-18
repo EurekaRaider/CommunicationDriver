@@ -72,19 +72,18 @@ struct Echo
         {
             auto self = shared_from_this();
             socket.async_read_some(asio::buffer(buffer),
-                                   [self](auto e, size_t n)
-                                   {
-                                       if (e)
-                                           return;
+                [self](auto e, size_t n)
+                {
+                    if (e)
+                        return;
 
-                                       asio::async_write(self->socket,
-                                                         asio::buffer(self->buffer.data(), n),
-                                                         [self](auto error, size_t)
-                                                         {
-                                                             if (!error)
-                                                                 self->read();
-                                                         });
-                                   });
+                    asio::async_write(self->socket, asio::buffer(self->buffer.data(), n),
+                        [self](auto error, size_t)
+                        {
+                            if (!error)
+                                self->read();
+                        });
+                });
         }
     };
 
@@ -102,19 +101,18 @@ struct Echo
         void read()
         {
             socket.async_receive_from(asio::buffer(buffer), sender,
-                                      [this](auto e, size_t n)
-                                      {
-                                          if (e)
-                                              return;
+                [this](auto e, size_t n)
+                {
+                    if (e)
+                        return;
 
-                                          socket.async_send_to(asio::buffer(buffer.data(), n),
-                                                               sender,
-                                                               [this](auto error, size_t)
-                                                               {
-                                                                   if (!error)
-                                                                       read();
-                                                               });
-                                      });
+                    socket.async_send_to(asio::buffer(buffer.data(), n), sender,
+                        [this](auto error, size_t)
+                        {
+                            if (!error)
+                                read();
+                        });
+                });
         }
     };
 
@@ -288,37 +286,38 @@ struct Test
         return c;
     }
 
-    template <class F> void launch(std::string label, F work)
+    template <class F>
+    void launch(std::string label, F work)
     {
         auto state = std::make_shared<Worker>();
         states.push_back(state);
         jobs.push_back(std::async(std::launch::async,
-                                  [this, label, state, work]
-                                  {
-                                      try
-                                      {
-                                          work(state);
-                                      }
-                                      catch (const comm::CommunicationError& e)
-                                      {
-                                          {
-                                              std::lock_guard lock(failures_mutex);
-                                              failures.push_back(label + ": " + e.what());
-                                          }
-                                          stop = true;
-                                          log("FAIL " + kind + " " + label + ": native-status=" +
-                                              std::to_string(e.info.code) + " " + e.what());
-                                      }
-                                      catch (const std::exception& e)
-                                      {
-                                          {
-                                              std::lock_guard lock(failures_mutex);
-                                              failures.push_back(label + ": " + e.what());
-                                          }
-                                          stop = true;
-                                          log("FAIL " + kind + " " + label + ": " + e.what());
-                                      }
-                                  }));
+            [this, label, state, work]
+            {
+                try
+                {
+                    work(state);
+                }
+                catch (const comm::CommunicationError& e)
+                {
+                    {
+                        std::lock_guard lock(failures_mutex);
+                        failures.push_back(label + ": " + e.what());
+                    }
+                    stop = true;
+                    log("FAIL " + kind + " " + label +
+                        ": native-status=" + std::to_string(e.info.code) + " " + e.what());
+                }
+                catch (const std::exception& e)
+                {
+                    {
+                        std::lock_guard lock(failures_mutex);
+                        failures.push_back(label + ": " + e.what());
+                    }
+                    stop = true;
+                    log("FAIL " + kind + " " + label + ": " + e.what());
+                }
+            }));
     }
 
     bool start(const std::shared_ptr<Worker>& state)
@@ -348,7 +347,8 @@ struct Test
             std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - begin).count();
     }
 
-    template <class F> void error(F work, cd_status_t code)
+    template <class F>
+    void error(F work, cd_status_t code)
     {
         try
         {
@@ -366,59 +366,58 @@ struct Test
     {
         for (int lane = 0; lane < workers; ++lane)
             launch("command-" + std::to_string(lane),
-                   [this, lane](auto state)
-                   {
-                       auto c = connection(lane);
+                [this, lane](auto state)
+                {
+                    auto c = connection(lane);
 
-                       if (start(state))
-                       {
-                           uint64_t n = 0;
-                           std::vector<std::byte> data(4096);
+                    if (start(state))
+                    {
+                        uint64_t n = 0;
+                        std::vector<std::byte> data(4096);
 
-                           for (size_t i = 0; i < data.size(); ++i)
-                               data[i] = std::byte((i * 31 + lane) % 256);
+                        for (size_t i = 0; i < data.size(); ++i)
+                            data[i] = std::byte((i * 31 + lane) % 256);
 
-                           while (active())
-                           {
-                               auto tick = Clock::now();
-                               auto text = "lane=" + std::to_string(lane) +
-                                           " sequence=" + std::to_string(n++) +
-                                           " utf8=" + "\xe4\xbd\xa0\xf0\x9f\x98\x84";
-                               auto o = call();
-                               o.receive_until = comm::ReceiveUntil::bytes(text.size());
+                        while (active())
+                        {
+                            auto tick = Clock::now();
+                            auto text = "lane=" + std::to_string(lane) +
+                                        " sequence=" + std::to_string(n++) +
+                                        " utf8=" + "\xe4\xbd\xa0\xf0\x9f\x98\x84";
+                            auto o = call();
+                            o.receive_until = comm::ReceiveUntil::bytes(text.size());
 
-                               auto r = c.execute(text, comm::Check::equals(text), o);
-                               expect(r.response == text && r.check && r.check->passed,
-                                      "network text echo and binding");
-                               ++counts.commands;
-                               counts.bytes += text.size();
-                               o.receive_until = comm::ReceiveUntil::bytes(data.size());
+                            auto r = c.execute(text, comm::Check::equals(text), o);
+                            expect(r.response == text && r.check && r.check->passed,
+                                "network text echo and binding");
+                            ++counts.commands;
+                            counts.bytes += text.size();
+                            o.receive_until = comm::ReceiveUntil::bytes(data.size());
 
-                               auto binary = c.execute(data, {}, o);
-                               expect(binary.response == data, "network binary echo");
-                               ++counts.commands;
-                               counts.bytes += data.size();
+                            auto binary = c.execute(data, {}, o);
+                            expect(binary.response == data, "network binary echo");
+                            ++counts.commands;
+                            counts.bytes += data.size();
 
-                               auto us = std::chrono::duration_cast<std::chrono::microseconds>(
-                                             Clock::now() - tick)
-                                             .count();
-                               auto prior = counts.max_us.load();
+                            auto us = std::chrono::duration_cast<std::chrono::microseconds>(
+                                Clock::now() - tick)
+                                          .count();
+                            auto prior = counts.max_us.load();
 
-                               while (prior < uint64_t(us) &&
-                                      !counts.max_us.compare_exchange_weak(prior, us))
-                               {
-                               }
+                            while (prior < uint64_t(us) &&
+                                   !counts.max_us.compare_exchange_weak(prior, us))
+                            {
+                            }
 
-                               progress(state);
-                           }
-                       }
+                            progress(state);
+                        }
+                    }
 
-                       c.close();
-                   });
+                    c.close();
+                });
 
         for (int lane = workers; lane < workers + 2; ++lane)
-            launch(
-                "bulk-" + std::to_string(lane),
+            launch("bulk-" + std::to_string(lane),
                 [this, lane](auto state)
                 {
                     auto c = connection(
@@ -445,53 +444,52 @@ struct Test
 
         for (int lane = workers + 2; lane < workers + 6; ++lane)
             launch("cancel-" + std::to_string(lane),
-                   [this, lane](auto state)
-                   {
-                       auto c = connection(lane);
-                       uint64_t n = 0;
+                [this, lane](auto state)
+                {
+                    auto c = connection(lane);
+                    uint64_t n = 0;
 
-                       if (start(state))
-                           while (active())
-                           {
-                               if (n++ % 2)
-                               {
-                                   error(
-                                       [&]
-                                       {
-                                           c.read_bytes(call(50));
-                                       },
-                                       CD_TIMEOUT);
-                                   ++counts.timeouts;
-                               }
-                               else
-                               {
-                                   auto op = c.read_bytes_async(call());
-                                   std::this_thread::sleep_for(10ms);
-                                   op.cancel();
-                                   error(
-                                       [&]
-                                       {
-                                           op.get();
-                                       },
-                                       CD_CANCELLED);
-                                   ++counts.cancels;
-                               }
+                    if (start(state))
+                        while (active())
+                        {
+                            if (n++ % 2)
+                            {
+                                error(
+                                    [&]
+                                    {
+                                        c.read_bytes(call(50));
+                                    },
+                                    CD_TIMEOUT);
+                                ++counts.timeouts;
+                            }
+                            else
+                            {
+                                auto op = c.read_bytes_async(call());
+                                std::this_thread::sleep_for(10ms);
+                                op.cancel();
+                                error(
+                                    [&]
+                                    {
+                                        op.get();
+                                    },
+                                    CD_CANCELLED);
+                                ++counts.cancels;
+                            }
 
-                               c.close();
-                               c.open();
-                               ++counts.reopens;
-                               progress(state);
-                           }
+                            c.close();
+                            c.open();
+                            ++counts.reopens;
+                            progress(state);
+                        }
 
-                       c.close();
-                   });
+                    c.close();
+                });
     }
 
     void command_workers()
     {
         for (int lane = 0; lane < workers; ++lane)
-            launch(
-                "command-" + std::to_string(lane),
+            launch("command-" + std::to_string(lane),
                 [this, lane](auto state)
                 {
                     auto c = connection(lane, lane % 4 == 3);
@@ -503,30 +501,29 @@ struct Test
                             auto token = "lane-" + std::to_string(lane) + "-" + std::to_string(n++);
                             auto r =
                                 c.execute("printf " + quote(token) + "; printf ERR >&2; (exit 7)",
-                                          {}, call());
+                                    {}, call());
                             expect(r.response == token && r.standard_error == "ERR" &&
                                        r.exit_code == 7,
-                                   "parallel command identity and nonzero exit");
+                                "parallel command identity and nonzero exit");
                             ++counts.commands;
 
                             if (n % 32 == 0)
                             {
                                 auto early =
                                     c.execute_until("printf READY; sleep 0.02; printf TAIL",
-                                                    comm::Check::contains("READY"), call());
+                                        comm::Check::contains("READY"), call());
                                 expect(early.completion_reason == comm::CompletionReason::Matched,
-                                       "early match");
+                                    "early match");
 
                                 auto next = c.execute("printf NEXT", {}, call());
                                 expect(next.response == "NEXT" && next.standard_error.empty() &&
                                            next.completion_reason ==
                                                comm::CompletionReason::CommandCompleted,
-                                       "tail cleanup ownership");
+                                    "tail cleanup ownership");
 
                                 if (!next.exit_code)
                                 {
-                                    expect(
-                                        kind == "ssh" && lane % 4 == 3,
+                                    expect(kind == "ssh" && lane % 4 == 3,
                                         "only SSH exec may have unknown zero status in libssh2 1.11");
                                     ++counts.unknown_exit;
                                 }
@@ -544,30 +541,29 @@ struct Test
 
         for (int lane = workers; lane < workers + 2; ++lane)
             launch("stream-" + std::to_string(lane),
-                   [this, lane](auto state)
-                   {
-                       auto token = "STREAM-" + std::to_string(lane);
-                       auto c = connection(lane, false,
-                                           "while :; do printf '" + token + "\\n'; printf 'ERR-" +
-                                               token + "\\n' >&2; sleep 0.02; done");
-                       auto err = call();
-                       err.read_stream = comm::Stream::StandardError;
+                [this, lane](auto state)
+                {
+                    auto token = "STREAM-" + std::to_string(lane);
+                    auto c = connection(lane, false,
+                        "while :; do printf '" + token + "\\n'; printf 'ERR-" + token +
+                            "\\n' >&2; sleep 0.02; done");
+                    auto err = call();
+                    err.read_stream = comm::Stream::StandardError;
 
-                       if (start(state))
-                           while (active())
-                           {
-                               expect(c.read_line(call()) == token, "continuous stdout");
-                               expect(c.read_line(err) == "ERR-" + token, "continuous stderr");
-                               counts.streams += 2;
-                               progress(state);
-                           }
+                    if (start(state))
+                        while (active())
+                        {
+                            expect(c.read_line(call()) == token, "continuous stdout");
+                            expect(c.read_line(err) == "ERR-" + token, "continuous stderr");
+                            counts.streams += 2;
+                            progress(state);
+                        }
 
-                       c.close();
-                   });
+                    c.close();
+                });
 
         for (int lane = workers + 2; lane < workers + 6; ++lane)
-            launch(
-                "cancel-" + std::to_string(lane),
+            launch("cancel-" + std::to_string(lane),
                 [this, lane](auto state)
                 {
                     auto c = connection(lane);
@@ -619,49 +615,49 @@ struct Test
         if (kind == "ssh")
             for (int lane = 0; lane < 4; ++lane)
                 launch("sftp-" + std::to_string(lane),
-                       [this, lane](auto state)
-                       {
-                           auto c = connection(lane);
-                           auto local = root / ("source-" + std::to_string(lane) + ".bin"),
-                                download = root / ("download-" + std::to_string(lane) + ".bin");
-                           auto remote =
-                               std::getenv("CD_SSH_REMOTE_ROOT")
-                                   ? env("CD_SSH_REMOTE_ROOT") + "/file-" + std::to_string(lane) +
-                                         ".bin"
-                                   : (root / "remote" / ("file-" + std::to_string(lane) + ".bin"))
-                                         .string();
-                           std::string data(1024 * 1024, '\0');
-                           uint32_t x = 0x12345678 + lane;
+                    [this, lane](auto state)
+                    {
+                        auto c = connection(lane);
+                        auto local = root / ("source-" + std::to_string(lane) + ".bin"),
+                             download = root / ("download-" + std::to_string(lane) + ".bin");
+                        auto remote =
+                            std::getenv("CD_SSH_REMOTE_ROOT")
+                                ? env("CD_SSH_REMOTE_ROOT") + "/file-" + std::to_string(lane) +
+                                      ".bin"
+                                : (root / "remote" / ("file-" + std::to_string(lane) + ".bin"))
+                                      .string();
+                        std::string data(1024 * 1024, '\0');
+                        uint32_t x = 0x12345678 + lane;
 
-                           for (auto& ch : data)
-                           {
-                               x ^= x << 13;
-                               x ^= x >> 17;
-                               x ^= x << 5;
-                               ch = char(x);
-                           }
+                        for (auto& ch : data)
+                        {
+                            x ^= x << 13;
+                            x ^= x >> 17;
+                            x ^= x << 5;
+                            ch = char(x);
+                        }
 
-                           std::ofstream(local, std::ios::binary).write(data.data(), data.size());
+                        std::ofstream(local, std::ios::binary).write(data.data(), data.size());
 
-                           comm::TransferOptions o;
-                           o.timeout = comm::Duration(10000);
+                        comm::TransferOptions o;
+                        o.timeout = comm::Duration(10000);
 
-                           if (start(state))
-                               while (active())
-                               {
-                                   auto up = c.upload(local.string(), remote, o),
-                                        down = c.download(remote, download.string(), o);
-                                   expect(up.bytes_transferred == data.size() &&
-                                              down.bytes_transferred == data.size() &&
-                                              contents(download) == data,
-                                          "concurrent SFTP byte equality and progress");
-                                   counts.transfers += 2;
-                                   counts.bytes += 2 * data.size();
-                                   progress(state);
-                               }
+                        if (start(state))
+                            while (active())
+                            {
+                                auto up = c.upload(local.string(), remote, o),
+                                     down = c.download(remote, download.string(), o);
+                                expect(up.bytes_transferred == data.size() &&
+                                           down.bytes_transferred == data.size() &&
+                                           contents(download) == data,
+                                    "concurrent SFTP byte equality and progress");
+                                counts.transfers += 2;
+                                counts.bytes += 2 * data.size();
+                                progress(state);
+                            }
 
-                           c.close();
-                       });
+                        c.close();
+                    });
     }
 
     int run()
@@ -724,7 +720,7 @@ struct Test
             d->close();
 
         expect(completed && failures.empty(),
-               failures.empty() ? "full duration did not complete" : failures.front());
+            failures.empty() ? "full duration did not complete" : failures.front());
 
         for (auto& state : states)
             expect(state->operations > 0, "every worker must perform real IO");

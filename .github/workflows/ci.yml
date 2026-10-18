@@ -13,6 +13,11 @@ jobs:
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           dotnet-version: 10.0.x
+      - name: Check C/C++ source and header formatting
+        run: |
+          python -m venv "$RUNNER_TEMP/native-format"
+          "$RUNNER_TEMP/native-format/bin/python" -m pip install -r scripts/requirements-format.txt
+          git ls-files -z -- '*.c' '*.h' '*.cpp' '*.hpp' '*.cc' '*.cxx' '*.hh' '*.hxx' | xargs -0 "$RUNNER_TEMP/native-format/bin/clang-format" --dry-run --Werror
       - name: Check C# syntax formatting
         run: |
           dotnet tool restore

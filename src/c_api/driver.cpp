@@ -14,9 +14,9 @@ namespace
         if constexpr (std::is_base_of_v<SessionConfig, T>)
         {
             require(config.mode == CD_PERSISTENT || config.mode == CD_ONE_SHOT,
-                    "Invalid execution mode");
-            require(config.shell >= CD_SHELL_DEFAULT && config.shell <= CD_SHELL_ZSH,
-                    "Invalid shell");
+                "Invalid execution mode");
+            require(
+                config.shell >= CD_SHELL_DEFAULT && config.shell <= CD_SHELL_ZSH, "Invalid shell");
             if (!config.session_command.empty() && config.mode == CD_ONE_SHOT)
                 throw Fault(CD_INVALID_ARGUMENT, "SessionCommand requires Persistent mode");
         }
@@ -48,7 +48,7 @@ extern "C"
 
 #define CREATE_HEAD(name, type)                                                                    \
     cd_status_t CD_CALL cd_create_##name(cd_driver_t* d, const cd_##name##_options_t* o,           \
-                                         cd_connection_t** out, cd_result_t** error)               \
+        cd_connection_t** out, cd_result_t** error)                                                \
     {                                                                                              \
         if (error)                                                                                 \
             *error = nullptr;                                                                      \
@@ -90,9 +90,9 @@ extern "C"
     c.flow = o->flow_control;
     text_argument(c.port_name, "PortName required");
     require(c.baud&& c.bits >= 5 && c.bits <= 8, "Invalid serial settings");
-    require(c.parity >= 0 && c.parity <= 2 && c.stop >= 0 && c.stop <= 2 && c.flow >= 0 &&
-                c.flow <= 2,
-            "Invalid serial setting enum");
+    require(
+        c.parity >= 0 && c.parity <= 2 && c.stop >= 0 && c.stop <= 2 && c.flow >= 0 && c.flow <= 2,
+        "Invalid serial setting enum");
     CREATE_END
     CREATE_HEAD(ssh, SshConfig);
     c.host = copy(o->host);
@@ -111,7 +111,7 @@ extern "C"
     text_argument(c.user, "UserName required");
     text_argument(c.host_key, "HostKey trust required");
     require(c.port&& c.auth >= 0 && c.auth <= 1 && c.key_kind >= 0 && c.key_kind <= 1,
-            "Invalid SSH options");
+        "Invalid SSH options");
     if (c.auth == CD_AUTH_PRIVATE_KEY)
         text_argument(c.private_key, "PrivateKey path required");
     CREATE_END
@@ -155,8 +155,8 @@ extern "C"
 #undef CREATE_HEAD
 #undef CREATE_END
 
-    cd_status_t CD_CALL cd_driver_close_async(cd_driver_t* d, cd_completion_fn cb, void* user,
-                                              cd_operation_t** out)
+    cd_status_t CD_CALL cd_driver_close_async(
+        cd_driver_t* d, cd_completion_fn cb, void* user, cd_operation_t** out)
     {
         try
         {

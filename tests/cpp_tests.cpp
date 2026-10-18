@@ -39,7 +39,7 @@ int main()
             auto abandoned = connection.execute_async(ready);
         }
         expect(connection.execute(ready).response == "READY",
-               "discard does not cancel or lose transaction ownership");
+            "discard does not cancel or lose transaction ownership");
 
         std::vector<comm::BatchItem> items;
         items.push_back(
@@ -49,13 +49,13 @@ int main()
 
         auto batch = comm::Batch::run(items);
         expect(batch.all_succeeded && batch.items[0].key == "one" && batch.items[1].key == "two",
-               "batch same-connection order");
+            "batch same-connection order");
 #ifndef _WIN32
         connection.write_string("printf ERR >&2\n");
         comm::CallOptions stderr_options;
         stderr_options.read_stream = comm::Stream::StandardError;
         expect(connection.read_exactly_string(3, stderr_options) == "ERR",
-               "C++ stderr stream selection");
+            "C++ stderr stream selection");
         connection.write_string("printf PART >&2\n");
         stderr_options.timeout = comm::Duration(25);
         try
@@ -66,7 +66,7 @@ int main()
         catch (const comm::CommunicationError& e)
         {
             expect(e.info.code == CD_TIMEOUT && e.info.partial_text == "PART",
-                   "stderr timeout preserves the selected stream in ErrorInfo");
+                "stderr timeout preserves the selected stream in ErrorInfo");
         }
         std::stop_source stop;
         auto cancel = connection.execute_until_async(
@@ -87,8 +87,8 @@ int main()
         std::vector<comm::ShellKind> shells = {
             comm::ShellKind::Cmd, comm::ShellKind::WindowsPowerShell, comm::ShellKind::Pwsh};
 #elif defined(__APPLE__)
-        std::vector<comm::ShellKind> shells = {comm::ShellKind::Sh, comm::ShellKind::Bash,
-                                               comm::ShellKind::Zsh};
+        std::vector<comm::ShellKind> shells = {
+            comm::ShellKind::Sh, comm::ShellKind::Bash, comm::ShellKind::Zsh};
 #else
         std::vector<comm::ShellKind> shells = {comm::ShellKind::Sh, comm::ShellKind::Bash};
 #endif
@@ -109,7 +109,7 @@ int main()
                         ? "[Console]::Out.Write('READY')"
                         : "printf READY";
                 expect(shell.execute(command).response == "READY",
-                       "explicit shell kind and execution mode");
+                    "explicit shell kind and execution mode");
                 shell.close();
             }
 

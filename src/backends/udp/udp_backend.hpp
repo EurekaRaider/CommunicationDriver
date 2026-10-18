@@ -12,7 +12,7 @@ namespace cd
         std::array<char, 65536> buffer{};
         bool stopped = false;
 
-      public:
+    public:
         UdpBackend(std::shared_ptr<Runtime> r, BackendConfig<UdpConfig> c);
 
         void open(Completion cb) override;

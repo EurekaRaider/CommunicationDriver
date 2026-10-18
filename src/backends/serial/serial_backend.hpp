@@ -11,7 +11,7 @@ namespace cd
         std::array<char, 65536> buffer{};
         bool stopped = false;
 
-      public:
+    public:
         SerialBackend(std::shared_ptr<Runtime> r, BackendConfig<SerialConfig> c);
 
         void open(Completion cb) override;

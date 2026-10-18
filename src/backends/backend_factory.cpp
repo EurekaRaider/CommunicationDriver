@@ -11,36 +11,27 @@ namespace cd
 {
     ConnectionConfig connection_config(BackendConfig<TcpConfig> options)
     {
-        BackendTraits traits{
-            "tcp",
+        BackendTraits traits{"tcp",
             CD_CAP_READ | CD_CAP_WRITE | CD_CAP_EXECUTE | CD_CAP_EXECUTE_UNTIL | CD_CAP_CLOSE_INPUT,
-            false,
-            false,
-            false,
-            CD_PERSISTENT};
+            false, false, false, CD_PERSISTENT};
         auto defaults = std::move(options.defaults);
         return {std::move(defaults), traits, TcpConfig(std::move(options))};
     }
 
     ConnectionConfig connection_config(BackendConfig<UdpConfig> options)
     {
-        BackendTraits traits{
-            "udp",
+        BackendTraits traits{"udp",
             CD_CAP_READ | CD_CAP_WRITE | CD_CAP_EXECUTE | CD_CAP_EXECUTE_UNTIL | CD_CAP_MESSAGE,
-            false,
-            false,
-            false,
-            CD_PERSISTENT};
+            false, false, false, CD_PERSISTENT};
         auto defaults = std::move(options.defaults);
         return {std::move(defaults), traits, UdpConfig(std::move(options))};
     }
 
     ConnectionConfig connection_config(BackendConfig<SerialConfig> options)
     {
-        BackendTraits traits{
-            "serial", CD_CAP_READ | CD_CAP_WRITE | CD_CAP_EXECUTE | CD_CAP_EXECUTE_UNTIL,
-            false,    false,
-            false,    CD_PERSISTENT};
+        BackendTraits traits{"serial",
+            CD_CAP_READ | CD_CAP_WRITE | CD_CAP_EXECUTE | CD_CAP_EXECUTE_UNTIL, false, false, false,
+            CD_PERSISTENT};
         auto defaults = std::move(options.defaults);
         return {std::move(defaults), traits, SerialConfig(std::move(options))};
     }
@@ -48,13 +39,9 @@ namespace cd
     ConnectionConfig connection_config(BackendConfig<SshConfig> options)
     {
         BackendTraits traits{"ssh",
-                             CD_CAP_READ | CD_CAP_WRITE | CD_CAP_EXECUTE | CD_CAP_EXECUTE_UNTIL |
-                                 CD_CAP_CLOSE_INPUT | CD_CAP_STDERR | CD_CAP_UPLOAD |
-                                 CD_CAP_DOWNLOAD,
-                             true,
-                             options.session_command.empty(),
-                             true,
-                             options.mode};
+            CD_CAP_READ | CD_CAP_WRITE | CD_CAP_EXECUTE | CD_CAP_EXECUTE_UNTIL |
+                CD_CAP_CLOSE_INPUT | CD_CAP_STDERR | CD_CAP_UPLOAD | CD_CAP_DOWNLOAD,
+            true, options.session_command.empty(), true, options.mode};
         auto defaults = std::move(options.defaults);
         return {std::move(defaults), traits, SshConfig(std::move(options))};
     }
@@ -62,13 +49,9 @@ namespace cd
     ConnectionConfig connection_config(BackendConfig<AdbConfig> options)
     {
         BackendTraits traits{"adb",
-                             CD_CAP_READ | CD_CAP_WRITE | CD_CAP_EXECUTE | CD_CAP_EXECUTE_UNTIL |
-                                 CD_CAP_CLOSE_INPUT | CD_CAP_STDERR | CD_CAP_UPLOAD |
-                                 CD_CAP_DOWNLOAD,
-                             true,
-                             options.session_command.empty(),
-                             false,
-                             options.mode};
+            CD_CAP_READ | CD_CAP_WRITE | CD_CAP_EXECUTE | CD_CAP_EXECUTE_UNTIL |
+                CD_CAP_CLOSE_INPUT | CD_CAP_STDERR | CD_CAP_UPLOAD | CD_CAP_DOWNLOAD,
+            true, options.session_command.empty(), false, options.mode};
         auto defaults = std::move(options.defaults);
         return {std::move(defaults), traits, AdbConfig(std::move(options))};
     }
@@ -76,18 +59,15 @@ namespace cd
     ConnectionConfig connection_config(BackendConfig<CliConfig> options)
     {
         BackendTraits traits{"cli",
-                             CD_CAP_READ | CD_CAP_WRITE | CD_CAP_EXECUTE | CD_CAP_EXECUTE_UNTIL |
-                                 CD_CAP_CLOSE_INPUT | CD_CAP_STDERR,
-                             true,
-                             options.executable.empty(),
-                             false,
-                             options.mode};
+            CD_CAP_READ | CD_CAP_WRITE | CD_CAP_EXECUTE | CD_CAP_EXECUTE_UNTIL |
+                CD_CAP_CLOSE_INPUT | CD_CAP_STDERR,
+            true, options.executable.empty(), false, options.mode};
         auto defaults = std::move(options.defaults);
         return {std::move(defaults), traits, CliConfig(std::move(options))};
     }
 
-    std::shared_ptr<Backend> make_backend(std::shared_ptr<Runtime> runtime,
-                                          const ConnectionConfig& config, bool persistent)
+    std::shared_ptr<Backend> make_backend(
+        std::shared_ptr<Runtime> runtime, const ConnectionConfig& config, bool persistent)
     {
         return std::visit(
             [&](const auto& options) -> std::shared_ptr<Backend>

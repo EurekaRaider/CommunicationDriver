@@ -226,7 +226,7 @@ Set `CMAKE_PREFIX_PATH` to the `install` directory when configuring the consumer
 
 ### C# and NuGet
 
-Download the **`CommunicationDriver-NuGet`** artifact from a successful [Platform CI](https://github.com/EurekaRaider/CommunicationDriver/actions/workflows/ci.yml) run for the version you need. Place its `.nupkg` in a local NuGet feed, then reference **`CommunicationDriver` 0.1.2** using `PackageReference`. Distribution currently uses CI artifacts; the version in your project must match the downloaded package.
+Download `CommunicationDriver.0.1.2.nupkg` from [GitHub Releases](https://github.com/EurekaRaider/CommunicationDriver/releases). Place the `.nupkg` in a local NuGet feed, then reference **`CommunicationDriver` 0.1.2** using `PackageReference`. The version in your project must match the downloaded package. Successful [Platform CI](https://github.com/EurekaRaider/CommunicationDriver/actions/workflows/ci.yml) runs also retain their build artifacts.
 
 The merged package includes `net48 / net10.0`, native libraries for six RIDs, third-party licenses, and `skills/communicationdriver/`. Windows selects `win-x86 / win-x64` according to `PlatformTarget`. On Unix, set `RuntimeIdentifier` or `CommunicationDriverRid` as needed. Native library architecture must match the process.
 
@@ -239,6 +239,10 @@ The `dotnet build` command above produces the managed bindings; running an appli
 | macOS | `libcommunicationdriver_native.dylib` |
 
 Native packages also include headers, required companion runtime libraries, and the Windows import library. [test_native_package.py](scripts/test_native_package.py) validates independent C / C++ linking and execution against a package.
+
+### Releases
+
+[GitHub Releases](https://github.com/EurekaRaider/CommunicationDriver/releases) provide six native ZIPs, the merged NuGet package, the standalone agent skill, and `SHA256SUMS`. The [Release workflow](.github/workflows/release.yml) accepts a successful Platform CI run for its exact `main` commit, verifies the source headers and package contents, and publishes the assets against that commit. Run Platform CI first, then dispatch Release with that run's ID. Existing published versions are preserved; a new library version requires a new tag.
 
 <a id="agent-skill"></a>
 
@@ -253,7 +257,7 @@ The same skill source is delivered with each library build:
 | Source checkout | `skills/communicationdriver/` |
 | Native RID package or NuGet package | `skills/communicationdriver/` inside the package |
 | CMake installation | `<prefix>/share/communicationdriver/skills/communicationdriver/` with the default data directory |
-| **`CommunicationDriver-Skill`** CI artifact | `CommunicationDriver-Skill-0.1.2.zip`, containing `skills/communicationdriver/` |
+| GitHub Release or **`CommunicationDriver-Skill`** CI artifact | `CommunicationDriver-Skill-0.1.2.zip`, containing `skills/communicationdriver/` |
 
 Copy the whole `communicationdriver` folder into your agent's skills directory, preserving `SKILL.md` and its references. Use the skill from the same library version. Agents that load Markdown instructions directly can read `SKILL.md` without installing it. For example: “Use the CommunicationDriver skill to write a C# TCP consumer with a protocol delimiter, response checking, and cancellation.” The skill is independent of any specific agent product.
 
@@ -263,7 +267,7 @@ CI checks that the standalone archive, every native package, and NuGet packages 
 
 ## Platform Validation & Acceptance Scope
 
-The latest completed six-platform baseline before the 0.1.1 packaging changes is commit [`7d1e40c`](https://github.com/EurekaRaider/CommunicationDriver/commit/7d1e40c08bc43f947099a6a6aa18b2343acb063c), with a successful [Platform CI run](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/39036699365). The table records that CI coverage; device and longer stress runs below apply to their own identified builds. See the [validation report](docs/validation.md) for the evidence and limits.
+The architecture refactor at commit [`7f29ef7`](https://github.com/EurekaRaider/CommunicationDriver/commit/7f29ef72221d948b53d52991f3dc1fb9f5fd9933) passed all six platforms in [Platform CI](https://github.com/EurekaRaider/CommunicationDriver/actions/runs/39044724160). The table records that CI coverage; each release is additionally gated by its own exact-commit CI run. Device and longer stress runs apply to their identified builds. See the [validation report](docs/validation.md) for the evidence and limits.
 
 | Platform / RID | Native · C · C++ | .NET 10 | .NET Framework 4.8 | OpenSSH / SFTP |
 | --- | :---: | :---: | :---: | :---: |

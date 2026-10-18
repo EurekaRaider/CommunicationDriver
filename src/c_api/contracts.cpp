@@ -12,28 +12,11 @@ extern "C"
 
     const char* CD_CALL cd_status_name(cd_status_t s)
     {
-        static const char* names[] = {"OK",
-                                      "InvalidArgument",
-                                      "NotSupported",
-                                      "NotOpen",
-                                      "Closed",
-                                      "Timeout",
-                                      "Cancelled",
-                                      "ConnectionFailed",
-                                      "Disconnected",
-                                      "EndOfStream",
-                                      "AuthenticationFailed",
-                                      "HostKeyRejected",
-                                      "DeviceUnavailable",
-                                      "PermissionDenied",
-                                      "IOError",
-                                      "ProtocolError",
-                                      "EncodingError",
-                                      "LimitExceeded",
-                                      "Busy",
-                                      "NeedsRecovery",
-                                      "InvalidContext",
-                                      "InternalError"};
+        static const char* names[] = {"OK", "InvalidArgument", "NotSupported", "NotOpen", "Closed",
+            "Timeout", "Cancelled", "ConnectionFailed", "Disconnected", "EndOfStream",
+            "AuthenticationFailed", "HostKeyRejected", "DeviceUnavailable", "PermissionDenied",
+            "IOError", "ProtocolError", "EncodingError", "LimitExceeded", "Busy", "NeedsRecovery",
+            "InvalidContext", "InternalError"};
         return s >= 0 && s <= CD_INTERNAL_ERROR ? names[s] : "Unknown";
     }
 

@@ -1,0 +1,37 @@
+name: Release
+on:
+  workflow_dispatch:
+    inputs:
+      ci_run_id:
+        description: Successful Platform CI run for this main commit
+        required: true
+        type: string
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      CI_RUN_ID: ${{ inputs.ci_run_id }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Verify CI and prepare release assets
+        run: |
+          mkdir -p artifacts
+          [[ "$CI_RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GH_REPO/actions/runs/$CI_RUN_ID" > artifacts/ci-run.json
+          python scripts/prepare_release.py --ci-run artifacts/ci-run.json --commit "$GITHUB_SHA" --verify-only
+          gh run download "$CI_RUN_ID" --dir artifacts/release-input
+          python scripts/prepare_release.py --ci-run artifacts/ci-run.json --commit "$GITHUB_SHA"
+      - name: Publish GitHub Release
+        run: |
+          version=$(python -c "import json; print(json.load(open('artifacts/release-manifest.json'))['version'])")
+          gh api --method POST "repos/$GH_REPO/git/refs" -f "ref=refs/tags/v$version" -f "sha=$GITHUB_SHA"
+          gh release create "v$version" artifacts/release/* --verify-tag --target "$GITHUB_SHA" --title "CommunicationDriver $version" --notes-file artifacts/release-notes.md --latest

@@ -492,10 +492,10 @@ extern "C"
     CD_API cd_check_t CD_CALL cd_check_regex(cd_string_view_t pattern);
     CD_API cd_receive_until_t CD_CALL cd_receive_until_bytes(uint64_t count);
     CD_API cd_receive_until_t CD_CALL cd_receive_until_characters(uint64_t count);
-    CD_API cd_receive_until_t CD_CALL cd_receive_until_delimiter_string(cd_string_view_t delimiter,
-                                                                        int32_t include);
-    CD_API cd_receive_until_t CD_CALL cd_receive_until_delimiter_bytes(cd_bytes_view_t delimiter,
-                                                                       int32_t include);
+    CD_API cd_receive_until_t CD_CALL cd_receive_until_delimiter_string(
+        cd_string_view_t delimiter, int32_t include);
+    CD_API cd_receive_until_t CD_CALL cd_receive_until_delimiter_bytes(
+        cd_bytes_view_t delimiter, int32_t include);
     CD_API cd_receive_until_t CD_CALL cd_receive_until_line(cd_string_view_t new_line);
     CD_API cd_receive_until_t CD_CALL cd_receive_until_pattern(cd_string_view_t regex);
     CD_API cd_receive_until_t CD_CALL cd_receive_until_idle(uint64_t interval_ms);
@@ -504,8 +504,8 @@ extern "C"
 
     CD_API cd_status_t CD_CALL cd_driver_create(cd_driver_t** driver);
 #define CD_DECLARE_CREATE(name)                                                                    \
-    CD_API cd_status_t CD_CALL cd_create_##name(cd_driver_t*, const cd_##name##_options_t*,        \
-                                                cd_connection_t**, cd_result_t** error)
+    CD_API cd_status_t CD_CALL cd_create_##name(                                                   \
+        cd_driver_t*, const cd_##name##_options_t*, cd_connection_t**, cd_result_t** error)
     CD_DECLARE_CREATE(tcp);
     CD_DECLARE_CREATE(udp);
     CD_DECLARE_CREATE(serial);
@@ -516,14 +516,14 @@ extern "C"
     CD_API cd_state_t CD_CALL cd_connection_get_state(cd_connection_t*);
     CD_API cd_capabilities_t CD_CALL cd_connection_get_capabilities(cd_connection_t*);
     CD_API cd_status_t CD_CALL cd_driver_close(cd_driver_t*, cd_result_t**);
-    CD_API cd_status_t CD_CALL cd_driver_close_async(cd_driver_t*, cd_completion_fn, void*,
-                                                     cd_operation_t**);
+    CD_API cd_status_t CD_CALL cd_driver_close_async(
+        cd_driver_t*, cd_completion_fn, void*, cd_operation_t**);
 
 #define CD_DECLARE_SIMPLE(name)                                                                    \
-    CD_API cd_status_t CD_CALL cd_##name(cd_connection_t*, const cd_call_options_t*,               \
-                                         cd_result_t**);                                           \
-    CD_API cd_status_t CD_CALL cd_##name##_async(cd_connection_t*, const cd_call_options_t*,       \
-                                                 cd_completion_fn, void*, cd_operation_t**)
+    CD_API cd_status_t CD_CALL cd_##name(                                                          \
+        cd_connection_t*, const cd_call_options_t*, cd_result_t**);                                \
+    CD_API cd_status_t CD_CALL cd_##name##_async(                                                  \
+        cd_connection_t*, const cd_call_options_t*, cd_completion_fn, void*, cd_operation_t**)
     CD_DECLARE_SIMPLE(open);
     CD_DECLARE_SIMPLE(close);
     CD_DECLARE_SIMPLE(close_input);
@@ -532,38 +532,35 @@ extern "C"
     CD_DECLARE_SIMPLE(read_line);
 #undef CD_DECLARE_SIMPLE
 #define CD_DECLARE_EXACT(name)                                                                     \
-    CD_API cd_status_t CD_CALL cd_##name(cd_connection_t*, uint64_t count,                         \
-                                         const cd_call_options_t*, cd_result_t**);                 \
+    CD_API cd_status_t CD_CALL cd_##name(                                                          \
+        cd_connection_t*, uint64_t count, const cd_call_options_t*, cd_result_t**);                \
     CD_API cd_status_t CD_CALL cd_##name##_async(cd_connection_t*, uint64_t count,                 \
-                                                 const cd_call_options_t*, cd_completion_fn,       \
-                                                 void*, cd_operation_t**)
+        const cd_call_options_t*, cd_completion_fn, void*, cd_operation_t**)
     CD_DECLARE_EXACT(read_exactly_bytes);
     CD_DECLARE_EXACT(read_exactly_string);
 #undef CD_DECLARE_EXACT
 #define CD_DECLARE_UNTIL(name)                                                                     \
-    CD_API cd_status_t CD_CALL cd_##name(cd_connection_t*, const cd_receive_until_t*,              \
-                                         const cd_call_options_t*, cd_result_t**);                 \
+    CD_API cd_status_t CD_CALL cd_##name(                                                          \
+        cd_connection_t*, const cd_receive_until_t*, const cd_call_options_t*, cd_result_t**);     \
     CD_API cd_status_t CD_CALL cd_##name##_async(cd_connection_t*, const cd_receive_until_t*,      \
-                                                 const cd_call_options_t*, cd_completion_fn,       \
-                                                 void*, cd_operation_t**)
+        const cd_call_options_t*, cd_completion_fn, void*, cd_operation_t**)
     CD_DECLARE_UNTIL(read_until_bytes);
     CD_DECLARE_UNTIL(read_until_string);
 #undef CD_DECLARE_UNTIL
 #define CD_DECLARE_WRITE(name, type)                                                               \
-    CD_API cd_status_t CD_CALL cd_##name(cd_connection_t*, type, const cd_call_options_t*,         \
-                                         cd_result_t**);                                           \
+    CD_API cd_status_t CD_CALL cd_##name(                                                          \
+        cd_connection_t*, type, const cd_call_options_t*, cd_result_t**);                          \
     CD_API cd_status_t CD_CALL cd_##name##_async(cd_connection_t*, type, const cd_call_options_t*, \
-                                                 cd_completion_fn, void*, cd_operation_t**)
+        cd_completion_fn, void*, cd_operation_t**)
     CD_DECLARE_WRITE(write_bytes, cd_bytes_view_t);
     CD_DECLARE_WRITE(write_string, cd_string_view_t);
     CD_DECLARE_WRITE(write_line, cd_string_view_t);
 #undef CD_DECLARE_WRITE
 #define CD_DECLARE_EXEC(name, type)                                                                \
-    CD_API cd_status_t CD_CALL cd_##name(cd_connection_t*, type, const cd_check_t*,                \
-                                         const cd_call_options_t*, cd_result_t**);                 \
+    CD_API cd_status_t CD_CALL cd_##name(                                                          \
+        cd_connection_t*, type, const cd_check_t*, const cd_call_options_t*, cd_result_t**);       \
     CD_API cd_status_t CD_CALL cd_##name##_async(cd_connection_t*, type, const cd_check_t*,        \
-                                                 const cd_call_options_t*, cd_completion_fn,       \
-                                                 void*, cd_operation_t**)
+        const cd_call_options_t*, cd_completion_fn, void*, cd_operation_t**)
     CD_DECLARE_EXEC(execute_string, cd_string_view_t);
     CD_DECLARE_EXEC(execute_bytes, cd_bytes_view_t);
     CD_DECLARE_EXEC(execute_until_string, cd_string_view_t);
@@ -571,29 +568,26 @@ extern "C"
 #undef CD_DECLARE_EXEC
 #define CD_DECLARE_TRANSFER(name)                                                                  \
     CD_API cd_status_t CD_CALL cd_##name(cd_connection_t*, cd_string_view_t source,                \
-                                         cd_string_view_t destination,                             \
-                                         const cd_transfer_options_t*, cd_result_t**);             \
-    CD_API cd_status_t CD_CALL cd_##name##_async(                                                  \
-        cd_connection_t*, cd_string_view_t source, cd_string_view_t destination,                   \
-        const cd_transfer_options_t*, cd_completion_fn, void*, cd_operation_t**)
+        cd_string_view_t destination, const cd_transfer_options_t*, cd_result_t**);                \
+    CD_API cd_status_t CD_CALL cd_##name##_async(cd_connection_t*, cd_string_view_t source,        \
+        cd_string_view_t destination, const cd_transfer_options_t*, cd_completion_fn, void*,       \
+        cd_operation_t**)
     CD_DECLARE_TRANSFER(upload);
     CD_DECLARE_TRANSFER(download);
 #undef CD_DECLARE_TRANSFER
     CD_API cd_status_t CD_CALL cd_batch_run(cd_driver_t*, const cd_batch_item_t*, uint64_t count,
-                                            const cd_batch_options_t*, cd_result_t**);
+        const cd_batch_options_t*, cd_result_t**);
     CD_API cd_status_t CD_CALL cd_batch_run_async(cd_driver_t*, const cd_batch_item_t*,
-                                                  uint64_t count, const cd_batch_options_t*,
-                                                  cd_completion_fn, void*, cd_operation_t**);
-    CD_API cd_status_t CD_CALL cd_response_checker_is_match_string(cd_string_view_t,
-                                                                   const cd_check_t*,
-                                                                   cd_result_t**);
-    CD_API cd_status_t CD_CALL cd_response_checker_is_match_bytes(cd_bytes_view_t,
-                                                                  const cd_check_t*, cd_result_t**);
+        uint64_t count, const cd_batch_options_t*, cd_completion_fn, void*, cd_operation_t**);
+    CD_API cd_status_t CD_CALL cd_response_checker_is_match_string(
+        cd_string_view_t, const cd_check_t*, cd_result_t**);
+    CD_API cd_status_t CD_CALL cd_response_checker_is_match_bytes(
+        cd_bytes_view_t, const cd_check_t*, cd_result_t**);
 
     CD_API int32_t CD_CALL cd_operation_is_completed(cd_operation_t*);
     /* On success, wait returns a retained result; observer timeout does not cancel. */
-    CD_API cd_status_t CD_CALL cd_operation_wait(cd_operation_t*, uint64_t timeout_ms,
-                                                 cd_result_t**);
+    CD_API cd_status_t CD_CALL cd_operation_wait(
+        cd_operation_t*, uint64_t timeout_ms, cd_result_t**);
     CD_API void CD_CALL cd_operation_cancel(cd_operation_t*);
     CD_API cd_status_t CD_CALL cd_cancel_source_create(cd_cancel_source_t**);
     CD_API void CD_CALL cd_cancel_source_request(cd_cancel_source_t*);
@@ -610,18 +604,18 @@ extern "C"
     CD_API cd_status_t CD_CALL cd_result_get_status(const cd_result_t*);
     CD_API cd_result_kind_t CD_CALL cd_result_get_kind(const cd_result_t*);
     CD_API cd_status_t CD_CALL cd_result_get_error(const cd_result_t*, cd_error_info_t*);
-    CD_API cd_status_t CD_CALL cd_result_get_text(const cd_result_t*, cd_stream_t,
-                                                  cd_string_view_t*);
-    CD_API cd_status_t CD_CALL cd_result_get_bytes(const cd_result_t*, cd_stream_t,
-                                                   cd_bytes_view_t*);
+    CD_API cd_status_t CD_CALL cd_result_get_text(
+        const cd_result_t*, cd_stream_t, cd_string_view_t*);
+    CD_API cd_status_t CD_CALL cd_result_get_bytes(
+        const cd_result_t*, cd_stream_t, cd_bytes_view_t*);
     CD_API cd_status_t CD_CALL cd_result_get_check(const cd_result_t*, cd_check_result_t*);
-    CD_API cd_status_t CD_CALL cd_result_get_execution_info(const cd_result_t*,
-                                                            cd_execution_info_t*);
+    CD_API cd_status_t CD_CALL cd_result_get_execution_info(
+        const cd_result_t*, cd_execution_info_t*);
     CD_API cd_status_t CD_CALL cd_result_get_transfer(const cd_result_t*, cd_transfer_result_t*);
     CD_API cd_status_t CD_CALL cd_result_get_batch_info(const cd_result_t*, cd_batch_info_t*);
     /* item.result is borrowed, retain it to outlive the batch result. */
-    CD_API cd_status_t CD_CALL cd_result_get_batch_item(const cd_result_t*, uint64_t index,
-                                                        cd_batch_item_result_t*);
+    CD_API cd_status_t CD_CALL cd_result_get_batch_item(
+        const cd_result_t*, uint64_t index, cd_batch_item_result_t*);
 #ifdef __cplusplus
 }
 #endif

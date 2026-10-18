@@ -48,7 +48,7 @@ namespace cd
             bool cmd_shell = config.executable.empty() && !one &&
                              (config.shell == CD_SHELL_CMD
 #ifdef _WIN32
-                              || config.shell == CD_SHELL_DEFAULT
+                                 || config.shell == CD_SHELL_DEFAULT
 #endif
                              );
 
@@ -72,9 +72,8 @@ namespace cd
             child =
                 spawn_process_macos(runtime->state->io, path, args, env_list, dir, input, out, err);
 #else
-            child = std::make_shared<process::process>(
-                runtime->state->io, path, args, process::process_stdio{input, out, err},
-                process::process_environment(env_list),
+            child = std::make_shared<process::process>(runtime->state->io, path, args,
+                process::process_stdio{input, out, err}, process::process_environment(env_list),
                 process::process_start_dir(process::filesystem::path(dir.native())));
 #endif
             pump(0);
@@ -135,27 +134,26 @@ namespace cd
         bool direct = !config.executable.empty();
         auto self = std::static_pointer_cast<ProcessChannel>(shared_from_this());
         launch(command, true,
-               [self, direct, command, cb](cd_status_t s, std::string m, int64_t n)
-               {
-                   if (s != CD_OK)
-                   {
-                       cb(s, m, n);
-                       return;
-                   }
+            [self, direct, command, cb](cd_status_t s, std::string m, int64_t n)
+            {
+                if (s != CD_OK)
+                {
+                    cb(s, m, n);
+                    return;
+                }
 
-                   if (direct)
-                       self->write(
-                           command,
-                           [self, cb](cd_status_t status, std::string message, int64_t native)
-                           {
-                               if (status != CD_OK)
-                                   cb(status, message, native);
-                               else
-                                   self->close_input(cb);
-                           });
-                   else
-                       self->close_input(cb);
-               });
+                if (direct)
+                    self->write(command,
+                        [self, cb](cd_status_t status, std::string message, int64_t native)
+                        {
+                            if (status != CD_OK)
+                                cb(status, message, native);
+                            else
+                                self->close_input(cb);
+                        });
+                else
+                    self->close_input(cb);
+            });
     }
 
     void ProcessChannel::pump(int stream)
@@ -163,8 +161,7 @@ namespace cd
         auto self = std::static_pointer_cast<ProcessChannel>(shared_from_this());
         auto& pipe = stream ? err : out;
         auto& b = stream ? err_buffer : out_buffer;
-        pipe.async_read_some(
-            asio::buffer(b),
+        pipe.async_read_some(asio::buffer(b),
             [self, stream](ErrorCode ec, size_t n)
             {
                 if (self->stopped)
@@ -194,7 +191,7 @@ namespace cd
                     {
                         auto cb = std::exchange(self->shell.prompt_ready, {});
                         cb(CD_CONNECTION_FAILED, "CMD exited before managed prompt handshake",
-                           ec.value());
+                            ec.value());
                     }
 
                     self->output(stream, {}, true);
@@ -213,10 +210,10 @@ namespace cd
         auto bytes = std::make_shared<std::string>(std::move(data));
         auto self = shared_from_this();
         asio::async_write(input, asio::buffer(*bytes),
-                          [self, bytes, cb](ErrorCode ec, size_t)
-                          {
-                              cb(ec ? CD_IO_ERROR : CD_OK, ec.message(), ec.value());
-                          });
+            [self, bytes, cb](ErrorCode ec, size_t)
+            {
+                cb(ec ? CD_IO_ERROR : CD_OK, ec.message(), ec.value());
+            });
     }
 
     void ProcessChannel::close_input(Completion cb)

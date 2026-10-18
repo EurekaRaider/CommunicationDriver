@@ -7,7 +7,8 @@ namespace comm
     {
         std::shared_ptr<cd_driver_t> handle_;
 
-        template <class F> Connection create(F&& f)
+        template <class F>
+        Connection create(F&& f)
         {
             cd_connection_t* c = nullptr;
             cd_result_t* e = nullptr;
@@ -18,7 +19,7 @@ namespace comm
             return Connection(c, handle_);
         }
 
-      public:
+    public:
         Driver()
         {
             cd_driver_t* h = nullptr;

@@ -15,10 +15,10 @@ cd_connection::~cd_connection()
 {
     auto c = value;
     asio::post(c->runtime->state->io,
-               [c]
-               {
-                   c->force_close();
-               });
+        [c]
+        {
+            c->force_close();
+        });
 }
 
 cd_result::cd_result(std::shared_ptr<Result> r) : CdHandle(std::move(r))

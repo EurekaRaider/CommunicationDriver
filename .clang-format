@@ -1,11 +1,16 @@
 BasedOnStyle: LLVM
 IndentWidth: 4
+ContinuationIndentWidth: 4
+ConstructorInitializerIndentWidth: 4
+AccessModifierOffset: -4
+AlignAfterOpenBracket: false
 TabWidth: 4
 UseTab: Never
 LineEnding: LF
 ColumnLimit: 100
 MaxEmptyLinesToKeep: 1
 BreakBeforeBraces: Allman
+BreakTemplateDeclarations: Yes
 AllowShortBlocksOnASingleLine: Never
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortEnumsOnASingleLine: false

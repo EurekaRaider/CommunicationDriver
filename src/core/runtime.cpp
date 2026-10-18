@@ -40,10 +40,10 @@ namespace cd
         if (connections.size() >= cleanup_at)
         {
             std::erase_if(connections,
-                          [](const auto& connection)
-                          {
-                              return connection.expired();
-                          });
+                [](const auto& connection)
+                {
+                    return connection.expired();
+                });
             cleanup_at = std::max<size_t>(64, connections.size() * 2);
         }
 
@@ -64,15 +64,15 @@ namespace cd
 
         auto self = state;
         asio::post(state->io,
-                   [self, list = std::move(list), cb = std::move(callback)]() mutable
-                   {
-                       for (auto& c : list)
-                           c->force_close();
-                       if (self->file_jobs)
-                           self->file_waiters.push_back(std::move(cb));
-                       else
-                           asio::post(self->io, std::move(cb));
-                   });
+            [self, list = std::move(list), cb = std::move(callback)]() mutable
+            {
+                for (auto& c : list)
+                    c->force_close();
+                if (self->file_jobs)
+                    self->file_waiters.push_back(std::move(cb));
+                else
+                    asio::post(self->io, std::move(cb));
+            });
     }
 
     void Runtime::file_job(std::function<void()> work, std::function<void(std::exception_ptr)> done)
@@ -80,32 +80,32 @@ namespace cd
         auto s = state;
         ++s->file_jobs;
         asio::post(s->files,
-                   [s, work = std::move(work), done = std::move(done)]() mutable
-                   {
-                       std::exception_ptr error;
+            [s, work = std::move(work), done = std::move(done)]() mutable
+            {
+                std::exception_ptr error;
 
-                       try
-                       {
-                           work();
-                       }
-                       catch (...)
-                       {
-                           error = std::current_exception();
-                       }
+                try
+                {
+                    work();
+                }
+                catch (...)
+                {
+                    error = std::current_exception();
+                }
 
-                       work = {};
-                       asio::post(s->io,
-                                  [s, error, done = std::move(done)]() mutable
-                                  {
-                                      done(error);
-                                      if (--s->file_jobs == 0)
-                                      {
-                                          auto waiters = std::exchange(s->file_waiters, {});
-                                          for (auto& cb : waiters)
-                                              asio::post(s->io, std::move(cb));
-                                      }
-                                  });
-                   });
+                work = {};
+                asio::post(s->io,
+                    [s, error, done = std::move(done)]() mutable
+                    {
+                        done(error);
+                        if (--s->file_jobs == 0)
+                        {
+                            auto waiters = std::exchange(s->file_waiters, {});
+                            for (auto& cb : waiters)
+                                asio::post(s->io, std::move(cb));
+                        }
+                    });
+            });
     }
 
     void Runtime::after_files(std::function<void()> done)

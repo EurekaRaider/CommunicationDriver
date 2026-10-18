@@ -40,8 +40,8 @@ namespace cd::abi
         return status;
     }
 
-    cd_status_t accept(std::shared_ptr<Operation> op, cd_completion_fn cb, void* user,
-                       cd_operation_t** out)
+    cd_status_t accept(
+        std::shared_ptr<Operation> op, cd_completion_fn cb, void* user, cd_operation_t** out)
     {
         require(out, "Operation output required");
 
@@ -70,8 +70,8 @@ namespace cd::abi
         return CD_OK;
     }
 
-    std::shared_ptr<Request> request(cd_connection_t* c, Action action, bool text,
-                                     const cd_call_options_t* options)
+    std::shared_ptr<Request> request(
+        cd_connection_t* c, Action action, bool text, const cd_call_options_t* options)
     {
         require(c, "Connection required");
 
@@ -79,14 +79,14 @@ namespace cd::abi
         uint64_t timeout = action == Action::Open    ? defaults.connect_ms
                            : action == Action::Close ? defaults.close_ms
                            : (action == Action::Execute || action == Action::ExecuteUntil ||
-                              action == Action::Upload || action == Action::Download)
+                                 action == Action::Upload || action == Action::Download)
                                ? defaults.execution_ms
                                : defaults.io_ms;
         return std::make_shared<Request>(action, text, Options(defaults, options, timeout));
     }
 
     cd_status_t submit(cd_connection_t* c, std::shared_ptr<Request> r, cd_completion_fn cb,
-                       void* user, cd_operation_t** out)
+        void* user, cd_operation_t** out)
     {
         require(r->options.timeout <= max_timeout_ms, "Operation timeout is out of range");
 

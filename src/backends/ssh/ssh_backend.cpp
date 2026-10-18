@@ -223,8 +223,7 @@ namespace cd
         open_callback = std::move(cb);
 
         auto self = std::static_pointer_cast<SshBackend>(shared_from_this());
-        resolver.async_resolve(
-            config.host, std::to_string(config.port),
+        resolver.async_resolve(config.host, std::to_string(config.port),
             [self](ErrorCode ec, asio::ip::tcp::resolver::results_type eps)
             {
                 if (self->stopped)
@@ -238,31 +237,31 @@ namespace cd
                 }
 
                 asio::async_connect(self->socket, eps,
-                                    [self](ErrorCode e, const auto&)
-                                    {
-                                        if (self->stopped)
-                                            return;
+                    [self](ErrorCode e, const auto&)
+                    {
+                        if (self->stopped)
+                            return;
 
-                                        if (e)
-                                        {
-                                            auto callback = std::exchange(self->open_callback, {});
-                                            callback(CD_CONNECTION_FAILED, e.message(), e.value());
-                                            return;
-                                        }
+                        if (e)
+                        {
+                            auto callback = std::exchange(self->open_callback, {});
+                            callback(CD_CONNECTION_FAILED, e.message(), e.value());
+                            return;
+                        }
 
-                                        self->socket.non_blocking(true);
-                                        self->session = libssh2_session_init();
+                        self->socket.non_blocking(true);
+                        self->session = libssh2_session_init();
 
-                                        if (!self->session)
-                                        {
-                                            self->report(CD_INTERNAL_ERROR, LIBSSH2_ERROR_ALLOC);
-                                            return;
-                                        }
+                        if (!self->session)
+                        {
+                            self->report(CD_INTERNAL_ERROR, LIBSSH2_ERROR_ALLOC);
+                            return;
+                        }
 
-                                        libssh2_session_set_blocking(self->session, 0);
-                                        self->phase = 1;
-                                        self->drive();
-                                    });
+                        libssh2_session_set_blocking(self->session, 0);
+                        self->phase = 1;
+                        self->drive();
+                    });
             });
     }
 
@@ -293,8 +292,8 @@ namespace cd
         int type = 0;
         auto key = libssh2_session_hostkey(session, &length, &type);
 
-        if (key && libssh2_knownhost_readfile(known, config.host_key.c_str(),
-                                              LIBSSH2_KNOWNHOST_FILE_OPENSSH) >= 0)
+        if (key && libssh2_knownhost_readfile(
+                       known, config.host_key.c_str(), LIBSSH2_KNOWNHOST_FILE_OPENSSH) >= 0)
         {
             int kind = type == LIBSSH2_HOSTKEY_TYPE_RSA         ? LIBSSH2_KNOWNHOST_KEY_SSHRSA
                        : type == LIBSSH2_HOSTKEY_TYPE_DSS       ? LIBSSH2_KNOWNHOST_KEY_SSHDSS
@@ -303,10 +302,10 @@ namespace cd
                        : type == LIBSSH2_HOSTKEY_TYPE_ECDSA_521 ? LIBSSH2_KNOWNHOST_KEY_ECDSA_521
                                                                 : LIBSSH2_KNOWNHOST_KEY_ED25519;
             libssh2_knownhost* host = nullptr;
-            accepted = libssh2_knownhost_checkp(
-                           known, config.host.c_str(), config.port, key, length,
-                           LIBSSH2_KNOWNHOST_TYPE_PLAIN | LIBSSH2_KNOWNHOST_KEYENC_RAW | kind,
-                           &host) == LIBSSH2_KNOWNHOST_CHECK_MATCH;
+            accepted =
+                libssh2_knownhost_checkp(known, config.host.c_str(), config.port, key, length,
+                    LIBSSH2_KNOWNHOST_TYPE_PLAIN | LIBSSH2_KNOWNHOST_KEYENC_RAW | kind,
+                    &host) == LIBSSH2_KNOWNHOST_CHECK_MATCH;
         }
 
         libssh2_knownhost_free(known);
@@ -340,16 +339,14 @@ namespace cd
 
         if (phase == 3)
         {
-            int rc =
-                config.auth == CD_AUTH_PASSWORD
-                    ? libssh2_userauth_password_ex(
-                          session, config.user.c_str(), static_cast<unsigned>(config.user.size()),
-                          config.password.c_str(), static_cast<unsigned>(config.password.size()),
-                          nullptr)
-                    : libssh2_userauth_publickey_fromfile_ex(
-                          session, config.user.c_str(), static_cast<unsigned>(config.user.size()),
-                          nullptr, config.private_key.c_str(),
-                          config.passphrase.empty() ? nullptr : config.passphrase.c_str());
+            int rc = config.auth == CD_AUTH_PASSWORD
+                         ? libssh2_userauth_password_ex(session, config.user.c_str(),
+                               static_cast<unsigned>(config.user.size()), config.password.c_str(),
+                               static_cast<unsigned>(config.password.size()), nullptr)
+                         : libssh2_userauth_publickey_fromfile_ex(session, config.user.c_str(),
+                               static_cast<unsigned>(config.user.size()), nullptr,
+                               config.private_key.c_str(),
+                               config.passphrase.empty() ? nullptr : config.passphrase.c_str());
 
             if (retry(rc, CD_AUTHENTICATION_FAILED))
                 return;
@@ -422,8 +419,7 @@ namespace cd
                 for (int budget = 0; budget < 8; ++budget)
                 {
                     auto n = libssh2_channel_read_ex(stdio_channel,
-                                                     stream ? SSH_EXTENDED_DATA_STDERR : 0, buffer,
-                                                     sizeof(buffer));
+                        stream ? SSH_EXTENDED_DATA_STDERR : 0, buffer, sizeof(buffer));
 
                     if (n <= 0)
                         break;
@@ -464,7 +460,7 @@ namespace cd
                 while (write_offset < write_data.size())
                 {
                     auto n = libssh2_channel_write_ex(channel, 0, write_data.data() + write_offset,
-                                                      write_data.size() - write_offset);
+                        write_data.size() - write_offset);
 
                     if (retry(static_cast<int>(n)))
                         return;
@@ -492,8 +488,8 @@ namespace cd
 
             for (int budget = 0; budget < 8; ++budget)
             {
-                auto n = libssh2_channel_read_ex(channel, stream ? SSH_EXTENDED_DATA_STDERR : 0,
-                                                 buffer, sizeof(buffer));
+                auto n = libssh2_channel_read_ex(
+                    channel, stream ? SSH_EXTENDED_DATA_STDERR : 0, buffer, sizeof(buffer));
 
                 if (n > 0)
                 {
@@ -552,10 +548,10 @@ namespace cd
             {
                 auto self = std::static_pointer_cast<SshBackend>(shared_from_this());
                 asio::post(runtime->state->io,
-                           [self]
-                           {
-                               self->drive();
-                           });
+                    [self]
+                    {
+                        self->drive();
+                    });
             }
 
             return;
@@ -577,10 +573,10 @@ namespace cd
         {
             auto self = std::static_pointer_cast<SshBackend>(shared_from_this());
             asio::post(runtime->state->io,
-                       [self]
-                       {
-                           self->drive();
-                       });
+                [self]
+                {
+                    self->drive();
+                });
         }
         else
             wait_socket();
@@ -656,7 +652,7 @@ namespace cd
     }
 
     void SshBackend::transfer(bool is_upload, std::string from, std::string to, bool replace,
-                              std::function<void(uint64_t)> on_progress, Completion cb)
+        std::function<void(uint64_t)> on_progress, Completion cb)
     {
         transfer_partial_file.clear();
         upload = is_upload;
@@ -686,13 +682,13 @@ namespace cd
             auto stream = local;
             runtime->file_job(
                 [stream, is_upload = upload, replace = overwrite,
-                 path = utf8_path(upload ? source : destination)]
+                    path = utf8_path(upload ? source : destination)]
                 {
                     stream->open(path,
-                                 std::ios::binary |
-                                     (is_upload ? std::ios::in
-                                                : std::ios::out | (replace ? std::ios::trunc
-                                                                           : std::ios::noreplace)));
+                        std::ios::binary |
+                            (is_upload ? std::ios::in
+                                       : std::ios::out |
+                                             (replace ? std::ios::trunc : std::ios::noreplace)));
                     if (!*stream)
                         throw Fault(CD_IO_ERROR, "Cannot open local file");
                 },
@@ -751,10 +747,10 @@ namespace cd
         {
             auto remote = upload ? destination : source;
             auto flags = upload ? (LIBSSH2_FXF_WRITE | LIBSSH2_FXF_CREAT |
-                                   (overwrite ? LIBSSH2_FXF_TRUNC : LIBSSH2_FXF_EXCL))
+                                      (overwrite ? LIBSSH2_FXF_TRUNC : LIBSSH2_FXF_EXCL))
                                 : LIBSSH2_FXF_READ;
             file = libssh2_sftp_open_ex(sftp, remote.c_str(), static_cast<unsigned>(remote.size()),
-                                        flags, 0644, LIBSSH2_SFTP_OPENFILE);
+                flags, 0644, LIBSSH2_SFTP_OPENFILE);
 
             if (!file)
             {
@@ -828,8 +824,8 @@ namespace cd
                         return;
                     }
 
-                    auto n = libssh2_sftp_write(file, file_buffer.data() + file_offset,
-                                                file_size - file_offset);
+                    auto n = libssh2_sftp_write(
+                        file, file_buffer.data() + file_offset, file_size - file_offset);
 
                     if (n == LIBSSH2_ERROR_EAGAIN || n == 0)
                     {
@@ -908,10 +904,10 @@ namespace cd
             {
                 auto self = std::static_pointer_cast<SshBackend>(shared_from_this());
                 asio::post(runtime->state->io,
-                           [self]
-                           {
-                               self->drive();
-                           });
+                    [self]
+                    {
+                        self->drive();
+                    });
                 return;
             }
         }

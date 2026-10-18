@@ -26,7 +26,8 @@ namespace comm
             return Operation<T>(op, stop, stream);
         }
 
-        template <class T, class F> T complete(F&& call, std::stop_token stop, int stream = 0) const
+        template <class T, class F>
+        T complete(F&& call, std::stop_token stop, int stream = 0) const
         {
             cd_cancel_source_t* cancellation = nullptr;
 
@@ -39,10 +40,10 @@ namespace comm
 
             if (cancellation)
                 callback.emplace(stop,
-                                 [cancellation]
-                                 {
-                                     cd_cancel_source_request(cancellation);
-                                 });
+                    [cancellation]
+                    {
+                        cd_cancel_source_request(cancellation);
+                    });
 
             cd_result_t* h = nullptr;
             auto status = call(handle_.get(), cancellation, &h);
@@ -55,7 +56,7 @@ namespace comm
                 return detail::convert<T>(h);
         }
 
-      public:
+    public:
         State state() const
         {
             return static_cast<State>(cd_connection_get_state(handle_.get()));
@@ -89,8 +90,8 @@ namespace comm
                 stop);
         }
 
-        Operation<void> close_async(const CallOptions& options = {},
-                                    std::stop_token stop = {}) const
+        Operation<void> close_async(
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<void>(
@@ -113,8 +114,8 @@ namespace comm
                 stop);
         }
 
-        Operation<void> close_input_async(const CallOptions& options = {},
-                                          std::stop_token stop = {}) const
+        Operation<void> close_input_async(
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<void>(
@@ -137,8 +138,8 @@ namespace comm
                 stop);
         }
 
-        Operation<Bytes> read_bytes_async(const CallOptions& options = {},
-                                          std::stop_token stop = {}) const
+        Operation<Bytes> read_bytes_async(
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<Bytes>(
@@ -161,8 +162,8 @@ namespace comm
                 stop, static_cast<int>(options.read_stream));
         }
 
-        Operation<std::string> read_string_async(const CallOptions& options = {},
-                                                 std::stop_token stop = {}) const
+        Operation<std::string> read_string_async(
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<std::string>(
@@ -185,8 +186,8 @@ namespace comm
                 stop, static_cast<int>(options.read_stream));
         }
 
-        Operation<std::string> read_line_async(const CallOptions& options = {},
-                                               std::stop_token stop = {}) const
+        Operation<std::string> read_line_async(
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<std::string>(
@@ -209,8 +210,8 @@ namespace comm
                 stop, static_cast<int>(options.read_stream));
         }
 
-        Operation<Bytes> read_exactly_bytes_async(uint64_t count, const CallOptions& options = {},
-                                                  std::stop_token stop = {}) const
+        Operation<Bytes> read_exactly_bytes_async(
+            uint64_t count, const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<Bytes>(
@@ -221,8 +222,8 @@ namespace comm
                 stop, static_cast<int>(options.read_stream));
         }
 
-        Bytes read_exactly_bytes(uint64_t count, const CallOptions& options = {},
-                                 std::stop_token stop = {}) const
+        Bytes read_exactly_bytes(
+            uint64_t count, const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return complete<Bytes>(
@@ -234,9 +235,8 @@ namespace comm
                 stop, static_cast<int>(options.read_stream));
         }
 
-        Operation<std::string> read_exactly_string_async(uint64_t count,
-                                                         const CallOptions& options = {},
-                                                         std::stop_token stop = {}) const
+        Operation<std::string> read_exactly_string_async(
+            uint64_t count, const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<std::string>(
@@ -247,8 +247,8 @@ namespace comm
                 stop, static_cast<int>(options.read_stream));
         }
 
-        std::string read_exactly_string(uint64_t count, const CallOptions& options = {},
-                                        std::stop_token stop = {}) const
+        std::string read_exactly_string(
+            uint64_t count, const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return complete<std::string>(
@@ -261,8 +261,7 @@ namespace comm
         }
 
         Operation<Bytes> read_until_bytes_async(const ReceiveUntil& until,
-                                                const CallOptions& options = {},
-                                                std::stop_token stop = {}) const
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto u = until.native();
@@ -275,7 +274,7 @@ namespace comm
         }
 
         Bytes read_until_bytes(const ReceiveUntil& until, const CallOptions& options = {},
-                               std::stop_token stop = {}) const
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto u = until.native();
@@ -289,8 +288,7 @@ namespace comm
         }
 
         Operation<std::string> read_until_string_async(const ReceiveUntil& until,
-                                                       const CallOptions& options = {},
-                                                       std::stop_token stop = {}) const
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto u = until.native();
@@ -303,7 +301,7 @@ namespace comm
         }
 
         std::string read_until_string(const ReceiveUntil& until, const CallOptions& options = {},
-                                      std::stop_token stop = {}) const
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto u = until.native();
@@ -317,8 +315,7 @@ namespace comm
         }
 
         Operation<void> write_bytes_async(std::span<const std::byte> input,
-                                          const CallOptions& options = {},
-                                          std::stop_token stop = {}) const
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<void>(
@@ -330,7 +327,7 @@ namespace comm
         }
 
         void write_bytes(std::span<const std::byte> input, const CallOptions& options = {},
-                         std::stop_token stop = {}) const
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             return complete<void>(
@@ -343,7 +340,7 @@ namespace comm
         }
 
         Operation<void> write_string_async(std::string_view input, const CallOptions& options = {},
-                                           std::stop_token stop = {}) const
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<void>(
@@ -355,7 +352,7 @@ namespace comm
         }
 
         void write_string(std::string_view input, const CallOptions& options = {},
-                          std::stop_token stop = {}) const
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             return complete<void>(
@@ -368,7 +365,7 @@ namespace comm
         }
 
         Operation<void> write_line_async(std::string_view input, const CallOptions& options = {},
-                                         std::stop_token stop = {}) const
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<void>(
@@ -380,7 +377,7 @@ namespace comm
         }
 
         void write_line(std::string_view input, const CallOptions& options = {},
-                        std::stop_token stop = {}) const
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             return complete<void>(
@@ -392,25 +389,24 @@ namespace comm
                 stop);
         }
 
-        Operation<ExecutionResult<std::string>>
-        execute_async(std::string_view command, const std::optional<Check>& check = {},
-                      const CallOptions& options = {}, std::stop_token stop = {}) const
+        Operation<ExecutionResult<std::string>> execute_async(std::string_view command,
+            const std::optional<Check>& check = {}, const CallOptions& options = {},
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = check ? check->native() : cd_check_t{};
             return begin<ExecutionResult<std::string>>(
                 [&](auto* c, auto** op)
                 {
-                    return cd_execute_string_async(c, detail::view(command), check ? &ch : nullptr,
-                                                   &o, nullptr, nullptr, op);
+                    return cd_execute_string_async(
+                        c, detail::view(command), check ? &ch : nullptr, &o, nullptr, nullptr, op);
                 },
                 stop);
         }
 
         ExecutionResult<std::string> execute(std::string_view command,
-                                             const std::optional<Check>& check = {},
-                                             const CallOptions& options = {},
-                                             std::stop_token stop = {}) const
+            const std::optional<Check>& check = {}, const CallOptions& options = {},
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = check ? check->native() : cd_check_t{};
@@ -418,31 +414,28 @@ namespace comm
                 [&](auto* c, auto* cancellation, auto** result)
                 {
                     o.cancellation = cancellation;
-                    return cd_execute_string(c, detail::view(command), check ? &ch : nullptr, &o,
-                                             result);
+                    return cd_execute_string(
+                        c, detail::view(command), check ? &ch : nullptr, &o, result);
                 },
                 stop);
         }
 
         Operation<ExecutionResult<std::string>> execute_until_async(std::string_view command,
-                                                                    const Check& match,
-                                                                    const CallOptions& options = {},
-                                                                    std::stop_token stop = {}) const
+            const Check& match, const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = match.native();
             return begin<ExecutionResult<std::string>>(
                 [&](auto* c, auto** op)
                 {
-                    return cd_execute_until_string_async(c, detail::view(command), &ch, &o, nullptr,
-                                                         nullptr, op);
+                    return cd_execute_until_string_async(
+                        c, detail::view(command), &ch, &o, nullptr, nullptr, op);
                 },
                 stop);
         }
 
         ExecutionResult<std::string> execute_until(std::string_view command, const Check& match,
-                                                   const CallOptions& options = {},
-                                                   std::stop_token stop = {}) const
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = match.native();
@@ -456,25 +449,23 @@ namespace comm
         }
 
         Operation<ExecutionResult<Bytes>> execute_async(std::span<const std::byte> command,
-                                                        const std::optional<Check>& check = {},
-                                                        const CallOptions& options = {},
-                                                        std::stop_token stop = {}) const
+            const std::optional<Check>& check = {}, const CallOptions& options = {},
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = check ? check->native() : cd_check_t{};
             return begin<ExecutionResult<Bytes>>(
                 [&](auto* c, auto** op)
                 {
-                    return cd_execute_bytes_async(c, detail::view(command), check ? &ch : nullptr,
-                                                  &o, nullptr, nullptr, op);
+                    return cd_execute_bytes_async(
+                        c, detail::view(command), check ? &ch : nullptr, &o, nullptr, nullptr, op);
                 },
                 stop);
         }
 
         ExecutionResult<Bytes> execute(std::span<const std::byte> command,
-                                       const std::optional<Check>& check = {},
-                                       const CallOptions& options = {},
-                                       std::stop_token stop = {}) const
+            const std::optional<Check>& check = {}, const CallOptions& options = {},
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = check ? check->native() : cd_check_t{};
@@ -482,31 +473,28 @@ namespace comm
                 [&](auto* c, auto* cancellation, auto** result)
                 {
                     o.cancellation = cancellation;
-                    return cd_execute_bytes(c, detail::view(command), check ? &ch : nullptr, &o,
-                                            result);
+                    return cd_execute_bytes(
+                        c, detail::view(command), check ? &ch : nullptr, &o, result);
                 },
                 stop);
         }
 
         Operation<ExecutionResult<Bytes>> execute_until_async(std::span<const std::byte> command,
-                                                              const Check& match,
-                                                              const CallOptions& options = {},
-                                                              std::stop_token stop = {}) const
+            const Check& match, const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = match.native();
             return begin<ExecutionResult<Bytes>>(
                 [&](auto* c, auto** op)
                 {
-                    return cd_execute_until_bytes_async(c, detail::view(command), &ch, &o, nullptr,
-                                                        nullptr, op);
+                    return cd_execute_until_bytes_async(
+                        c, detail::view(command), &ch, &o, nullptr, nullptr, op);
                 },
                 stop);
         }
 
         ExecutionResult<Bytes> execute_until(std::span<const std::byte> command, const Check& match,
-                                             const CallOptions& options = {},
-                                             std::stop_token stop = {}) const
+            const CallOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             auto ch = match.native();
@@ -520,60 +508,57 @@ namespace comm
         }
 
         Operation<TransferResult> upload_async(std::string_view source,
-                                               std::string_view destination,
-                                               const TransferOptions& options = {},
-                                               std::stop_token stop = {}) const
+            std::string_view destination, const TransferOptions& options = {},
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<TransferResult>(
                 [&](auto* c, auto** op)
                 {
                     return cd_upload_async(c, detail::view(source), detail::view(destination), &o,
-                                           nullptr, nullptr, op);
+                        nullptr, nullptr, op);
                 },
                 stop);
         }
 
         TransferResult upload(std::string_view source, std::string_view destination,
-                              const TransferOptions& options = {}, std::stop_token stop = {}) const
+            const TransferOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return complete<TransferResult>(
                 [&](auto* c, auto* cancellation, auto** result)
                 {
                     o.cancellation = cancellation;
-                    return cd_upload(c, detail::view(source), detail::view(destination), &o,
-                                     result);
+                    return cd_upload(
+                        c, detail::view(source), detail::view(destination), &o, result);
                 },
                 stop);
         }
 
         Operation<TransferResult> download_async(std::string_view source,
-                                                 std::string_view destination,
-                                                 const TransferOptions& options = {},
-                                                 std::stop_token stop = {}) const
+            std::string_view destination, const TransferOptions& options = {},
+            std::stop_token stop = {}) const
         {
             auto o = options.native();
             return begin<TransferResult>(
                 [&](auto* c, auto** op)
                 {
                     return cd_download_async(c, detail::view(source), detail::view(destination), &o,
-                                             nullptr, nullptr, op);
+                        nullptr, nullptr, op);
                 },
                 stop);
         }
 
         TransferResult download(std::string_view source, std::string_view destination,
-                                const TransferOptions& options = {},
-                                std::stop_token stop = {}) const
+            const TransferOptions& options = {}, std::stop_token stop = {}) const
         {
             auto o = options.native();
             return complete<TransferResult>(
                 [&](auto* c, auto* cancellation, auto** result)
                 {
                     o.cancellation = cancellation;
-                    return cd_download(c, detail::view(source), detail::view(destination), &o,
-                                       result);
+                    return cd_download(
+                        c, detail::view(source), detail::view(destination), &o, result);
                 },
                 stop);
         }

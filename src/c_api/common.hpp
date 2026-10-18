@@ -4,13 +4,15 @@
 
 namespace cd::abi
 {
-    template <class T> void retain(T* h)
+    template <class T>
+    void retain(T* h)
     {
         if (h)
             h->refs.fetch_add(1, std::memory_order_relaxed);
     }
 
-    template <class T> void release(T* h)
+    template <class T>
+    void release(T* h)
     {
         if (h && h->refs.fetch_sub(1, std::memory_order_acq_rel) == 1)
             delete h;
@@ -31,10 +33,11 @@ namespace cd::abi
     cd_status_t exception_result(cd_result_t**) noexcept;
     cd_status_t accept(std::shared_ptr<Operation>, cd_completion_fn, void*, cd_operation_t**);
     std::shared_ptr<Request> request(cd_connection_t*, Action, bool, const cd_call_options_t*);
-    cd_status_t submit(cd_connection_t*, std::shared_ptr<Request>, cd_completion_fn, void*,
-                       cd_operation_t**);
+    cd_status_t submit(
+        cd_connection_t*, std::shared_ptr<Request>, cd_completion_fn, void*, cd_operation_t**);
 
-    template <class F> cd_status_t synchronous(cd_connection_t* c, cd_result_t** result, F&& start)
+    template <class F>
+    cd_status_t synchronous(cd_connection_t* c, cd_result_t** result, F&& start)
     {
         if (result)
 

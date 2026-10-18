@@ -26,7 +26,8 @@ static void expect(bool value, const char* message)
     if (!value)
         throw std::runtime_error(message);
 }
-template <class T, void (*Release)(T*)> using Handle = std::unique_ptr<T, decltype(Release)>;
+template <class T, void (*Release)(T*)>
+using Handle = std::unique_ptr<T, decltype(Release)>;
 using Driver = Handle<cd_driver_t, cd_driver_release>;
 using Connection = Handle<cd_connection_t, cd_connection_release>;
 using Operation = Handle<cd_operation_t, cd_operation_release>;
@@ -58,7 +59,7 @@ static Result wait(cd_operation_t* operation)
 {
     cd_result_t* h = nullptr;
     expect(cd_operation_wait(operation, 5000, &h) == CD_OK,
-           "accepted operation must complete within watchdog");
+        "accepted operation must complete within watchdog");
     return Result(h, cd_result_release);
 }
 
@@ -99,10 +100,10 @@ static void simultaneous_close()
         g.entered = true;
         g.cv.notify_all();
         g.cv.wait(lock,
-                  [&]
-                  {
-                      return g.released;
-                  });
+            [&]
+            {
+                return g.released;
+            });
     };
 
     auto closed = [](cd_operation_t*, cd_result_t*, void* user)
@@ -117,11 +118,11 @@ static void simultaneous_close()
     {
         std::unique_lock lock(gate.mutex);
         expect(gate.cv.wait_for(lock, std::chrono::seconds(5),
-                                [&]
-                                {
-                                    return gate.entered;
-                                }),
-               "IO worker enters gate");
+                   [&]
+                   {
+                       return gate.entered;
+                   }),
+            "IO worker enters gate");
     }
 
     std::vector<Operation> operations;
@@ -130,7 +131,7 @@ static void simultaneous_close()
     {
         cd_operation_t* op = nullptr;
         expect(cd_close_async(c.get(), nullptr, closed, &gate, &op) == CD_OK,
-               "accept simultaneous close");
+            "accept simultaneous close");
         operations.emplace_back(op, cd_operation_release);
     }
 
@@ -194,8 +195,8 @@ static void cancellation_storm()
                     auto command = CD_SV("printf READY");
 #endif
 
-                    if (cd_execute_string_async(c.get(), command, nullptr, &options, callback,
-                                                counts, &op) != CD_OK)
+                    if (cd_execute_string_async(
+                            c.get(), command, nullptr, &options, callback, counts, &op) != CD_OK)
                     {
                         ++failures;
                         continue;
@@ -216,7 +217,7 @@ static void cancellation_storm()
 
     close(c);
     expect(!failures && !counts[1] && counts[0] == 4000,
-           "cancel storm completes every released operation exactly once");
+        "cancel storm completes every released operation exactly once");
     open(c);
     close(c);
     std::cout << "PASS cancellation_storm producers=8 operations=4000\n";
@@ -235,23 +236,23 @@ static void duration_limits()
         options.timeout_ms = value;
 
         cd_operation_t* op = nullptr;
-        expect(cd_open_async(c.get(), &options, nullptr, nullptr, &op) == CD_INVALID_ARGUMENT &&
-                   !op,
-               "reject unsafe call duration before acceptance");
+        expect(
+            cd_open_async(c.get(), &options, nullptr, nullptr, &op) == CD_INVALID_ARGUMENT && !op,
+            "reject unsafe call duration before acceptance");
 
         cd_transfer_options_t transfer;
         cd_transfer_options_init(&transfer);
         transfer.timeout_ms = value;
         expect(cd_upload_async(c.get(), CD_SV("source"), CD_SV("target"), &transfer, nullptr,
-                               nullptr, &op) == CD_INVALID_ARGUMENT &&
+                   nullptr, &op) == CD_INVALID_ARGUMENT &&
                    !op,
-               "reject unsafe transfer duration");
+            "reject unsafe transfer duration");
 
         auto rule = cd_receive_until_idle(value);
         expect(cd_read_until_bytes_async(c.get(), &rule, nullptr, nullptr, nullptr, &op) ==
                        CD_INVALID_ARGUMENT &&
                    !op,
-               "reject unsafe idle duration");
+            "reject unsafe idle duration");
 
         cd_cli_options_t defaults;
         cd_cli_options_init(&defaults);
@@ -260,19 +261,19 @@ static void duration_limits()
         cd_connection_t* h = nullptr;
         cd_result_t* error = nullptr;
         expect(cd_create_cli(d.get(), &defaults, &h, &error) == CD_INVALID_ARGUMENT && !h,
-               "reject unsafe default duration");
+            "reject unsafe default duration");
         cd_result_release(error);
     }
 
     cd_operation_t* raw = nullptr;
     expect(cd_open_async(c.get(), nullptr, nullptr, nullptr, &raw) == CD_OK,
-           "accept ordinary duration");
+        "accept ordinary duration");
 
     Operation op(raw, cd_operation_release);
     cd_result_t* result = nullptr;
     expect(cd_operation_wait(op.get(), INT64_MAX, &result) == CD_INVALID_ARGUMENT &&
                cd_result_get_status(result) == CD_INVALID_ARGUMENT,
-           "reject unsafe observer duration");
+        "reject unsafe observer duration");
     cd_result_release(result);
 
     auto completed = wait(op.get());
@@ -319,7 +320,7 @@ static void retained_operations(int count)
     {
         cd_operation_t* op = nullptr;
         expect(cd_read_bytes_async(c.get(), &options, nullptr, nullptr, &op) == CD_OK,
-               "accept retained operation");
+            "accept retained operation");
         operations.emplace_back(op, cd_operation_release);
 
         auto r = wait(op);
@@ -355,24 +356,24 @@ static void pending_subscriptions(int count, bool shared, bool cancel = false)
         g.entered = true;
         g.cv.notify_all();
         g.cv.wait(lock,
-                  [&]
-                  {
-                      return g.released;
-                  });
+            [&]
+            {
+                return g.released;
+            });
     };
 
     cd_operation_t* first = nullptr;
     expect(cd_open_async(gate_connection.get(), nullptr, callback, &gate, &first) == CD_OK,
-           "gate accepted");
+        "gate accepted");
 
     Operation opening(first, cd_operation_release);
     {
         std::unique_lock lock(gate.mutex);
         gate.cv.wait(lock,
-                     [&]
-                     {
-                         return gate.entered;
-                     });
+            [&]
+            {
+                return gate.entered;
+            });
     }
 
     cd_cancel_source_t* raw = nullptr;
@@ -425,8 +426,8 @@ static void pending_subscriptions(int count, bool shared, bool cancel = false)
     for (auto& op : operations)
     {
         auto result = wait(op.get());
-        expect(cd_result_get_status(result.get()) == (cancel ? CD_CANCELLED : CD_NOT_OPEN),
-               "drained");
+        expect(
+            cd_result_get_status(result.get()) == (cancel ? CD_CANCELLED : CD_NOT_OPEN), "drained");
     }
 
     std::cout << "pending shared=" << shared << " count=" << count << " us=" << us << "\n";
@@ -451,7 +452,7 @@ static void registry(int count)
 
     for (auto& c : connections)
         expect(cd_connection_get_state(c.get()) == CD_STATE_CLOSED,
-               "driver closes every registered connection");
+            "driver closes every registered connection");
 
     std::cout << "registry count=" << count << " us=" << us << "\n";
 }
@@ -469,7 +470,7 @@ static void precancelled_queued()
 
     cd_operation_t* raw = nullptr;
     expect(cd_read_bytes_async(c.get(), &options, nullptr, nullptr, &raw) == CD_OK,
-           "blocked read accepted");
+        "blocked read accepted");
 
     Operation head(raw, cd_operation_release);
     open(barrier);
@@ -481,7 +482,7 @@ static void precancelled_queued()
     cd_cancel_source_request(token);
     options.cancellation = token;
     expect(cd_read_bytes_async(c.get(), &options, nullptr, nullptr, &raw) == CD_OK,
-           "pre-cancelled queued read accepted");
+        "pre-cancelled queued read accepted");
 
     Operation cancelled(raw, cd_operation_release);
     open(barrier);
@@ -490,7 +491,7 @@ static void precancelled_queued()
     bool head_pending = !cd_operation_is_completed(head.get());
     close(c);
     expect(prompt && head_pending,
-           "pre-cancelled queued request completes without waiting for active read");
+        "pre-cancelled queued request completes without waiting for active read");
 
     auto result = wait(cancelled.get());
     expect(cd_result_get_status(result.get()) == CD_CANCELLED, "pre-cancelled queued status");
@@ -517,10 +518,10 @@ static void expired_before_admission()
         g.entered = true;
         g.cv.notify_all();
         g.cv.wait(lock,
-                  [&]
-                  {
-                      return g.released;
-                  });
+            [&]
+            {
+                return g.released;
+            });
     };
 
     cd_operation_t* raw = nullptr;
@@ -545,17 +546,17 @@ static void expired_before_admission()
     {
         std::unique_lock lock(gate.mutex);
         gate.cv.wait(lock,
-                     [&]
-                     {
-                         return gate.entered;
-                     });
+            [&]
+            {
+                return gate.entered;
+            });
     }
 
     cd_call_options_t options;
     cd_call_options_init(&options);
     options.timeout_ms = 1;
     expect(cd_open_async(c.get(), &options, nullptr, nullptr, &raw) == CD_OK,
-           "short deadline accepted");
+        "short deadline accepted");
 
     Operation opening(raw, cd_operation_release);
     // Keep the worker blocked until the request's deadline has definitely passed.
@@ -568,9 +569,9 @@ static void expired_before_admission()
 
     auto result = wait(opening.get());
     expect(cd_result_get_status(result.get()) == CD_TIMEOUT,
-           "expired request must not start after event-loop admission delay");
+        "expired request must not start after event-loop admission delay");
     expect(cd_connection_get_state(c.get()) == CD_STATE_CREATED,
-           "expired open performs no backend work");
+        "expired open performs no backend work");
     std::cout << "PASS expired_before_admission\n";
 }
 
@@ -593,10 +594,10 @@ static void cancelled_batch_snapshot()
         g.entered = true;
         g.cv.notify_all();
         g.cv.wait(lock,
-                  [&]
-                  {
-                      return g.released;
-                  });
+            [&]
+            {
+                return g.released;
+            });
     };
 
     cd_operation_t* raw = nullptr;
@@ -621,10 +622,10 @@ static void cancelled_batch_snapshot()
     {
         std::unique_lock lock(gate.mutex);
         gate.cv.wait(lock,
-                     [&]
-                     {
-                         return gate.entered;
-                     });
+            [&]
+            {
+                return gate.entered;
+            });
     }
 
     cd_cancel_source_t* token = nullptr;
@@ -653,7 +654,7 @@ static void cancelled_batch_snapshot()
     cd_batch_options_init(&options);
     options.cancellation = token;
     expect(cd_batch_run_async(d.get(), nullptr, 0, &options, complete, &snapshot, &raw) == CD_OK,
-           "pre-cancelled empty batch");
+        "pre-cancelled empty batch");
 
     Operation batch(raw, cd_operation_release);
     {
@@ -668,7 +669,7 @@ static void cancelled_batch_snapshot()
     info.struct_size = sizeof(info);
     expect(cd_result_get_batch_info(result.get(), &info) == CD_OK, "batch snapshot available");
     expect(snapshot.callbacks == 1 && info.was_cancelled && info.elapsed_ns == snapshot.elapsed,
-           "completed batch result must remain immutable after queued reschedule");
+        "completed batch result must remain immutable after queued reschedule");
     std::cout << "PASS cancelled_batch_snapshot\n";
 }
 
@@ -689,8 +690,8 @@ static void reverse_cancel(int count)
     for (int i = 0; i <= count; ++i)
     {
         cd_operation_t* raw = nullptr;
-        expect(cd_read_bytes_async(c.get(), &options, nullptr, nullptr, &raw) == CD_OK,
-               "queued read");
+        expect(
+            cd_read_bytes_async(c.get(), &options, nullptr, nullptr, &raw) == CD_OK, "queued read");
         operations.emplace_back(raw, cd_operation_release);
     }
 
@@ -705,7 +706,7 @@ static void reverse_cancel(int count)
 
     auto us = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - begin).count();
     expect(!cd_operation_is_completed(operations[0].get()),
-           "cancelled queue leaves active request intact");
+        "cancelled queue leaves active request intact");
 
     for (int i = 1; i <= count; ++i)
     {
@@ -815,11 +816,10 @@ static void cancel_close_soak(int seconds)
 
                         auto* c = connections[t % connections.size()].get();
                         cd_operation_t* op = nullptr;
-                        auto status =
-                            i % 17 == 16
-                                ? cd_close_async(c, &o, callback, &slots[t * per_producer + i], &op)
-                                : cd_read_bytes_async(c, &o, callback, &slots[t * per_producer + i],
-                                                      &op);
+                        auto status = i % 17 == 16 ? cd_close_async(c, &o, callback,
+                                                         &slots[t * per_producer + i], &op)
+                                                   : cd_read_bytes_async(c, &o, callback,
+                                                         &slots[t * per_producer + i], &op);
 
                         if (status != CD_OK)
                         {
@@ -847,7 +847,7 @@ static void cancel_close_soak(int seconds)
 
         for (int i = 0; i < producers * per_producer; ++i)
             expect(slots[i].calls == 1 && !slots[i].bad,
-                   "soak exactly-once callback and allowed status");
+                "soak exactly-once callback and allowed status");
 
         ++waves;
         operations += producers * per_producer;

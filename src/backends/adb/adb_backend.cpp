@@ -10,8 +10,8 @@ namespace cd
 
     std::vector<std::string> AdbBackend::adb_args()
     {
-        return {"-H", config.server_host, "-P", std::to_string(config.server_port),
-                "-s", config.device};
+        return {"-H", config.server_host, "-P", std::to_string(config.server_port), "-s",
+            config.device};
     }
 
     BackendConfig<ProcessConfig> AdbBackend::process_config(std::vector<std::string> args)
@@ -29,8 +29,8 @@ namespace cd
         {
             auto args = adb_args();
             args.insert(args.end(), {"shell", "-T"});
-            args.push_back(one ? command
-                               : (config.session_command.empty() ? "sh" : config.session_command));
+            args.push_back(
+                one ? command : (config.session_command.empty() ? "sh" : config.session_command));
             auto options = process_config(std::move(args));
             process = std::make_shared<ProcessChannel>(runtime, std::move(options));
             process->missing_executable = CD_DEVICE_UNAVAILABLE;
@@ -68,8 +68,8 @@ namespace cd
     void AdbBackend::auxiliary_complete()
     {
         if (auxiliary_exit && auxiliary_eof[0] && auxiliary_eof[1])
-            auxiliary_finish(*auxiliary_exit == 0 ? CD_OK : CD_IO_ERROR, auxiliary_output,
-                             *auxiliary_exit);
+            auxiliary_finish(
+                *auxiliary_exit == 0 ? CD_OK : CD_IO_ERROR, auxiliary_output, *auxiliary_exit);
     }
 
     void AdbBackend::run_auxiliary(std::vector<std::string> args, Completion cb)
@@ -90,8 +90,8 @@ namespace cd
                 self->auxiliary_eof[stream] |= end;
                 self->auxiliary_output += data;
                 if (self->auxiliary_output.size() > self->config.defaults.max_bytes)
-                    self->auxiliary_finish(CD_LIMIT_EXCEEDED, "ADB control output exceeded limit",
-                                           0);
+                    self->auxiliary_finish(
+                        CD_LIMIT_EXCEEDED, "ADB control output exceeded limit", 0);
                 else
                     self->auxiliary_complete();
             }
@@ -110,12 +110,12 @@ namespace cd
                 self->auxiliary_finish(s, m, n);
         };
         auxiliary->command({},
-                           [weak](cd_status_t s, std::string m, int64_t n)
-                           {
-                               if (s != CD_OK)
-                                   if (auto self = weak.lock())
-                                       self->auxiliary_finish(s, m, n);
-                           });
+            [weak](cd_status_t s, std::string m, int64_t n)
+            {
+                if (s != CD_OK)
+                    if (auto self = weak.lock())
+                        self->auxiliary_finish(s, m, n);
+            });
     }
 
     void AdbBackend::open(Completion cb)
@@ -124,8 +124,7 @@ namespace cd
         args.push_back("get-state");
 
         auto self = std::static_pointer_cast<AdbBackend>(shared_from_this());
-        run_auxiliary(
-            std::move(args),
+        run_auxiliary(std::move(args),
             [self, cb](cd_status_t s, std::string output, int64_t native)
             {
                 if (s != CD_OK ||
@@ -151,13 +150,13 @@ namespace cd
     {
         auto self = std::static_pointer_cast<AdbBackend>(shared_from_this());
         launch(std::move(command), true,
-               [self, cb](cd_status_t s, std::string m, int64_t n)
-               {
-                   if (s != CD_OK)
-                       cb(s, std::move(m), n);
-                   else
-                       self->close_input(cb);
-               });
+            [self, cb](cd_status_t s, std::string m, int64_t n)
+            {
+                if (s != CD_OK)
+                    cb(s, std::move(m), n);
+                else
+                    self->close_input(cb);
+            });
     }
 
     void AdbBackend::write(std::string data, Completion cb)
@@ -176,7 +175,7 @@ namespace cd
     }
 
     void AdbBackend::transfer(bool upload, std::string source, std::string destination,
-                              bool overwrite, std::function<void(uint64_t)> progress, Completion cb)
+        bool overwrite, std::function<void(uint64_t)> progress, Completion cb)
     {
         transfer_partial_file.clear();
 
@@ -213,10 +212,9 @@ namespace cd
                 args.push_back(upload ? "push" : "pull");
                 args.push_back(source);
                 args.push_back(staging);
-                self->run_auxiliary(
-                    std::move(args),
-                    [self, upload, source, destination, staging, overwrite, progress, cb,
-                     quote](cd_status_t s, std::string m, int64_t n)
+                self->run_auxiliary(std::move(args),
+                    [self, upload, source, destination, staging, overwrite, progress, cb, quote](
+                        cd_status_t s, std::string m, int64_t n)
                     {
                         if (s != CD_OK)
                         {
@@ -224,8 +222,8 @@ namespace cd
                             return;
                         }
 
-                        auto done = [self, upload, source, destination, progress,
-                                     cb](cd_status_t status, std::string message, int64_t native)
+                        auto done = [self, upload, source, destination, progress, cb](
+                                        cd_status_t status, std::string message, int64_t native)
                         {
                             if (status == CD_OK)
                             {
@@ -252,22 +250,22 @@ namespace cd
                         {
                             auto install = self->adb_args();
                             install.insert(install.end(),
-                                           {"shell", "-T",
-                                            "ln " + quote(staging) + " " + quote(destination) +
-                                                " && rm " + quote(staging)});
+                                {"shell", "-T",
+                                    "ln " + quote(staging) + " " + quote(destination) + " && rm " +
+                                        quote(staging)});
                             self->run_auxiliary(std::move(install), std::move(done));
                         }
                         else
                         {
                             std::error_code error;
-                            std::filesystem::create_hard_link(utf8_path(staging),
-                                                              utf8_path(destination), error);
+                            std::filesystem::create_hard_link(
+                                utf8_path(staging), utf8_path(destination), error);
 
                             if (error)
                             {
                                 done(error == std::errc::file_exists ? CD_PERMISSION_DENIED
                                                                      : CD_IO_ERROR,
-                                     error.message(), error.value());
+                                    error.message(), error.value());
                                 return;
                             }
 
@@ -279,12 +277,11 @@ namespace cd
 
             auto args = adb_args();
             args.insert(args.end(), {"shell", "-T",
-                                     std::string(upload ? "test -d " : "test -f ") +
-                                         quote(upload ? destination : source)});
-            run_auxiliary(
-                std::move(args),
-                [self, upload, overwrite, destination, perform, cb,
-                 quote](cd_status_t s, std::string m, int64_t code)
+                                        std::string(upload ? "test -d " : "test -f ") +
+                                            quote(upload ? destination : source)});
+            run_auxiliary(std::move(args),
+                [self, upload, overwrite, destination, perform, cb, quote](
+                    cd_status_t s, std::string m, int64_t code)
                 {
                     if ((upload && s == CD_OK) || (!upload && code == 1))
                     {
@@ -302,8 +299,7 @@ namespace cd
                     {
                         auto probe = self->adb_args();
                         probe.insert(probe.end(), {"shell", "-T", "test -e " + quote(destination)});
-                        self->run_auxiliary(
-                            std::move(probe),
+                        self->run_auxiliary(std::move(probe),
                             [perform, cb](cd_status_t status, std::string message, int64_t native)
                             {
                                 if (status == CD_OK)

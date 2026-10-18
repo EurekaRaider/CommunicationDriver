@@ -64,8 +64,8 @@ int main(int argc, char** argv)
             shell.execute("cd /tmp; export CD_SSH=STATE");
             expect(shell.execute("printf \"$CD_SSH\"").response == "STATE", "SSH session state");
 
-            auto early = shell.execute_until("printf READY; sleep 0.1; printf TAIL",
-                                             comm::Check::contains("READY"));
+            auto early = shell.execute_until(
+                "printf READY; sleep 0.1; printf TAIL", comm::Check::contains("READY"));
             expect(early.completion_reason == comm::CompletionReason::Matched, "SSH early match");
             expect(shell.execute("printf NEXT").response == "NEXT", "SSH cleanup ownership");
             stage = "SFTP upload";
@@ -76,7 +76,7 @@ int main(int argc, char** argv)
 
             auto downloaded = shell.download(remote.string(), destination.string());
             expect(downloaded.bytes_transferred == content.size() && read(destination) == content,
-                   "SFTP file equality");
+                "SFTP file equality");
 
             comm::TransferOptions no_replace;
             no_replace.overwrite = false;
@@ -114,7 +114,7 @@ int main(int argc, char** argv)
             catch (const comm::CommunicationError& e)
             {
                 expect(e.info.code == CD_TIMEOUT && !e.info.partial_file.empty(),
-                       "SFTP interruption reports partial file");
+                    "SFTP interruption reports partial file");
             }
 
             shell.close();
@@ -124,7 +124,7 @@ int main(int argc, char** argv)
             shell.open();
             expect(shell.execute("printf NEXT").response == "NEXT" &&
                        std::filesystem::file_size(partial) == partial_size,
-                   "close waits for local file worker and stops interrupted transfer");
+                "close waits for local file worker and stops interrupted transfer");
             shell.close();
             stage = "SSH oneshot and raw isolation";
             options.execution_mode = comm::ExecutionMode::OneShot;
@@ -135,11 +135,11 @@ int main(int argc, char** argv)
 
             auto one = once.execute("printf OUT; printf ERR >&2; exit 7");
             expect(one.response == "OUT" && one.standard_error == "ERR" && one.exit_code == 7,
-                   "SSH command channel stderr and real exit status");
+                "SSH command channel stderr and real exit status");
             expect(once.read_exactly_string(7) == "RAWLATE",
-                   "SSH oneshot output is isolated from persistent stdio");
+                "SSH oneshot output is isolated from persistent stdio");
             expect(once.execute("printf SECOND").response == "SECOND",
-                   "SSH authentication reused after raw IO");
+                "SSH authentication reused after raw IO");
             once.close();
             options.execution_mode = comm::ExecutionMode::Persistent;
             options.session_command = "cat";
@@ -150,7 +150,7 @@ int main(int argc, char** argv)
 
             std::string binary("DATA\0TAIL", 9);
             expect(direct.execute(binary).response == binary,
-                   "SSH custom persistent session preserves binary stdin and protocol boundary");
+                "SSH custom persistent session preserves binary stdin and protocol boundary");
             direct.close();
             options.session_command.clear();
             options.execution_mode = comm::ExecutionMode::OneShot;
@@ -193,7 +193,7 @@ int main(int argc, char** argv)
             auto down = b.download(remote.string(), destination.string());
             expect(read(destination) == content && u.bytes_transferred == content.size() &&
                        down.bytes_transferred == content.size(),
-                   "ADB single file transfer");
+                "ADB single file transfer");
             a.close();
             b.close();
             options.execution_mode = comm::ExecutionMode::OneShot;
@@ -223,7 +223,7 @@ int main(int argc, char** argv)
             catch (const comm::CommunicationError& e)
             {
                 expect(e.info.code == CD_PERMISSION_DENIED && read(exclusive_remote) == content,
-                       "ADB overwrite=false preserves existing destination");
+                    "ADB overwrite=false preserves existing destination");
             }
 
             try
@@ -233,8 +233,8 @@ int main(int argc, char** argv)
             }
             catch (const comm::CommunicationError& e)
             {
-                expect(e.info.code == CD_INVALID_ARGUMENT,
-                       "ADB rejects recursive directory transfer");
+                expect(
+                    e.info.code == CD_INVALID_ARGUMENT, "ADB rejects recursive directory transfer");
             }
 
             once.close();
@@ -247,7 +247,7 @@ int main(int argc, char** argv)
 
             std::string binary("DATA\0TAIL", 9);
             expect(direct.execute(binary).response == binary,
-                   "ADB custom persistent session preserves binary stdin and protocol boundary");
+                "ADB custom persistent session preserves binary stdin and protocol boundary");
             direct.close();
             options.session_command.clear();
             options.execution_mode = comm::ExecutionMode::OneShot;

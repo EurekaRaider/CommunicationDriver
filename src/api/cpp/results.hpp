@@ -12,7 +12,8 @@ namespace comm
         std::string failure_reason;
     };
 
-    template <class T> struct ExecutionResult
+    template <class T>
+    struct ExecutionResult
     {
         T response{}, standard_error{};
         std::optional<CheckResult> check;
@@ -55,7 +56,8 @@ namespace comm
             return r;
         }
 
-        template <class T> T response(cd_result_t* h, int stream)
+        template <class T>
+        T response(cd_result_t* h, int stream)
         {
             if constexpr (std::is_same_v<T, std::string>)
             {
@@ -71,7 +73,8 @@ namespace comm
             }
         }
 
-        template <class T> T convert(cd_result_t* h)
+        template <class T>
+        T convert(cd_result_t* h)
         {
             checked(cd_result_get_status(h), h);
 
@@ -84,9 +87,9 @@ namespace comm
                 auto i = sized<cd_transfer_result_t>();
                 checked(cd_result_get_transfer(h, &i));
                 return {string(i.source), string(i.destination),
-                        i.has_bytes_transferred ? std::optional<uint64_t>(i.bytes_transferred)
-                                                : std::nullopt,
-                        std::chrono::nanoseconds(i.elapsed_ns)};
+                    i.has_bytes_transferred ? std::optional<uint64_t>(i.bytes_transferred)
+                                            : std::nullopt,
+                    std::chrono::nanoseconds(i.elapsed_ns)};
             }
             else
             {
@@ -95,12 +98,10 @@ namespace comm
                 auto info = sized<cd_execution_info_t>();
                 checked(cd_result_get_execution_info(h, &info));
 
-                return {response<R>(h, 0),
-                        response<R>(h, 1),
-                        check_result(h),
-                        info.has_exit_code ? std::optional<int>(info.exit_code) : std::nullopt,
-                        static_cast<CompletionReason>(info.completion_reason),
-                        std::chrono::nanoseconds(info.elapsed_ns)};
+                return {response<R>(h, 0), response<R>(h, 1), check_result(h),
+                    info.has_exit_code ? std::optional<int>(info.exit_code) : std::nullopt,
+                    static_cast<CompletionReason>(info.completion_reason),
+                    std::chrono::nanoseconds(info.elapsed_ns)};
             }
         }
 

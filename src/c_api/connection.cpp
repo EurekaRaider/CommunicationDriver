@@ -16,7 +16,7 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_open_async(cd_connection_t* c, const cd_call_options_t* options,
-                                      cd_completion_fn cb, void* user, cd_operation_t** out)
+        cd_completion_fn cb, void* user, cd_operation_t** out)
     {
         if (out)
 
@@ -32,16 +32,16 @@ extern "C"
         }
     }
 
-    cd_status_t CD_CALL cd_open(cd_connection_t* c, const cd_call_options_t* options,
-                                cd_result_t** out)
+    cd_status_t CD_CALL cd_open(
+        cd_connection_t* c, const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_open_async(c, options, nullptr, nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_open_async(c, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -50,7 +50,7 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_close_async(cd_connection_t* c, const cd_call_options_t* options,
-                                       cd_completion_fn cb, void* user, cd_operation_t** out)
+        cd_completion_fn cb, void* user, cd_operation_t** out)
     {
         if (out)
 
@@ -66,16 +66,16 @@ extern "C"
         }
     }
 
-    cd_status_t CD_CALL cd_close(cd_connection_t* c, const cd_call_options_t* options,
-                                 cd_result_t** out)
+    cd_status_t CD_CALL cd_close(
+        cd_connection_t* c, const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_close_async(c, options, nullptr, nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_close_async(c, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -84,7 +84,7 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_close_input_async(cd_connection_t* c, const cd_call_options_t* options,
-                                             cd_completion_fn cb, void* user, cd_operation_t** out)
+        cd_completion_fn cb, void* user, cd_operation_t** out)
     {
         if (out)
 
@@ -100,16 +100,16 @@ extern "C"
         }
     }
 
-    cd_status_t CD_CALL cd_close_input(cd_connection_t* c, const cd_call_options_t* options,
-                                       cd_result_t** out)
+    cd_status_t CD_CALL cd_close_input(
+        cd_connection_t* c, const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_close_input_async(c, options, nullptr, nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_close_input_async(c, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -118,7 +118,7 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_read_bytes_async(cd_connection_t* c, const cd_call_options_t* options,
-                                            cd_completion_fn cb, void* user, cd_operation_t** out)
+        cd_completion_fn cb, void* user, cd_operation_t** out)
     {
         if (out)
 
@@ -135,16 +135,16 @@ extern "C"
         }
     }
 
-    cd_status_t CD_CALL cd_read_bytes(cd_connection_t* c, const cd_call_options_t* options,
-                                      cd_result_t** out)
+    cd_status_t CD_CALL cd_read_bytes(
+        cd_connection_t* c, const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_read_bytes_async(c, options, nullptr, nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_read_bytes_async(c, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -153,7 +153,7 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_read_string_async(cd_connection_t* c, const cd_call_options_t* options,
-                                             cd_completion_fn cb, void* user, cd_operation_t** out)
+        cd_completion_fn cb, void* user, cd_operation_t** out)
     {
         if (out)
 
@@ -170,16 +170,16 @@ extern "C"
         }
     }
 
-    cd_status_t CD_CALL cd_read_string(cd_connection_t* c, const cd_call_options_t* options,
-                                       cd_result_t** out)
+    cd_status_t CD_CALL cd_read_string(
+        cd_connection_t* c, const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_read_string_async(c, options, nullptr, nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_read_string_async(c, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -188,7 +188,7 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_read_line_async(cd_connection_t* c, const cd_call_options_t* options,
-                                           cd_completion_fn cb, void* user, cd_operation_t** out)
+        cd_completion_fn cb, void* user, cd_operation_t** out)
     {
         if (out)
 
@@ -205,16 +205,16 @@ extern "C"
         }
     }
 
-    cd_status_t CD_CALL cd_read_line(cd_connection_t* c, const cd_call_options_t* options,
-                                     cd_result_t** out)
+    cd_status_t CD_CALL cd_read_line(
+        cd_connection_t* c, const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_read_line_async(c, options, nullptr, nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_read_line_async(c, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -223,9 +223,7 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_read_exactly_bytes_async(cd_connection_t* c, uint64_t count,
-                                                    const cd_call_options_t* options,
-                                                    cd_completion_fn cb, void* user,
-                                                    cd_operation_t** out)
+        const cd_call_options_t* options, cd_completion_fn cb, void* user, cd_operation_t** out)
     {
         if (out)
 
@@ -242,17 +240,16 @@ extern "C"
         }
     }
 
-    cd_status_t CD_CALL cd_read_exactly_bytes(cd_connection_t* c, uint64_t count,
-                                              const cd_call_options_t* options, cd_result_t** out)
+    cd_status_t CD_CALL cd_read_exactly_bytes(
+        cd_connection_t* c, uint64_t count, const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_read_exactly_bytes_async(c, count, options, nullptr,
-                                                                      nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_read_exactly_bytes_async(c, count, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -261,9 +258,7 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_read_exactly_string_async(cd_connection_t* c, uint64_t count,
-                                                     const cd_call_options_t* options,
-                                                     cd_completion_fn cb, void* user,
-                                                     cd_operation_t** out)
+        const cd_call_options_t* options, cd_completion_fn cb, void* user, cd_operation_t** out)
     {
         if (out)
 
@@ -280,17 +275,16 @@ extern "C"
         }
     }
 
-    cd_status_t CD_CALL cd_read_exactly_string(cd_connection_t* c, uint64_t count,
-                                               const cd_call_options_t* options, cd_result_t** out)
+    cd_status_t CD_CALL cd_read_exactly_string(
+        cd_connection_t* c, uint64_t count, const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_read_exactly_string_async(c, count, options, nullptr,
-                                                                       nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_read_exactly_string_async(c, count, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -299,10 +293,8 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_read_until_bytes_async(cd_connection_t* c,
-                                                  const cd_receive_until_t* until,
-                                                  const cd_call_options_t* options,
-                                                  cd_completion_fn cb, void* user,
-                                                  cd_operation_t** out)
+        const cd_receive_until_t* until, const cd_call_options_t* options, cd_completion_fn cb,
+        void* user, cd_operation_t** out)
     {
         if (out)
 
@@ -324,16 +316,15 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_read_until_bytes(cd_connection_t* c, const cd_receive_until_t* until,
-                                            const cd_call_options_t* options, cd_result_t** out)
+        const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_read_until_bytes_async(c, until, options, nullptr,
-                                                                    nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_read_until_bytes_async(c, until, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -342,10 +333,8 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_read_until_string_async(cd_connection_t* c,
-                                                   const cd_receive_until_t* until,
-                                                   const cd_call_options_t* options,
-                                                   cd_completion_fn cb, void* user,
-                                                   cd_operation_t** out)
+        const cd_receive_until_t* until, const cd_call_options_t* options, cd_completion_fn cb,
+        void* user, cd_operation_t** out)
     {
         if (out)
 
@@ -367,16 +356,15 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_read_until_string(cd_connection_t* c, const cd_receive_until_t* until,
-                                             const cd_call_options_t* options, cd_result_t** out)
+        const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_read_until_string_async(c, until, options, nullptr,
-                                                                     nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_read_until_string_async(c, until, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -385,8 +373,7 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_write_bytes_async(cd_connection_t* c, cd_bytes_view_t input,
-                                             const cd_call_options_t* options, cd_completion_fn cb,
-                                             void* user, cd_operation_t** out)
+        const cd_call_options_t* options, cd_completion_fn cb, void* user, cd_operation_t** out)
     {
         if (out)
 
@@ -404,16 +391,15 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_write_bytes(cd_connection_t* c, cd_bytes_view_t input,
-                                       const cd_call_options_t* options, cd_result_t** out)
+        const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_write_bytes_async(c, input, options, nullptr, nullptr,
-                                                               op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_write_bytes_async(c, input, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -422,8 +408,7 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_write_string_async(cd_connection_t* c, cd_string_view_t input,
-                                              const cd_call_options_t* options, cd_completion_fn cb,
-                                              void* user, cd_operation_t** out)
+        const cd_call_options_t* options, cd_completion_fn cb, void* user, cd_operation_t** out)
     {
         if (out)
 
@@ -441,16 +426,15 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_write_string(cd_connection_t* c, cd_string_view_t input,
-                                        const cd_call_options_t* options, cd_result_t** out)
+        const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_write_string_async(c, input, options, nullptr, nullptr,
-                                                                op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_write_string_async(c, input, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -459,8 +443,7 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_write_line_async(cd_connection_t* c, cd_string_view_t input,
-                                            const cd_call_options_t* options, cd_completion_fn cb,
-                                            void* user, cd_operation_t** out)
+        const cd_call_options_t* options, cd_completion_fn cb, void* user, cd_operation_t** out)
     {
         if (out)
 
@@ -478,16 +461,15 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_write_line(cd_connection_t* c, cd_string_view_t input,
-                                      const cd_call_options_t* options, cd_result_t** out)
+        const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_write_line_async(c, input, options, nullptr, nullptr,
-                                                              op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_write_line_async(c, input, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -496,10 +478,8 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_execute_string_async(cd_connection_t* c, cd_string_view_t input,
-                                                const cd_check_t* check,
-                                                const cd_call_options_t* options,
-                                                cd_completion_fn cb, void* user,
-                                                cd_operation_t** out)
+        const cd_check_t* check, const cd_call_options_t* options, cd_completion_fn cb, void* user,
+        cd_operation_t** out)
     {
         if (out)
 
@@ -519,17 +499,15 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_execute_string(cd_connection_t* c, cd_string_view_t input,
-                                          const cd_check_t* check, const cd_call_options_t* options,
-                                          cd_result_t** out)
+        const cd_check_t* check, const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_execute_string_async(c, input, check, options, nullptr,
-                                                                  nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_execute_string_async(c, input, check, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -538,10 +516,8 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_execute_bytes_async(cd_connection_t* c, cd_bytes_view_t input,
-                                               const cd_check_t* check,
-                                               const cd_call_options_t* options,
-                                               cd_completion_fn cb, void* user,
-                                               cd_operation_t** out)
+        const cd_check_t* check, const cd_call_options_t* options, cd_completion_fn cb, void* user,
+        cd_operation_t** out)
     {
         if (out)
 
@@ -561,17 +537,15 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_execute_bytes(cd_connection_t* c, cd_bytes_view_t input,
-                                         const cd_check_t* check, const cd_call_options_t* options,
-                                         cd_result_t** out)
+        const cd_check_t* check, const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_execute_bytes_async(c, input, check, options, nullptr,
-                                                                 nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_execute_bytes_async(c, input, check, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -580,10 +554,8 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_execute_until_string_async(cd_connection_t* c, cd_string_view_t input,
-                                                      const cd_check_t* check,
-                                                      const cd_call_options_t* options,
-                                                      cd_completion_fn cb, void* user,
-                                                      cd_operation_t** out)
+        const cd_check_t* check, const cd_call_options_t* options, cd_completion_fn cb, void* user,
+        cd_operation_t** out)
     {
         if (out)
 
@@ -594,7 +566,7 @@ extern "C"
             r->input = encode(copy(input), r->options.encoding);
             r->check = Check(check);
             require(r->check.kind == CD_CHECK_CONTAINS || r->check.kind == CD_CHECK_REGEX,
-                    "ExecuteUntil requires Contains or Regex");
+                "ExecuteUntil requires Contains or Regex");
 
             return submit(c, std::move(r), cb, user, out);
         }
@@ -605,17 +577,16 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_execute_until_string(cd_connection_t* c, cd_string_view_t input,
-                                                const cd_check_t* check,
-                                                const cd_call_options_t* options, cd_result_t** out)
+        const cd_check_t* check, const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_execute_until_string_async(c, input, check, options,
-                                                                        nullptr, nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_execute_until_string_async(
+                        c, input, check, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -624,10 +595,8 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_execute_until_bytes_async(cd_connection_t* c, cd_bytes_view_t input,
-                                                     const cd_check_t* check,
-                                                     const cd_call_options_t* options,
-                                                     cd_completion_fn cb, void* user,
-                                                     cd_operation_t** out)
+        const cd_check_t* check, const cd_call_options_t* options, cd_completion_fn cb, void* user,
+        cd_operation_t** out)
     {
         if (out)
 
@@ -638,7 +607,7 @@ extern "C"
             r->input = copy(input);
             r->check = Check(check);
             require(r->check.kind == CD_CHECK_CONTAINS || r->check.kind == CD_CHECK_REGEX,
-                    "ExecuteUntil requires Contains or Regex");
+                "ExecuteUntil requires Contains or Regex");
 
             return submit(c, std::move(r), cb, user, out);
         }
@@ -649,17 +618,16 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_execute_until_bytes(cd_connection_t* c, cd_bytes_view_t input,
-                                               const cd_check_t* check,
-                                               const cd_call_options_t* options, cd_result_t** out)
+        const cd_check_t* check, const cd_call_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_execute_until_bytes_async(c, input, check, options,
-                                                                       nullptr, nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_execute_until_bytes_async(
+                        c, input, check, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -668,9 +636,8 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_upload_async(cd_connection_t* c, cd_string_view_t source,
-                                        cd_string_view_t destination,
-                                        const cd_transfer_options_t* options, cd_completion_fn cb,
-                                        void* user, cd_operation_t** out)
+        cd_string_view_t destination, const cd_transfer_options_t* options, cd_completion_fn cb,
+        void* user, cd_operation_t** out)
     {
         if (out)
 
@@ -704,17 +671,15 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_upload(cd_connection_t* c, cd_string_view_t source,
-                                  cd_string_view_t destination,
-                                  const cd_transfer_options_t* options, cd_result_t** out)
+        cd_string_view_t destination, const cd_transfer_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_upload_async(c, source, destination, options, nullptr,
-                                                          nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_upload_async(c, source, destination, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {
@@ -723,9 +688,8 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_download_async(cd_connection_t* c, cd_string_view_t source,
-                                          cd_string_view_t destination,
-                                          const cd_transfer_options_t* options, cd_completion_fn cb,
-                                          void* user, cd_operation_t** out)
+        cd_string_view_t destination, const cd_transfer_options_t* options, cd_completion_fn cb,
+        void* user, cd_operation_t** out)
     {
         if (out)
 
@@ -759,17 +723,15 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_download(cd_connection_t* c, cd_string_view_t source,
-                                    cd_string_view_t destination,
-                                    const cd_transfer_options_t* options, cd_result_t** out)
+        cd_string_view_t destination, const cd_transfer_options_t* options, cd_result_t** out)
     {
         try
         {
             return synchronous(c, out,
-                               [&](cd_operation_t** op)
-                               {
-                                   return cd_download_async(c, source, destination, options,
-                                                            nullptr, nullptr, op);
-                               });
+                [&](cd_operation_t** op)
+                {
+                    return cd_download_async(c, source, destination, options, nullptr, nullptr, op);
+                });
         }
         catch (...)
         {

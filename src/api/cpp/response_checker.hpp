@@ -5,7 +5,7 @@ namespace comm
 {
     class ResponseChecker
     {
-      public:
+    public:
         static bool is_match(std::string_view response, const Check& check)
         {
             auto c = check.native();

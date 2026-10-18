@@ -39,7 +39,7 @@ namespace cd
         std::array<char, 32768> file_buffer{};
         size_t file_size = 0, file_offset = 0;
 
-      public:
+    public:
         SshBackend(std::shared_ptr<Runtime> r, BackendConfig<SshConfig> c);
 
         ~SshBackend() override;
@@ -73,7 +73,7 @@ namespace cd
         void close_input(Completion cb) override;
 
         void transfer(bool is_upload, std::string from, std::string to, bool replace,
-                      std::function<void(uint64_t)> on_progress, Completion cb) override;
+            std::function<void(uint64_t)> on_progress, Completion cb) override;
 
         void drive_transfer();
 

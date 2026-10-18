@@ -84,7 +84,7 @@ namespace cd
             std::vector<absl::string_view> captures(
                 static_cast<size_t>(c.regex->NumberOfCapturingGroups()) + 1);
             passed = c.regex->Match({data.data(), data.size()}, 0, data.size(), RE2::UNANCHORED,
-                                    captures.data(), static_cast<int>(captures.size()));
+                captures.data(), static_cast<int>(captures.size()));
 
             if (passed)
             {

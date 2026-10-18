@@ -19,7 +19,7 @@ extern "C"
         {
             require(o && out, "Operation and result required");
             require(timeout == CD_INFINITE || timeout <= max_timeout_ms,
-                    "Observation timeout is out of range");
+                "Observation timeout is out of range");
 
             auto op = o->value;
 
@@ -30,15 +30,15 @@ extern "C"
 
             if (timeout == CD_INFINITE)
                 op->cv.wait(lock,
-                            [&]
-                            {
-                                return bool(op->result);
-                            });
+                    [&]
+                    {
+                        return bool(op->result);
+                    });
             else if (!op->cv.wait_for(lock, std::chrono::milliseconds(timeout),
-                                      [&]
-                                      {
-                                          return bool(op->result);
-                                      }))
+                         [&]
+                         {
+                             return bool(op->result);
+                         }))
                 return CD_TIMEOUT;
 
             *out = new cd_result(op->result);

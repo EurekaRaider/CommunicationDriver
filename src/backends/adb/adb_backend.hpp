@@ -14,7 +14,7 @@ namespace cd
         bool auxiliary_eof[2] = {false, false};
         std::optional<int> auxiliary_exit;
 
-      public:
+    public:
         AdbBackend(std::shared_ptr<Runtime> r, BackendConfig<AdbConfig> c);
 
         std::vector<std::string> adb_args();
@@ -40,7 +40,7 @@ namespace cd
         std::string frame_command(const std::string& command, const std::string& marker) override;
 
         void transfer(bool upload, std::string source, std::string destination, bool overwrite,
-                      std::function<void(uint64_t)> progress, Completion cb) override;
+            std::function<void(uint64_t)> progress, Completion cb) override;
 
         void close() override;
     };

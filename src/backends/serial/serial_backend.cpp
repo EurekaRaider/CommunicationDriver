@@ -22,7 +22,7 @@ namespace cd
         if (!e)
             serial.set_option(asio::serial_port_base::parity(
                                   static_cast<asio::serial_port_base::parity::type>(config.parity)),
-                              e);
+                e);
 
         if (!e)
             serial.set_option(
@@ -38,7 +38,7 @@ namespace cd
 
         if (e)
             cb(e == asio::error::access_denied ? CD_PERMISSION_DENIED : CD_CONNECTION_FAILED,
-               e.message(), e.value());
+                e.message(), e.value());
         else
         {
             cb(CD_OK, {}, 0);

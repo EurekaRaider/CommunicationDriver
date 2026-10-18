@@ -52,8 +52,8 @@ int main(int argc, char** argv)
     {
         try
         {
-            std::filesystem::copy_file(a[7], a[8],
-                                       std::filesystem::copy_options::overwrite_existing);
+            std::filesystem::copy_file(
+                a[7], a[8], std::filesystem::copy_options::overwrite_existing);
             std::cout << "1 file transferred\n";
             return 0;
         }

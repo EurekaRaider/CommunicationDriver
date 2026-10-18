@@ -44,10 +44,11 @@ namespace cd
         {
             unsigned char c = s[i];
             size_t n =
-                c < 0x80 ? 1
-                         : (c >= 0xc2 && c <= 0xdf
-                                ? 2
-                                : (c >= 0xe0 && c <= 0xef ? 3 : (c >= 0xf0 && c <= 0xf4 ? 4 : 0)));
+                c < 0x80
+                    ? 1
+                    : (c >= 0xc2 && c <= 0xdf
+                              ? 2
+                              : (c >= 0xe0 && c <= 0xef ? 3 : (c >= 0xf0 && c <= 0xf4 ? 4 : 0)));
 
             if (!n)
             {
@@ -66,7 +67,7 @@ namespace cd
 
             if (i + 1 < s.size() && n == 3 &&
                 ((c == 0xe0 && static_cast<unsigned char>(s[i + 1]) < 0xa0) ||
-                 (c == 0xed && static_cast<unsigned char>(s[i + 1]) >= 0xa0)))
+                    (c == 0xed && static_cast<unsigned char>(s[i + 1]) >= 0xa0)))
             {
                 if (partial)
                     return i;
@@ -75,7 +76,7 @@ namespace cd
 
             if (i + 1 < s.size() && n == 4 &&
                 ((c == 0xf0 && static_cast<unsigned char>(s[i + 1]) < 0x90) ||
-                 (c == 0xf4 && static_cast<unsigned char>(s[i + 1]) >= 0x90)))
+                    (c == 0xf4 && static_cast<unsigned char>(s[i + 1]) >= 0x90)))
             {
                 if (partial)
                     return i;
@@ -173,8 +174,8 @@ namespace cd
         return n;
     }
 #ifndef _WIN32
-    static std::string convert(const std::string& input, const char* to, const char* from,
-                               bool final)
+    static std::string convert(
+        const std::string& input, const char* to, const char* from, bool final)
     {
         iconv_t converter = iconv_open(to, from);
 
@@ -220,18 +221,18 @@ namespace cd
             return {};
 
 #ifdef _WIN32
-        int n = MultiByteToWideChar(54936, MB_ERR_INVALID_CHARS, s.data(), static_cast<int>(prefix),
-                                    nullptr, 0);
+        int n = MultiByteToWideChar(
+            54936, MB_ERR_INVALID_CHARS, s.data(), static_cast<int>(prefix), nullptr, 0);
         if (!n)
             throw Fault(CD_ENCODING_ERROR, "Invalid GB18030 sequence", GetLastError());
         std::wstring w(n, 0);
-        MultiByteToWideChar(54936, MB_ERR_INVALID_CHARS, s.data(), static_cast<int>(prefix),
-                            w.data(), n);
-        int m = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, w.data(), n, nullptr, 0, nullptr,
-                                    nullptr);
+        MultiByteToWideChar(
+            54936, MB_ERR_INVALID_CHARS, s.data(), static_cast<int>(prefix), w.data(), n);
+        int m = WideCharToMultiByte(
+            CP_UTF8, WC_ERR_INVALID_CHARS, w.data(), n, nullptr, 0, nullptr, nullptr);
         std::string out(m, 0);
-        WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, w.data(), n, out.data(), m, nullptr,
-                            nullptr);
+        WideCharToMultiByte(
+            CP_UTF8, WC_ERR_INVALID_CHARS, w.data(), n, out.data(), m, nullptr, nullptr);
         return out;
 #else
         return convert(s.substr(0, prefix), "UTF-8", "GB18030", true);
@@ -269,18 +270,18 @@ namespace cd
 #ifdef _WIN32
         if (s.empty())
             return {};
-        int n = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, s.data(),
-                                    static_cast<int>(s.size()), nullptr, 0);
+        int n = MultiByteToWideChar(
+            CP_UTF8, MB_ERR_INVALID_CHARS, s.data(), static_cast<int>(s.size()), nullptr, 0);
         std::wstring w(n, 0);
-        MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, s.data(), static_cast<int>(s.size()),
-                            w.data(), n);
-        int m = WideCharToMultiByte(54936, WC_ERR_INVALID_CHARS, w.data(), n, nullptr, 0, nullptr,
-                                    nullptr);
+        MultiByteToWideChar(
+            CP_UTF8, MB_ERR_INVALID_CHARS, s.data(), static_cast<int>(s.size()), w.data(), n);
+        int m = WideCharToMultiByte(
+            54936, WC_ERR_INVALID_CHARS, w.data(), n, nullptr, 0, nullptr, nullptr);
         if (!m)
             throw Fault(CD_ENCODING_ERROR, "GB18030 conversion failed", GetLastError());
         std::string out(m, 0);
-        WideCharToMultiByte(54936, WC_ERR_INVALID_CHARS, w.data(), n, out.data(), m, nullptr,
-                            nullptr);
+        WideCharToMultiByte(
+            54936, WC_ERR_INVALID_CHARS, w.data(), n, out.data(), m, nullptr, nullptr);
         return out;
 #else
         return convert(s, "GB18030", "UTF-8", true);

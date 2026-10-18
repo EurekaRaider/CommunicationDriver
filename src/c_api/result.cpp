@@ -39,8 +39,8 @@ extern "C"
         return CD_OK;
     }
 
-    cd_status_t CD_CALL cd_result_get_text(const cd_result_t* h, cd_stream_t stream,
-                                           cd_string_view_t* out)
+    cd_status_t CD_CALL cd_result_get_text(
+        const cd_result_t* h, cd_stream_t stream, cd_string_view_t* out)
     {
         if (!h || !out || stream < 0 || stream > 1)
             return CD_INVALID_ARGUMENT;
@@ -48,8 +48,8 @@ extern "C"
         return CD_OK;
     }
 
-    cd_status_t CD_CALL cd_result_get_bytes(const cd_result_t* h, cd_stream_t stream,
-                                            cd_bytes_view_t* out)
+    cd_status_t CD_CALL cd_result_get_bytes(
+        const cd_result_t* h, cd_stream_t stream, cd_bytes_view_t* out)
     {
         if (!h || !out || stream < 0 || stream > 1)
             return CD_INVALID_ARGUMENT;
@@ -113,10 +113,10 @@ extern "C"
             return CD_NOT_SUPPORTED;
 
         out->all_succeeded = std::all_of(r.items.begin(), r.items.end(),
-                                         [](const BatchEntry& e)
-                                         {
-                                             return e.result && e.result->succeeded();
-                                         });
+            [](const BatchEntry& e)
+            {
+                return e.result && e.result->succeeded();
+            });
         out->was_cancelled = r.was_cancelled;
         out->item_count = r.items.size();
         out->elapsed_ns = r.elapsed_ns;
@@ -124,8 +124,8 @@ extern "C"
         return CD_OK;
     }
 
-    cd_status_t CD_CALL cd_result_get_batch_item(const cd_result_t* h, uint64_t index,
-                                                 cd_batch_item_result_t* out)
+    cd_status_t CD_CALL cd_result_get_batch_item(
+        const cd_result_t* h, uint64_t index, cd_batch_item_result_t* out)
     {
         GET_START(cd_batch_item_result_t);
 

@@ -3,18 +3,18 @@
 
 namespace comm
 {
-    template <class T> class Operation
+    template <class T>
+    class Operation
     {
         std::shared_ptr<detail::OperationControl> control_;
 
-      public:
+    public:
         explicit Operation(cd_operation_t* h, std::stop_token stop = {}, int stream = 0)
             : control_(std::make_shared<detail::OperationControl>(h, stream))
         {
             if (stop.stop_possible())
                 control_->cancellation =
-                    std::make_unique<std::stop_callback<std::function<void()>>>(
-                        stop,
+                    std::make_unique<std::stop_callback<std::function<void()>>>(stop,
                         [h]
                         {
                             cd_operation_cancel(h);

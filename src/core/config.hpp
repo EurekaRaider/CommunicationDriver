@@ -32,6 +32,6 @@ namespace cd
         }
     };
 
-    std::shared_ptr<Backend> make_backend(std::shared_ptr<Runtime>, const ConnectionConfig&,
-                                          bool persistent = false);
+    std::shared_ptr<Backend> make_backend(
+        std::shared_ptr<Runtime>, const ConnectionConfig&, bool persistent = false);
 }

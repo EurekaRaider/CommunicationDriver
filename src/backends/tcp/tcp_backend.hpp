@@ -12,7 +12,7 @@ namespace cd
         std::array<char, 65536> buffer{};
         bool stopped = false;
 
-      public:
+    public:
         TcpBackend(std::shared_ptr<Runtime> r, BackendConfig<TcpConfig> c);
 
         void open(Completion cb) override;

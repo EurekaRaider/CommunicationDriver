@@ -8,8 +8,8 @@ using namespace cd::abi;
 extern "C"
 {
     cd_status_t CD_CALL cd_batch_run_async(cd_driver_t* d, const cd_batch_item_t* input,
-                                           uint64_t count, const cd_batch_options_t* options,
-                                           cd_completion_fn cb, void* user, cd_operation_t** out)
+        uint64_t count, const cd_batch_options_t* options, cd_completion_fn cb, void* user,
+        cd_operation_t** out)
     {
         if (out)
 
@@ -28,7 +28,7 @@ extern "C"
             if (options)
             {
                 require(options->struct_size >= sizeof(*options) && options->max_concurrency > 0,
-                        "Invalid BatchOptions");
+                    "Invalid BatchOptions");
                 batch->max = options->max_concurrency;
                 cancel = cancellation(options->cancellation);
             }
@@ -42,13 +42,13 @@ extern "C"
 
                 auto key = copy(item.key);
                 require(!key.empty() && keys.insert(key).second,
-                        "Batch keys must be nonempty and unique");
+                    "Batch keys must be nonempty and unique");
                 require(item.connection->value->runtime == d->value,
-                        "Connections must belong to the same Driver");
+                    "Connections must belong to the same Driver");
                 require(item.connection->value->state == CD_STATE_OPEN,
-                        "Batch connections must already be open");
+                    "Batch connections must already be open");
                 require(item.kind >= CD_BATCH_EXECUTE_STRING && item.kind <= CD_BATCH_DOWNLOAD,
-                        "Invalid batch action");
+                    "Invalid batch action");
 
                 bool text = item.kind == CD_BATCH_EXECUTE_STRING ||
                             item.kind == CD_BATCH_EXECUTE_UNTIL_STRING;
@@ -62,9 +62,9 @@ extern "C"
                 req->check = Check(item.check);
 
                 if (action == Action::ExecuteUntil)
-                    require(req->check.kind == CD_CHECK_CONTAINS ||
-                                req->check.kind == CD_CHECK_REGEX,
-                            "ExecuteUntil requires Contains or Regex");
+                    require(
+                        req->check.kind == CD_CHECK_CONTAINS || req->check.kind == CD_CHECK_REGEX,
+                        "ExecuteUntil requires Contains or Regex");
 
                 if (action == Action::Upload || action == Action::Download)
                 {
@@ -88,8 +88,8 @@ extern "C"
                     req->input =
                         text ? encode(copy(item.command), req->options.encoding) : copy(item.bytes);
 
-                require(req->options.timeout <= max_timeout_ms,
-                        "Operation timeout is out of range");
+                require(
+                    req->options.timeout <= max_timeout_ms, "Operation timeout is out of range");
                 batch->items.push_back({item.connection->value, req, key});
                 batch->result->items.push_back({key, CD_BATCH_NOT_STARTED, {}});
             }
@@ -104,10 +104,10 @@ extern "C"
                 {
                     if (auto b = weak.lock())
                         asio::post(b->runtime->state->io,
-                                   [b]
-                                   {
-                                       b->schedule();
-                                   });
+                            [b]
+                            {
+                                b->schedule();
+                            });
                 };
             }
 
@@ -115,10 +115,10 @@ extern "C"
                 cancel->subscribe(batch->operation);
 
             asio::post(d->value->state->io,
-                       [batch]
-                       {
-                           batch->schedule();
-                       });
+                [batch]
+                {
+                    batch->schedule();
+                });
 
             return CD_OK;
         }
@@ -129,7 +129,7 @@ extern "C"
     }
 
     cd_status_t CD_CALL cd_batch_run(cd_driver_t* d, const cd_batch_item_t* items, uint64_t count,
-                                     const cd_batch_options_t* options, cd_result_t** out)
+        const cd_batch_options_t* options, cd_result_t** out)
     {
         try
         {
