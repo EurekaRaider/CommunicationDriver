@@ -6,7 +6,7 @@
 
 One core. Every connection.
 
-[![Version](https://img.shields.io/badge/Version-0.1.2-F97316?style=flat-square&labelColor=24292F&logo=git&logoColor=white)](CMakeLists.txt)
+[![Version](https://img.shields.io/badge/Version-0.1.3-F97316?style=flat-square&labelColor=24292F&logo=git&logoColor=white)](CMakeLists.txt)
 [![Windows](https://img.shields.io/badge/Windows-x86%20%7C%20x64-0078D4?style=flat-square&labelColor=24292F&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0yIDJoOXY5SDJ6bTExIDBoOXY5aC05ek0yIDEzaDl2OUgyem0xMSAwaDl2OWgtOXoiLz48L3N2Zz4%3D&logoColor=white)](#validation)
 [![Linux](https://img.shields.io/badge/Linux-x64%20%7C%20ARM64-FCC624?style=flat-square&labelColor=24292F&logo=linux&logoColor=white)](#validation)
 [![macOS](https://img.shields.io/badge/macOS-x64%20%7C%20ARM64-6B7280?style=flat-square&labelColor=24292F&logo=apple&logoColor=white)](#validation)
@@ -24,7 +24,7 @@ CommunicationDriver is a cross-platform communication library for device control
 
 From a local shell command to parallel batches across devices, the workflow stays consistent: create a connection, open resources, perform an operation, check the response, and close the connection.
 
-> **Current version: 0.1.2.** Native and NuGet packages include an agent skill with C, C++23, and C# usage guidance. Six-platform software acceptance and macOS / Windows device tests are recorded separately in the [validation report](docs/validation.md); physical serial ports and broader hardware coverage remain pending.
+> **Current version: 0.1.3.** Native and NuGet packages include an agent skill with C, C++23, and C# usage guidance. Six-platform software acceptance and macOS / Windows device tests are recorded separately in the [validation report](docs/validation.md); physical serial ports and broader hardware coverage remain pending.
 
 ## Why CommunicationDriver
 
@@ -226,7 +226,7 @@ Set `CMAKE_PREFIX_PATH` to the `install` directory when configuring the consumer
 
 ### C# and NuGet
 
-Download `CommunicationDriver.0.1.2.nupkg` from [GitHub Releases](https://github.com/EurekaRaider/CommunicationDriver/releases). Place the `.nupkg` in a local NuGet feed, then reference **`CommunicationDriver` 0.1.2** using `PackageReference`. The version in your project must match the downloaded package. Successful [Platform CI](https://github.com/EurekaRaider/CommunicationDriver/actions/workflows/ci.yml) runs also retain their build artifacts.
+Download `CommunicationDriver.0.1.3.nupkg` from [GitHub Releases](https://github.com/EurekaRaider/CommunicationDriver/releases). Place the `.nupkg` in a local NuGet feed, then reference **`CommunicationDriver` 0.1.3** using `PackageReference`. The version in your project must match the downloaded package. Successful [Platform CI](https://github.com/EurekaRaider/CommunicationDriver/actions/workflows/ci.yml) runs also retain their build artifacts.
 
 The merged package includes `net48 / net10.0`, native libraries for six RIDs, third-party licenses, and `skills/communicationdriver/`. Windows selects `win-x86 / win-x64` according to `PlatformTarget`. On Unix, set `RuntimeIdentifier` or `CommunicationDriverRid` as needed. Native library architecture must match the process.
 
@@ -259,7 +259,7 @@ The same skill source is delivered with each library build:
 | Source checkout | `skills/communicationdriver/` |
 | Native RID package or NuGet package | `skills/communicationdriver/` inside the package |
 | CMake installation | `<prefix>/share/communicationdriver/skills/communicationdriver/` with the default data directory |
-| GitHub Release or **`CommunicationDriver-Skill`** CI artifact | `CommunicationDriver-Skill-0.1.2.zip`, containing `skills/communicationdriver/` |
+| GitHub Release or **`CommunicationDriver-Skill`** CI artifact | `CommunicationDriver-Skill-0.1.3.zip`, containing `skills/communicationdriver/` |
 
 Copy the whole `communicationdriver` folder into your agent's skills directory, preserving `SKILL.md` and its references. Use the skill from the same library version. Agents that load Markdown instructions directly can read `SKILL.md` without installing it. For example: “Use the CommunicationDriver skill to write a C# TCP consumer with a protocol delimiter, response checking, and cancellation.” The skill is independent of any specific agent product.
 
